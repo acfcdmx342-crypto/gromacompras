@@ -143,6 +143,7 @@ button { padding: 10px 15px; cursor: pointer; width: 100%; }
 /* Convertir a mayúsculas */
 function toUpper(input) {
     input.value = input.value.toUpperCase();
+    guardarFormulario();
 }
 
 /* Ver / ocultar contraseña */
@@ -169,6 +170,8 @@ function checkStrength() {
     if (strength <= 2) bar.style.background = "red";
     else if (strength <= 4) bar.style.background = "orange";
     else bar.style.background = "green";
+
+    guardarFormulario();
 }
 
 /* MODAL */
@@ -237,11 +240,54 @@ function cargarListas() {
 
     zonas.forEach(z => document.getElementById("zona").innerHTML += `<option>${z}</option>`);
     empresas.forEach(e => document.getElementById("empresa").innerHTML += `<option>${e}</option>`);
+
+    restaurarFormulario();
 }
 
 cargarListas();
 
-/* Registrar */
+/* -------------------------------
+   🔵 GUARDAR DATOS EN LOCALSTORAGE
+-------------------------------- */
+function guardarFormulario() {
+    const datos = {
+        nombre: document.getElementById("nombre").value,
+        usuario: document.getElementById("usuario").value,
+        pass: document.getElementById("pass").value,
+        correo: document.getElementById("correo").value,
+        telefono: document.getElementById("telefono").value,
+        puesto: document.getElementById("puesto").value,
+        zona: document.getElementById("zona").value,
+        empresa: document.getElementById("empresa").value
+    };
+    localStorage.setItem("formRegistro", JSON.stringify(datos));
+}
+
+/* -------------------------------
+   🔵 RESTAURAR DATOS AL CARGAR
+-------------------------------- */
+function restaurarFormulario() {
+    const datos = JSON.parse(localStorage.getItem("formRegistro") || "{}");
+
+    if (datos.nombre) document.getElementById("nombre").value = datos.nombre;
+    if (datos.usuario) document.getElementById("usuario").value = datos.usuario;
+    if (datos.pass) document.getElementById("pass").value = datos.pass;
+    if (datos.correo) document.getElementById("correo").value = datos.correo;
+    if (datos.telefono) document.getElementById("telefono").value = datos.telefono;
+    if (datos.puesto) document.getElementById("puesto").value = datos.puesto;
+    if (datos.zona) document.getElementById("zona").value = datos.zona;
+    if (datos.empresa) document.getElementById("empresa").value = datos.empresa;
+}
+
+/* Detectar cambios y guardar automáticamente */
+document.querySelectorAll("input, select").forEach(campo => {
+    campo.addEventListener("input", guardarFormulario);
+    campo.addEventListener("change", guardarFormulario);
+});
+
+/* -------------------------------
+   REGISTRAR
+-------------------------------- */
 function registrar() {
 
     const nombre = document.getElementById("nombre").value;
@@ -259,7 +305,6 @@ function registrar() {
     if (!correo.includes("@"))
         return alert("Correo inválido, falta el símbolo @");
 
-    // Contraseña: letras, números y símbolos
     const regexPass = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#._+\-=])[A-Za-z\d@$!%*?&#._+\-=]{6,}$/;
 
     if (!regexPass.test(pass))
@@ -278,6 +323,10 @@ function registrar() {
     localStorage.setItem("usuarios", JSON.stringify(usuarios));
 
     alert("Usuario registrado correctamente");
+
+    /* ❗ Limpia el formulario guardado */
+    localStorage.removeItem("formRegistro");
+
     window.location.href = "index.html";
 }
 
