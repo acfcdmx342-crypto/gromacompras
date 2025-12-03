@@ -31,7 +31,6 @@ body { font-family: Arial, sans-serif; padding: 20px; }
 }
 
 button { padding: 10px 15px; cursor: pointer; width: 100%; }
-.btn-tabla { background-color: #007bff; color: white; margin-top: 15px; }
 .btn-recover { background-color: #28a745; color: white; margin-top: 10px; }
 </style>
 </head>
@@ -40,11 +39,14 @@ button { padding: 10px 15px; cursor: pointer; width: 100%; }
 <h2 style="text-align:center;">Login</h2>
 <div class="card">
 
+    <!-- USUARIO -->
     <div class="input-group">
-        <input id="loginUser" placeholder="Usuario" oninput="this.value = this.value.toUpperCase()">
+        <input id="loginUser" placeholder="Usuario" 
+               oninput="this.value = this.value.toUpperCase()">
         <i class="fa-solid fa-user"></i>
     </div>
 
+    <!-- CONTRASEÑA + ÍCONO -->
     <div class="input-group">
         <input id="loginPass" type="password" placeholder="Contraseña">
         <i class="fa-solid fa-eye toggle-pass" onclick="verPassword()"></i>
@@ -54,10 +56,11 @@ button { padding: 10px 15px; cursor: pointer; width: 100%; }
 
     <button class="btn-recover" onclick="recuperar()">¿Olvidaste tu contraseña?</button>
 
-    <div id="zonaBotonTabla"></div>
 </div>
 
-<p style="text-align:center;">¿No tienes cuenta? <a href="registro.html">Regístrate aquí</a></p>
+<p style="text-align:center;">¿No tienes cuenta? 
+    <a href="registro.html">Regístrate aquí</a>
+</p>
 
 <!-- EmailJS -->
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
@@ -80,40 +83,41 @@ function verPassword() {
     }
 }
 
-/* -------------------------------
-   LOGIN FUNCIONAL (GITHUB READY)
---------------------------------*/
+/* ----------------------------------------
+   LOGIN FUNCIONAL CON DATOS REGISTRADOS
+-----------------------------------------*/
 function login() {
     const usuario = document.getElementById("loginUser").value.trim().toUpperCase();
-    const pass = document.getElementById("loginPass").value;
+    const pass = document.getElementById("loginPass").value.trim();
 
     if (!usuario || !pass) {
         alert("Ingresa usuario y contraseña");
         return;
     }
 
-    const datos = JSON.parse(localStorage.getItem("usuarios") || "[]");
+    // Obtener usuarios almacenados desde registro.html
+    const usuariosGuardados = JSON.parse(localStorage.getItem("usuarios") || "[]");
 
-    const existe = datos.find(u => 
-        u.usuario === usuario &&
-        u.pass === pass
+    // Validar usuario + contraseña
+    const usuarioValido = usuariosGuardados.find(u =>
+        u.usuario === usuario && u.pass === pass
     );
 
-    if (!existe) {
+    if (!usuarioValido) {
         alert("Usuario o contraseña incorrectos");
         return;
     }
 
-    // Guardar usuario activo
-    localStorage.setItem("usuarioActivo", JSON.stringify(existe));
+    // Guardar usuario en sesión
+    localStorage.setItem("usuarioActivo", JSON.stringify(usuarioValido));
 
-    // Redirigir al menú principal
+    // Redirigir
     window.location.href = "tecnologia.html";
 }
 
-/* -------------------------------
-   RECUPERAR CONTRASEÑA
---------------------------------*/
+/* ----------------------------------------
+   RECUPERAR CONTRASEÑA (NO SE MODIFICA)
+-----------------------------------------*/
 function recuperar() {
     const usuario = prompt("Ingresa tu USUARIO para recuperar tu acceso:");
 
@@ -128,7 +132,7 @@ function recuperar() {
     }
 
     const templateParams = {
-        to_email: existe.correo,   // CORREGIDO
+        to_email: existe.correo,
         usuario: existe.usuario,
         password: existe.pass
     };
@@ -146,4 +150,3 @@ function recuperar() {
 
 </body>
 </html>
-
