@@ -1,314 +1,37 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Registro</title>
-
-<style>
-body { font-family: Arial, sans-serif; padding: 20px; }
-.card { border: 1px solid #ccc; padding: 20px; max-width: 400px; margin: auto; }
-input, select { width: 100%; padding: 8px; margin-top: 8px; margin-bottom: 12px; }
-button { padding: 10px 15px; cursor: pointer; width: 100%; }
-
-.pass-container { position: relative; }
-.pass-container input { width: 100%; }
-.pass-toggle {
-    position: absolute;
-    right: 10px;
-    top: 10px;
-    cursor: pointer;
-    font-size: 18px;
-}
-
-.strength-bar { height: 6px; width: 100%; background: #ddd; border-radius: 4px; }
-.strength { height: 100%; width: 0%; border-radius: 4px; transition: 0.3s; }
-
-.modal-bg {
-    display: none; position: fixed; top: 0; left: 0;
-    width: 100%; height: 100%; background: rgba(0,0,0,0.5);
-    justify-content: center; align-items: center;
-}
-.modal {
-    background: white; padding: 20px; width: 350px; border-radius: 8px;
-}
-.close-btn { float: right; cursor: pointer; font-size: 20px; }
-.list-item {
-    display: flex; justify-content: space-between;
-    padding: 6px; background: #f1f1f1;
-    margin-top: 5px; border-radius: 4px;
-}
-.delete-btn { cursor: pointer; color: red; }
-
-.icon-btn { cursor: pointer; font-size: 18px; margin-left: 8px; }
-.label-container { display: flex; justify-content: space-between; align-items: center; }
-</style>
-
+<link rel="stylesheet" href="css/estilos.css">
 </head>
 <body>
-
 <h2 style="text-align:center;">Registro de Usuario</h2>
-
 <div class="card">
-
-    <input id="nombre" placeholder="Nombre completo" oninput="toUpper(this)" />
-    <input id="usuario" placeholder="Usuario" oninput="toUpper(this)" />
-
+    <input id="nombre" placeholder="Nombre completo" oninput="toUpper(this)">
+    <input id="usuario" placeholder="Usuario" oninput="toUpper(this)">
     <div class="pass-container">
-        <input id="pass" type="password" placeholder="Contraseña (mínimo 6 caracteres)" oninput="checkStrength()" />
+        <input id="pass" type="password" placeholder="Contraseña (mínimo 6 caracteres)" oninput="checkStrength()">
         <span class="pass-toggle" onclick="togglePass()">👁</span>
     </div>
-
     <div class="strength-bar"><div id="strength" class="strength"></div></div>
-
-    <input id="correo" placeholder="Correo electrónico" />
-    <input id="telefono" placeholder="WhatsApp (10 dígitos)" maxlength="10" />
-
+    <input id="correo" placeholder="Correo">
+    <input id="telefono" placeholder="WhatsApp (10 dígitos)" maxlength="10">
     <select id="puesto">
         <option>Administrador</option>
         <option>Coordinador de soporte</option>
-        <option>Gerente de sistemas</option>
-        <option>Jefe de infraestructura</option>
         <option>Sistemas</option>
         <option>Empleado</option>
         <option>Otro</option>
     </select>
-
-    <div class="label-container">
-        <label>Zonas:</label>
-        <span class="icon-btn" onclick="abrirModal('zona')">➕</span>
-    </div>
+    <label>Zonas:</label>
     <select id="zona"></select>
-
-    <div class="label-container">
-        <label>Empresas:</label>
-        <span class="icon-btn" onclick="abrirModal('empresa')">➕</span>
-    </div>
+    <label>Empresas:</label>
     <select id="empresa"></select>
-
     <button onclick="registrar()">Registrar</button>
-    <button style="background:#c62828;color:white;" onclick="window.location.href='index.html'">Salir</button>
-
+    <button class="btn-red" onclick="window.location.href='index.html'">Salir</button>
 </div>
-
-<!-- MODAL -->
-<div id="modal-bg" class="modal-bg">
-    <div class="modal">
-        <span class="close-btn" onclick="cerrarModal()">✖</span>
-        <h3 id="modal-title"></h3>
-        <input id="nuevoValor" placeholder="Nuevo nombre..." />
-        <button onclick="guardarNuevo()">Guardar</button>
-        <h4>Existentes:</h4>
-        <div id="listaValores"></div>
-    </div>
-</div>
-
-<script>
-  
-    
-/* Convertir a mayúsculas */
-function toUpper(input) {
-    input.value = input.value.toUpperCase();
-    guardarFormulario();
-}
-
-/* Ver / ocultar contraseña */
-function togglePass() {
-    const input = document.getElementById("pass");
-    input.type = input.type === "password" ? "text" : "password";
-}
-
-/* Indicador de fuerza */
-function checkStrength() {
-    const pass = document.getElementById("pass").value;
-    const bar = document.getElementById("strength");
-
-    let strength = 0;
-    if (pass.length >= 6) strength++;
-    if (/[A-Z]/.test(pass)) strength++;
-    if (/[a-z]/.test(pass)) strength++;
-    if (/\d/.test(pass)) strength++;
-    if (/[@$!%*?&#._+\-=]/.test(pass)) strength++;
-
-    bar.style.width = (strength * 20) + "%";
-    bar.style.background = strength <= 2 ? "red" :
-                           strength <= 4 ? "orange" :
-                           "green";
-
-    guardarFormulario();
-}
-
-/* Modal */
-let tipoActual = "";
-
-function abrirModal(tipo) {
-    tipoActual = tipo;
-    document.getElementById("modal-title").innerText =
-        tipo === "zona" ? "Administrar Zonas" : "Administrar Empresas";
-    cargarListaModal(tipo);
-    document.getElementById("modal-bg").style.display = "flex";
-}
-
-function cerrarModal() {
-    document.getElementById("modal-bg").style.display = "none";
-}
-
-function cargarListaModal(tipo) {
-    const contenedor = document.getElementById("listaValores");
-    contenedor.innerHTML = "";
-    let lista = JSON.parse(localStorage.getItem(tipo + "s") || "[]");
-    lista.forEach((valor, index) => {
-        contenedor.innerHTML += `
-            <div class="list-item">
-                ${valor}
-                <span class="delete-btn" onclick="eliminarValor('${tipo}', ${index})">❌</span>
-            </div>`;
-    });
-}
-
-function guardarNuevo() {
-    let nuevo = document.getElementById("nuevoValor").value.trim().toUpperCase();
-    if (!nuevo) return alert("Ingresa un nombre válido");
-
-    let lista = JSON.parse(localStorage.getItem(tipoActual + "s") || "[]");
-    if (lista.includes(nuevo)) return alert("Este valor ya existe");
-
-    lista.push(nuevo);
-    localStorage.setItem(tipoActual + "s", JSON.stringify(lista));
-    cargarListas();
-    cargarListaModal(tipoActual);
-    alert("Agregado correctamente");
-}
-
-function eliminarValor(tipo, index) {
-    let lista = JSON.parse(localStorage.getItem(tipo + "s") || "[]");
-    if (!confirm("¿Eliminar?")) return;
-    lista.splice(index, 1);
-    localStorage.setItem(tipo + "s", JSON.stringify(lista));
-    cargarListas();
-    cargarListaModal(tipo);
-}
-
-/* Cargar listas */
-function cargarListas() {
-
-    let zonas = JSON.parse(localStorage.getItem("zonas") || "[]");
-    let empresas = JSON.parse(localStorage.getItem("empresas") || "[]");
-
-    if (zonas.length === 0) {
-        zonas = ["PINGOL TULA", "PINGOL TIZAYUCA", "PINGOL TULANCINGO", "PINGOL PUEBLA", "PINGOL POZA RICA", "PINGOL VERACRUZ NORTE", "PINGOL VALLES", "PINGOL HUASTECA"];
-        localStorage.setItem("zonas", JSON.stringify(zonas));
-    }
-
-    if (empresas.length === 0) {
-        empresas = ["PINGOL", "FERREPRECIOS", "TORVAL", "PINPJ", "ACF"];
-        localStorage.setItem("empresas", JSON.stringify(empresas));
-    }
-
-    const zonaSelect = document.getElementById("zona");
-    const empresaSelect = document.getElementById("empresa");
-
-    zonaSelect.innerHTML = '<option value="">Seleccione una zona</option>';
-    empresaSelect.innerHTML = '<option value="">Seleccione una empresa</option>';
-
-    zonas.forEach(z => zonaSelect.innerHTML += `<option>${z}</option>`);
-    empresas.forEach(e => empresaSelect.innerHTML += `<option>${e}</option>`);
-
-    /* Esperar a que se generen todos los options */
-    setTimeout(() => restaurarFormulario(), 50);
-}
-
-cargarListas();
-
-/* Guardar datos */
-function guardarFormulario() {
-    const datos = {
-        nombre: nombre.value,
-        usuario: usuario.value,
-        pass: pass.value,
-        correo: correo.value,
-        telefono: telefono.value,
-        puesto: puesto.value,
-        zona: zona.value,
-        empresa: empresa.value
-    };
-    localStorage.setItem("formRegistro", JSON.stringify(datos));
-}
-
-/* Restaurar valores */
-function restaurarFormulario() {
-    const datos = JSON.parse(localStorage.getItem("formRegistro") || "{}");
-
-    if (datos.nombre) nombre.value = datos.nombre;
-    if (datos.usuario) usuario.value = datos.usuario;
-    if (datos.pass) pass.value = datos.pass;
-    if (datos.correo) correo.value = datos.correo;
-    if (datos.telefono) telefono.value = datos.telefono;
-    if (datos.puesto) puesto.value = datos.puesto;
-    if (datos.zona) zona.value = datos.zona;
-    if (datos.empresa) empresa.value = datos.empresa;
-}
-
-/* Eventos para guardar */
-document.querySelectorAll("input, select").forEach(campo => {
-    campo.addEventListener("input", guardarFormulario);
-    campo.addEventListener("change", guardarFormulario);
-});
-
-/* Registrar */
-function registrar() {
-
-    if (!nombre.value || !usuario.value || !pass.value ||
-        !correo.value || !telefono.value || !puesto.value ||
-        !zona.value || !empresa.value)
-        return alert("Todos los campos son obligatorios");
-
-    if (!correo.value.includes("@"))
-        return alert("Correo inválido");
-
-    const regexPass = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#._+\-=])[A-Za-z\d@$!%*?&#._+\-=]{6,}$/;
-
-    if (!regexPass.test(pass.value))
-        return alert("La contraseña debe contener letras, números y símbolos.");
-
-    if (telefono.value.length !== 10 || isNaN(telefono.value))
-        return alert("WhatsApp debe tener 10 dígitos");
-
-    const usuarios = JSON.parse(localStorage.getItem("usuarios") || "[]");
-
-    if (usuarios.some(u => u.usuario === usuario.value))
-        return alert("Usuario ya existe");
-
-    if (usuarios.some(u => u.correo === correo.value))
-        return alert("Correo ya existe");
-
-    if (usuarios.some(u => u.telefono === telefono.value))
-        return alert("Número ya existe");
-
-    usuarios.push({
-        nombre: nombre.value,
-        usuario: usuario.value,
-        pass: pass.value,
-        correo: correo.value,
-        telefono: telefono.value,
-        puesto: puesto.value,
-        zona: zona.value,
-        empresa: empresa.value
-    });
-
-    localStorage.setItem("usuarios", JSON.stringify(usuarios));
-
-    alert("Usuario registrado correctamente");
-
-    localStorage.removeItem("formRegistro");
-
-    window.location.href = "index.html";
-}
-
-</script>
-
+<script src="js/registro.js"></script>
 </body>
 </html>
-
-
-

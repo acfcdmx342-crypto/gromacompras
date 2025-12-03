@@ -1,152 +1,22 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Login</title>
-
-<!-- ICONOS FONTAWESOME -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
-<style>
-body { font-family: Arial, sans-serif; padding: 20px; }
-.card { border: 1px solid #ccc; padding: 20px; max-width: 350px; margin:auto; }
-
-.input-group { position: relative; width: 100%; }
-.input-group input {
-    width: 100%;
-    padding: 10px 40px 10px 10px;
-    margin-bottom: 15px;
-    box-sizing: border-box;
-}
-
-.input-group i {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    cursor: pointer;
-    font-size: 18px;
-    color: #555;
-}
-
-button { padding: 10px 15px; cursor: pointer; width: 100%; }
-.btn-recover { background-color: #28a745; color: white; margin-top: 10px; }
-</style>
+<link rel="stylesheet" href="css/estilos.css">
 </head>
 <body>
-
-<h2 style="text-align:center;">Login</h2>
 <div class="card">
-
-    <!-- USUARIO -->
-    <div class="input-group">
-        <input id="loginUser" placeholder="Usuario" 
-               oninput="this.value = this.value.toUpperCase()">
-        <i class="fa-solid fa-user"></i>
+    <h2>Inicio de sesión</h2>
+    <input id="usuario" placeholder="Usuario" oninput="this.value=this.value.toUpperCase()">
+    <div class="pass-container">
+        <input id="pass" type="password" placeholder="Contraseña">
+        <span class="pass-toggle" onclick="togglePassLogin()">👁</span>
     </div>
-
-    <!-- CONTRASEÑA + ÍCONO -->
-    <div class="input-group">
-        <input id="loginPass" type="password" placeholder="Contraseña">
-        <i class="fa-solid fa-eye toggle-pass" onclick="verPassword()"></i>
-    </div>
-
-    <button onclick="login()">Ingresar</button>
-
-    <button class="btn-recover" onclick="recuperar()">¿Olvidaste tu contraseña?</button>
-
+    <button onclick="login()">Entrar</button>
+    <p>¿No tienes cuenta? <a href="registro.html">Regístrate aquí</a></p>
 </div>
-
-<p style="text-align:center;">¿No tienes cuenta? 
-    <a href="registro.html">Regístrate aquí</a>
-</p>
-
-<!-- EmailJS -->
-<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
-<script>
-emailjs.init("0aHlArLgvHrj2Xbk8");
-</script>
-
-<script>
-// 👁️ Mostrar / Ocultar contraseña
-function verPassword() {
-    const passField = document.getElementById("loginPass");
-    const icon = document.querySelector(".toggle-pass");
-
-    if (passField.type === "password") {
-        passField.type = "text";
-        icon.classList.replace("fa-eye", "fa-eye-slash");
-    } else {
-        passField.type = "password";
-        icon.classList.replace("fa-eye-slash", "fa-eye");
-    }
-}
-
-/* ----------------------------------------
-   LOGIN FUNCIONAL CON DATOS REGISTRADOS
------------------------------------------*/
-function login() {
-    const usuario = document.getElementById("loginUser").value.trim().toUpperCase();
-    const pass = document.getElementById("loginPass").value.trim();
-
-    if (!usuario || !pass) {
-        alert("Ingresa usuario y contraseña");
-        return;
-    }
-
-    // Obtener usuarios almacenados desde registro.html
-    const usuariosGuardados = JSON.parse(localStorage.getItem("usuarios") || "[]");
-
-    // Validar usuario + contraseña
-    const usuarioValido = usuariosGuardados.find(u =>
-        u.usuario === usuario && u.pass === pass
-    );
-
-    if (!usuarioValido) {
-        alert("Usuario o contraseña incorrectos");
-        return;
-    }
-
-    // Guardar usuario en sesión
-    localStorage.setItem("usuarioActivo", JSON.stringify(usuarioValido));
-
-    // Redirigir
-    window.location.href = "tecnologia.html";
-}
-
-/* ----------------------------------------
-   RECUPERAR CONTRASEÑA (NO SE MODIFICA)
------------------------------------------*/
-function recuperar() {
-    const usuario = prompt("Ingresa tu USUARIO para recuperar tu acceso:");
-
-    if (!usuario) return;
-
-    const datos = JSON.parse(localStorage.getItem("usuarios") || "[]");
-    const existe = datos.find(u => u.usuario === usuario.toUpperCase());
-
-    if (!existe) {
-        alert("El usuario no existe.");
-        return;
-    }
-
-    const templateParams = {
-        to_email: existe.correo,
-        usuario: existe.usuario,
-        password: existe.pass
-    };
-
-    emailjs.send("service_mya4ogg", "template_ub0ksu5", templateParams)
-        .then(() => {
-            alert("Tu contraseña ha sido enviada a tu correo: " + existe.correo);
-        })
-        .catch(err => {
-            console.error(err);
-            alert("Hubo un error al enviar el correo.");
-        });
-}
-</script>
-
+<script src="js/login.js"></script>
 </body>
 </html>

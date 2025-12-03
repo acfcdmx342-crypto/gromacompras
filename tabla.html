@@ -3,198 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tabla de Usuarios</title>
-
-<style>
-body { font-family: Arial, sans-serif; padding: 20px; }
-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-th { background-color: #f2f2f2; }
-button { padding: 10px 15px; cursor: pointer; margin-bottom: 15px; }
-</style>
-
+<title>Solicitudes registradas</title>
+<link rel="stylesheet" href="css/estilos.css">
 </head>
 <body>
-<script>
-// === BLOQUEO DE ACCESO A tabla.html ===
-
-const usuario = JSON.parse(localStorage.getItem("usuarioActivo"));
-
-if (!usuario) {
-    alert("Debes iniciar sesión primero.");
-    window.location.href = "index.html";
-}
-
-// Lista de puestos autorizados
-const puestosPermitidos = [
-    "coordinador de soporte tecnico",
-    "gerente de sistemas",
-    "sistemas",
-    "soporte tecnico",
-    "jefe de infraestructura"
-];
-
-// Normalizar texto
-const puesto = usuario.puesto.toLowerCase();
-
-if (!puestosPermitidos.includes(puesto)) {
-    alert("No tienes permisos para acceder a esta sección.");
-    window.location.href = "tecnologia.html";
-}
-</script>
-
-<h2>Usuarios Registrados</h2>
-
-<button onclick="window.location.href='index.html'">Cerrar sesión</button>
-
-<table>
-    <thead>
-        <tr>
-            <th>Nombre</th>
-            <th>Usuario</th>
-            <th>Contraseña</th>
-            <th>Correo</th>
-            <th>Teléfono</th>
-            <th>Puesto</th>
-            <th>Zona</th>
-            <th>Empresa</th>
-            <th>Editar</th>
-            <th>Eliminar</th>
-            <th>Estado</th>
-        </tr>
-    </thead>
-    <tbody id="tablaUsuarios"></tbody>
+<h2>Solicitudes Registradas</h2>
+<table border="1" width="100%">
+<thead>
+    <tr>
+        <th>Título</th>
+        <th>Descripción</th>
+        <th>Área</th>
+        <th>Acciones</th>
+    </tr>
+</thead>
+<tbody id="tabla"></tbody>
 </table>
-
-<h3>Editar Usuario</h3>
-<div id="editForm" 
-     style="display:none; border:1px solid #ccc; padding:15px; max-width:350px; margin-top:20px;">
-
-    <input id="editNombre" placeholder="Nombre" />
-    <input id="editUsuario" placeholder="Usuario" disabled />
-    <input id="editPass" placeholder="Contraseña" />
-    <input id="editCorreo" placeholder="Correo" />
-    <input id="editTelefono" placeholder="Telefono" />
-    <input id="editPuesto" placeholder="Puesto" />
-    <input id="editZona" placeholder="Zona" />
-    <input id="editEmpresa" placeholder="Empresa" />
-
-    <button onclick="guardarCambios()">Guardar</button>
-</div>
-
-<script>
-const activo = JSON.parse(localStorage.getItem("usuarioActivo"));
-if (!activo) {
-    alert("Acceso no autorizado");
-    window.location.href = "index.html";
-}
-//
-function cargarTabla() {
-    const datos = JSON.parse(localStorage.getItem("usuarios") || "[]");
-    const tabla = document.getElementById("tablaUsuarios");
-    tabla.innerHTML = "";
-
-    datos.forEach((u, index) => {
-        if (!u.estado) u.estado = "activo";
-
-        const row = `
-            <tr style="background:${u.estado === "inactivo" ? "#ffd5d5" : "white"};">
-                <td>${u.nombre}</td>
-                <td>${u.usuario}</td>
-                <td>${u.pass}</td>
-                <td>${u.correo}</td>
-                <td>${u.telefono}</td>
-                <td>${u.puesto}</td>
-                <td>${u.zona}</td>
-                <td>${u.empresa}</td>
-
-                <td><button onclick="editar('${u.usuario}')">Editar</button></td>
-                <td><button onclick="eliminar(${index})">Eliminar</button></td>
-
-                <td>
-                    <button onclick="toggleEstado(${index})"
-                        style="background:${u.estado === 'activo' ? 'orange' : 'green'}; color:white;">
-                        ${u.estado === "activo" ? "Inactivar" : "Activar"}
-                    </button>
-                </td>
-            </tr>
-        `;
-        tabla.innerHTML += row;
-    });
-}
-
-// ---------------------------------------
-// ACTIVAR / INACTIVAR + CONTRASEÑA
-// ---------------------------------------
-function toggleEstado(index) {
-    const datos = JSON.parse(localStorage.getItem("usuarios") || "[]");
-    const user = datos[index];
-
-    if (user.estado === "activo") {
-        user.estado = "inactivo";
-        user.pass = ""; // borrar contraseña
-    } else {
-        user.estado = "activo";
-        user.pass = user.usuario + "123"; // contraseña nueva automática
-    }
-
-    localStorage.setItem("usuarios", JSON.stringify(datos));
-    cargarTabla();
-}
-
-// ---------------------------------------
-function eliminar(index) {
-    const datos = JSON.parse(localStorage.getItem("usuarios") || "[]");
-
-    if (!confirm(`¿Eliminar a: ${datos[index].nombre}?`)) return;
-
-    datos.splice(index, 1);
-    localStorage.setItem("usuarios", JSON.stringify(datos));
-
-    cargarTabla();
-}
-
-// ---------------------------------------
-function editar(usuario){
-    const datos = JSON.parse(localStorage.getItem("usuarios") || "[]");
-    const u = datos.find(x => x.usuario === usuario);
-
-    document.getElementById("editNombre").value = u.nombre;
-    document.getElementById("editUsuario").value = u.usuario;
-    document.getElementById("editPass").value = u.pass;
-    document.getElementById("editCorreo").value = u.correo;
-    document.getElementById("editTelefono").value = u.telefono;
-    document.getElementById("editPuesto").value = u.puesto;
-    document.getElementById("editZona").value = u.zona;
-    document.getElementById("editEmpresa").value = u.empresa;
-
-    document.getElementById("editForm").style.display = "block";
-}
-
-function guardarCambios() {
-    const datos = JSON.parse(localStorage.getItem("usuarios") || "[]");
-    const usuario = document.getElementById("editUsuario").value;
-    const idx = datos.findIndex(x => x.usuario === usuario);
-
-    datos[idx] = {
-        nombre: document.getElementById("editNombre").value,
-        usuario,
-        pass: document.getElementById("editPass").value,
-        correo: document.getElementById("editCorreo").value,
-        telefono: document.getElementById("editTelefono").value,
-        puesto: document.getElementById("editPuesto").value,
-        zona: document.getElementById("editZona").value,
-        empresa: document.getElementById("editEmpresa").value,
-        estado: datos[idx].estado  
-    };
-
-    localStorage.setItem("usuarios", JSON.stringify(datos));
-    alert("Datos guardados");
-    cargarTabla();
-}
-
-cargarTabla();
-</script>
-
+<button onclick="window.location.href='tecnologia.html'">Regresar</button>
+<button class="btn-red" onclick="logout()">Salir</button>
+<script src="js/tabla.js"></script>
 </body>
 </html>
