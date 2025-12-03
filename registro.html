@@ -105,6 +105,7 @@ button { padding: 10px 15px; cursor: pointer; width: 100%; }
 
 <script>
 localStorage.setItem("usuarios", JSON.stringify(arrayUsuarios));
+JSON.parse(localStorage.getItem("usuarios"))    
 /* Convertir a mayúsculas */
 function toUpper(input) {
     input.value = input.value.toUpperCase();
@@ -308,4 +309,5 @@ function registrar() {
 
 </body>
 </html>
+
 
