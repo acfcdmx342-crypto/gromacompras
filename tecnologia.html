@@ -6,6 +6,53 @@
 <title>Solicitud de Tecnología</title>
 <link rel="stylesheet" href="css/estilos.css">
 </head>
+<script>
+// Lista de puestos permitidos
+const puestosPermitidos = [
+    "JEFE DE INFRA ESTRUCTURA",
+    "COORDINADOR DE SOPORTE TECNICO",
+    "SOPORTE TECNICO",
+    "GERENTE DE SISTEMAS"
+];
+
+// Ocultar el botón si no tiene permisos
+window.onload = function () {
+    const usuarioActivo = JSON.parse(localStorage.getItem("usuarioActivo"));
+    const btn = document.getElementById("btnUsuarios");
+
+    if (!usuarioActivo || !usuarioActivo.puesto) {
+        btn.style.display = "none";
+        return;
+    }
+
+    const puesto = usuarioActivo.puesto.toUpperCase().trim();
+
+    // Si el puesto NO está permitido → ocultar botón
+    if (!puestosPermitidos.includes(puesto)) {
+        btn.style.display = "none";
+    }
+};
+
+// Validar acceso cuando lo presionan
+function validarAccesoRegistro() {
+    const usuarioActivo = JSON.parse(localStorage.getItem("usuarioActivo"));
+
+    if (!usuarioActivo) {
+        alert("No hay un usuario logueado.");
+        return;
+    }
+
+    const puesto = usuarioActivo.puesto.toUpperCase().trim();
+
+    if (!puestosPermitidos.includes(puesto)) {
+        alert("No tienes permisos para acceder al registro de usuarios.");
+        return;
+    }
+
+    window.location.href = "registro.html";
+}
+</script>
+
 <body>
 <h2>Solicitud de Tecnología</h2>
 <div class="card">
