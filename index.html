@@ -10,13 +10,9 @@
 
 <style>
 body { font-family: Arial, sans-serif; padding: 20px; }
-.card { border: 1px solid #ccc; padding: 20px; max-width: 350px; }
+.card { border: 1px solid #ccc; padding: 20px; max-width: 350px; margin:auto; }
 
-/* Contenido */
-.input-group {
-    position: relative;
-    width: 100%;
-}
+.input-group { position: relative; width: 100%; }
 .input-group input {
     width: 100%;
     padding: 10px 40px 10px 10px;
@@ -24,7 +20,6 @@ body { font-family: Arial, sans-serif; padding: 20px; }
     box-sizing: border-box;
 }
 
-/* Icono dentro del campo */
 .input-group i {
     position: absolute;
     right: 10px;
@@ -38,22 +33,18 @@ body { font-family: Arial, sans-serif; padding: 20px; }
 button { padding: 10px 15px; cursor: pointer; width: 100%; }
 .btn-tabla { background-color: #007bff; color: white; margin-top: 15px; }
 .btn-recover { background-color: #28a745; color: white; margin-top: 10px; }
-
 </style>
 </head>
 <body>
 
-<h2>Login</h2>
+<h2 style="text-align:center;">Login</h2>
 <div class="card">
 
-    <!-- USUARIO EN MAYÚSCULAS -->
     <div class="input-group">
-        <input id="loginUser" placeholder="Usuario"
-               oninput="this.value = this.value.toUpperCase()">
+        <input id="loginUser" placeholder="Usuario" oninput="this.value = this.value.toUpperCase()">
         <i class="fa-solid fa-user"></i>
     </div>
 
-    <!-- CONTRASEÑA CON ICONO DE VER/OCULTAR -->
     <div class="input-group">
         <input id="loginPass" type="password" placeholder="Contraseña">
         <i class="fa-solid fa-eye toggle-pass" onclick="verPassword()"></i>
@@ -66,7 +57,7 @@ button { padding: 10px 15px; cursor: pointer; width: 100%; }
     <div id="zonaBotonTabla"></div>
 </div>
 
-<p>¿No tienes cuenta? <a href="registro.html">Regístrate aquí</a></p>
+<p style="text-align:center;">¿No tienes cuenta? <a href="registro.html">Regístrate aquí</a></p>
 
 <!-- EmailJS -->
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
@@ -75,97 +66,79 @@ emailjs.init("0aHlArLgvHrj2Xbk8");
 </script>
 
 <script>
-
-// 👁️ FUNCIÓN VER/OCULTAR CONTRASEÑA (SIN CAMBIAR TAMAÑO)
+// 👁️ Mostrar / Ocultar contraseña
 function verPassword() {
     const passField = document.getElementById("loginPass");
     const icon = document.querySelector(".toggle-pass");
 
     if (passField.type === "password") {
         passField.type = "text";
-        icon.classList.remove("fa-eye");
-        icon.classList.add("fa-eye-slash");
+        icon.classList.replace("fa-eye", "fa-eye-slash");
     } else {
         passField.type = "password";
-        icon.classList.remove("fa-eye-slash");
-        icon.classList.add("fa-eye");
+        icon.classList.replace("fa-eye-slash", "fa-eye");
     }
 }
 
+/* -------------------------------
+   LOGIN FUNCIONAL (GITHUB READY)
+--------------------------------*/
 function login() {
-    const usuario = document.getElementById("loginUser").value.toUpperCase();
+    const usuario = document.getElementById("loginUser").value.trim().toUpperCase();
     const pass = document.getElementById("loginPass").value;
 
+    if (!usuario || !pass) {
+        alert("Ingresa usuario y contraseña");
+        return;
+    }
+
     const datos = JSON.parse(localStorage.getItem("usuarios") || "[]");
-    const existe = datos.find(u => u.usuario === usuario && u.pass === pass);
+
+    const existe = datos.find(u => 
+        u.usuario === usuario &&
+        u.pass === pass
+    );
 
     if (!existe) {
         alert("Usuario o contraseña incorrectos");
         return;
     }
 
+    // Guardar usuario activo
     localStorage.setItem("usuarioActivo", JSON.stringify(existe));
-    const puesto = existe.puesto.toLowerCase();
 
-    const puestosConBotonTabla = [
-        "coordinador de soporte tecnico",
-        "gerente de sistemas",
-        "sistemas",
-        "soporte tecnico",
-        "jefe de infraestructura"
-    ];
-
-    if (puesto === "soporte jr") {
-        window.location.href = "tecnologia.html";
-        return;
-    }
-
-    if (puestosConBotonTabla.includes(puesto)) {
-        document.getElementById("zonaBotonTabla").innerHTML = `
-            <button class="btn-tabla" onclick="irTabla()">Ir a tabla de usuarios</button>
-        `;
-        window.location.href = "tecnologia.html";
-        return;
-    }
-
+    // Redirigir al menú principal
     window.location.href = "tecnologia.html";
 }
 
-function irTabla() {
-    window.location.href = "tabla.html";
-}
-
-// -----------------------------------------------------------
-// FUNCION: RECUPERAR CONTRASEÑA
-// -----------------------------------------------------------
+/* -------------------------------
+   RECUPERAR CONTRASEÑA
+--------------------------------*/
 function recuperar() {
-    const usuario = prompt("Ingresa tu usuario para recuperar el acceso:");
+    const usuario = prompt("Ingresa tu USUARIO para recuperar tu acceso:");
 
-    if (!usuario) {
-        alert("Debes escribir un usuario.");
-        return;
-    }
+    if (!usuario) return;
 
     const datos = JSON.parse(localStorage.getItem("usuarios") || "[]");
     const existe = datos.find(u => u.usuario === usuario.toUpperCase());
 
-   	if (!existe) {
+    if (!existe) {
         alert("El usuario no existe.");
         return;
     }
 
     const templateParams = {
-        to_email: existe.email,
+        to_email: existe.correo,   // CORREGIDO
         usuario: existe.usuario,
         password: existe.pass
     };
 
     emailjs.send("service_mya4ogg", "template_ub0ksu5", templateParams)
         .then(() => {
-            alert("Tu contraseña ha sido enviada a tu correo: " + existe.email);
+            alert("Tu contraseña ha sido enviada a tu correo: " + existe.correo);
         })
         .catch(err => {
-            console.error("Error:", err);
+            console.error(err);
             alert("Hubo un error al enviar el correo.");
         });
 }
@@ -173,3 +146,4 @@ function recuperar() {
 
 </body>
 </html>
+
