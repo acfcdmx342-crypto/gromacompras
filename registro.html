@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Registro</title>
+
+<style>
+body { font-family: Arial, sans-serif; padding: 20px; }
+.card { border: 1px solid #ccc; padding: 20px; max-width: 400px; margin: auto; }
+input, select { width: 100%; padding: 8px; margin-top: 8px; margin-bottom: 12px; }
+button { padding: 10px 15px; cursor: pointer; width: 100%; }
+
+/* Campo contraseña */
+.pass-container {
+    position: relative;
+}
+.pass-container input {
+    width: 100%;
+}
+.pass-toggle {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+/* Indicador fuerza */
+.strength-bar {
+    height: 6px;
+    width: 100%;
+    background: #ddd;
+    border-radius: 4px;
+    margin-top: -8px;
+    margin-bottom: 10px;
+}
+.strength {
+    height: 100%;
+    width: 0%;
+    border-radius: 4px;
+    transition: 0.3s;
+}
+
+/* Modal */
+.modal-bg {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    justify-content: center; align-items: center;
+}
+.modal {
+    background: white;
+    padding: 20px;
+    width: 350px;
+    border-radius: 8px;
+}
+.close-btn {
+    float: right;
+    cursor: pointer;
+    font-size: 20px;
+}
+.list-item {
+    display: flex; justify-content: space-between;
+    padding: 6px; background: #f1f1f1;
+    margin-top: 5px; border-radius: 4px;
+}
+.delete-btn { cursor: pointer; color: red; }
+
+.icon-btn { cursor: pointer; font-size: 18px; margin-left: 8px; }
+.label-container { display: flex; justify-content: space-between; align-items: center; }
+</style>
+
+</head>
+<body>
+
+<h2 style="text-align:center;">Registro de Usuario</h2>
+
+<div class="card">
+
+    <input id="nombre" placeholder="Nombre completo" oninput="toUpper(this)" />
+
+    <input id="usuario" placeholder="Usuario" oninput="toUpper(this)" />
+
+    <!-- CONTRASEÑA + ICONO -->
+    <div class="pass-container">
+        <input id="pass" type="password" placeholder="Contraseña (mínimo 6 caracteres)" oninput="checkStrength()" />
+        <span class="pass-toggle" onclick="togglePass()">👁</span>
+    </div>
+
+    <!-- Indicador -->
+    <div class="strength-bar">
+        <div id="strength" class="strength"></div>
+    </div>
+
+    <input id="correo" placeholder="Correo electrónico" />
+    <input id="telefono" placeholder="WhatsApp (10 dígitos)" maxlength="10" />
+
+    <select id="puesto">
+        <option>Administrador</option>
+        <option>Coordinador de soporte</option>
+        <option>Gerente de sistemas</option>
+        <option>Jefe de infraestructura</option>
+        <option>Sistemas</option>
+        <option>Empleado</option>
+        <option>Otro</option>
+    </select>
+
+    <div class="label-container">
+        <label>Zonas:</label>
+        <span class="icon-btn" onclick="abrirModal('zona')">➕</span>
+    </div>
+    <select id="zona"></select>
+
+    <div class="label-container">
+        <label>Empresas:</label>
+        <span class="icon-btn" onclick="abrirModal('empresa')">➕</span>
+    </div>
+    <select id="empresa"></select>
+
+    <button onclick="registrar()">Registrar</button>
+
+    <button style="background:#c62828;color:white;" onclick="window.location.href='index.html'">Salir</button>
+
+</div>
+
+<!-- MODAL -->
+<div id="modal-bg" class="modal-bg">
+    <div class="modal">
+        <span class="close-btn" onclick="cerrarModal()">✖</span>
+        <h3 id="modal-title"></h3>
+        <input id="nuevoValor" placeholder="Nuevo nombre..." />
+        <button onclick="guardarNuevo()">Guardar</button>
+        <h4>Existentes:</h4>
+        <div id="listaValores"></div>
+    </div>
+</div>
+
+<script>
+
+/* Convertir a mayúsculas */
+function toUpper(input) {
+    input.value = input.value.toUpperCase();
+}
+
+/* Ver / ocultar contraseña */
+function togglePass() {
+    const input = document.getElementById("pass");
+    input.type = input.type === "password" ? "text" : "password";
+}
+
+/* Indicador de fuerza */
+function checkStrength() {
+    const pass = document.getElementById("pass").value;
+    const bar = document.getElementById("strength");
+
+    let strength = 0;
+
+    if (pass.length >= 6) strength += 1;
+    if (/[A-Z]/.test(pass)) strength += 1;
+    if (/[a-z]/.test(pass)) strength += 1;
+    if (/\d/.test(pass)) strength += 1;
+    if (/[@$!%*?&#._+\-=]/.test(pass)) strength += 1;
+
+    bar.style.width = (strength * 20) + "%";
+
+    if (strength <= 2) bar.style.background = "red";
+    else if (strength <= 4) bar.style.background = "orange";
+    else bar.style.background = "green";
+}
+
+/* MODAL */
+let tipoActual = "";
+
+function abrirModal(tipo) {
+    tipoActual = tipo;
+    document.getElementById("modal-title").innerText =
+        tipo === "zona" ? "Administrar Zonas" : "Administrar Empresas";
+    cargarListaModal(tipo);
+    document.getElementById("modal-bg").style.display = "flex";
+}
+function cerrarModal() {
+    document.getElementById("modal-bg").style.display = "none";
+}
+function cargarListaModal(tipo) {
+    const contenedor = document.getElementById("listaValores");
+    contenedor.innerHTML = "";
+    let lista = JSON.parse(localStorage.getItem(tipo + "s") || "[]");
+    lista.forEach((valor, index) => {
+        contenedor.innerHTML += `
+            <div class="list-item">
+                ${valor}
+                <span class="delete-btn" onclick="eliminarValor('${tipo}', ${index})">❌</span>
+            </div>`;
+    });
+}
+function guardarNuevo() {
+    let nuevo = document.getElementById("nuevoValor").value.trim().toUpperCase();
+    if (!nuevo) return alert("Ingresa un nombre válido");
+
+    let lista = JSON.parse(localStorage.getItem(tipoActual + "s") || "[]");
+    if (lista.includes(nuevo)) return alert("Este valor ya existe");
+
+    lista.push(nuevo);
+    localStorage.setItem(tipoActual + "s", JSON.stringify(lista));
+    cargarListas();
+    cargarListaModal(tipoActual);
+    alert("Agregado correctamente");
+}
+function eliminarValor(tipo, index) {
+    let lista = JSON.parse(localStorage.getItem(tipo + "s") || "[]");
+    if (!confirm("¿Eliminar?")) return;
+    lista.splice(index, 1);
+    localStorage.setItem(tipo + "s", JSON.stringify(lista));
+    cargarListas();
+    cargarListaModal(tipo);
+}
+
+/* Cargar listas */
+function cargarListas() {
+    let zonas = JSON.parse(localStorage.getItem("zonas") || "[]");
+    let empresas = JSON.parse(localStorage.getItem("empresas") || "[]");
+
+    if (zonas.length === 0) {
+        zonas = ["PINGOL TULA", "PINGOL TIZAYUCA", "PINGOL TULANCINGO", "PINGOL PUEBLA", "PINGOL POZA RICA", "PINGOL VERACRUZ NORTE", "PINGOL VALLES", "PINGOL HUSTECA"];
+        localStorage.setItem("zonas", JSON.stringify(zonas));
+    }
+    if (empresas.length === 0) {
+        empresas = ["PINGOL", "FERREPRECIOS", "TORVAL", "PINPJ", "ACF"];
+        localStorage.setItem("empresas", JSON.stringify(empresas));
+    }
+
+    document.getElementById("zona").innerHTML = '<option value="">Seleccione una zona</option>';
+    document.getElementById("empresa").innerHTML = '<option value="">Seleccione una empresa</option>';
+
+    zonas.forEach(z => document.getElementById("zona").innerHTML += `<option>${z}</option>`);
+    empresas.forEach(e => document.getElementById("empresa").innerHTML += `<option>${e}</option>`);
+}
+
+cargarListas();
+
+/* Registrar */
+function registrar() {
+
+    const nombre = document.getElementById("nombre").value;
+    const usuario = document.getElementById("usuario").value;
+    const pass = document.getElementById("pass").value;
+    const correo = document.getElementById("correo").value;
+    const telefono = document.getElementById("telefono").value;
+    const puesto = document.getElementById("puesto").value;
+    const zona = document.getElementById("zona").value;
+    const empresa = document.getElementById("empresa").value;
+
+    if (!nombre || !usuario || !pass || !correo || !telefono || !puesto || !zona || !empresa)
+        return alert("Todos los campos son obligatorios");
+
+    if (!correo.includes("@"))
+        return alert("Correo inválido, falta el símbolo @");
+
+    // Contraseña: letras, números y símbolos
+    const regexPass = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#._+\-=])[A-Za-z\d@$!%*?&#._+\-=]{6,}$/;
+
+    if (!regexPass.test(pass))
+        return alert("La contraseña debe tener mínimo 6 caracteres y contener letras, números y símbolos.");
+
+    if (telefono.length !== 10 || isNaN(telefono))
+        return alert("WhatsApp debe tener 10 dígitos");
+
+    const usuarios = JSON.parse(localStorage.getItem("usuarios") || "[]");
+
+    if (usuarios.some(u => u.usuario === usuario)) return alert("Usuario ya existe");
+    if (usuarios.some(u => u.correo === correo)) return alert("Correo ya existe");
+    if (usuarios.some(u => u.telefono === telefono)) return alert("Número ya existe");
+
+    usuarios.push({ nombre, usuario, pass, correo, telefono, puesto, zona, empresa });
+    localStorage.setItem("usuarios", JSON.stringify(usuarios));
+
+    alert("Usuario registrado correctamente");
+    window.location.href = "index.html";
+}
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solicitud de Tecnología</title>
+
+<style>
+body { font-family: Arial, sans-serif; padding: 20px; }
+.card { border: 1px solid #ccc; padding: 20px; max-width:400px; }
+input, select { width: 100%; padding: 8px; margin-top: 8px; margin-bottom: 12px; }
+button { padding: 10px; cursor: pointer; }
+table { width: 100%; border-collapse: collapse; margin-top: 30px; }
+th, td { border: 1px solid #ccc; padding: 8px; }
+th { background: #f0f0f0; }
+img { width: 22px; cursor: pointer; margin-right: 8px; }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+<script>
+emailjs.init("0aHlArLgvHrj2Xbk8");
+</script>
+
+</head>
+<body>
+
+<h2>Solicitud de Tecnología</h2>
+<!-- BOTÓN CERRAR SESIÓN -->
+<div style="text-align:right; margin-bottom: 15px;">
+    <button onclick="cerrarSesion()" 
+            style="padding:10px 18px; background:#d9534f; color:white; border:none; border-radius:6px; cursor:pointer;">
+        🚪 Cerrar sesión
+    </button>
+</div>
+
+
+<button onclick="window.location.href='tabla.html'">Usuarios</button>
+
+<div class="card">
+    <select id="zona">
+        <option value="">Seleccione zona</option>
+        <option>Norte</option>
+        <option>Sur</option>
+        <option>Este</option>
+        <option>Oeste</option>
+    </select>
+
+    <select id="empresa">
+        <option value="">Seleccione empresa</option>
+        <option>Empresa A</option>
+        <option>Empresa B</option>
+        <option>Empresa C</option>
+    </select>
+
+    <input id="solicita" placeholder="Quién solicita">
+    <input id="sucursal" placeholder="Para qué sucursal">
+    <input id="fecha" type="date">
+
+    <!-- SUBIR ARCHIVO -->
+    <input type="file" id="archivo">
+
+    <button onclick="guardarSolicitud()">Guardar solicitud</button>
+</div>
+
+<h3>Solicitudes registradas</h3>
+<table>
+<thead>
+<tr>
+    <th>Zona</th>
+    <th>Empresa</th>
+    <th>Solicita</th>
+    <th>Sucursal</th>
+    <th>Fecha</th>
+    <th>Archivo</th>
+    <th>Acciones</th>
+</tr>
+</thead>
+<tbody id="tabla"></tbody>
+</table>
+
+<script>
+function cerrarSesion() {
+    sessionStorage.clear();
+    localStorage.clear();
+
+    alert("Sesión cerrada correctamente");
+    window.location.href = "index.html"; // Página de login
+}
+
+
+const activo = JSON.parse(localStorage.getItem("usuarioActivo"));
+if (!activo) {
+    alert("Acceso no autorizado");
+    window.location.href = "index.html";
+}
+
+// ---------------------------------------------------------------
+// Cargar solicitudes
+// ---------------------------------------------------------------
+function cargarSolicitudes(){
+    const datos = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    const tabla = document.getElementById("tabla");
+    tabla.innerHTML = "";
+
+    datos.forEach((s, i) => {
+
+        // URL dinámica para ir a seguimiento.html
+        const urlSeguimiento = `seguimiento.html?empresa=${encodeURIComponent(s.empresa)}
+            &zona=${encodeURIComponent(s.zona)}
+            &solicita=${encodeURIComponent(s.solicita)}
+            &sucursal=${encodeURIComponent(s.sucursal)}
+            &fecha=${encodeURIComponent(s.fecha)}
+            &archivo=${encodeURIComponent(s.archivoData)}`;
+
+        tabla.innerHTML += `
+            <tr>
+                <td>${s.zona}</td>
+                <td>${s.empresa}</td>
+                <td>${s.solicita}</td>
+                <td>${s.sucursal}</td>
+                <td>${s.fecha}</td>
+
+                <td>
+                    ${s.archivoNombre 
+                        ? `<a href="${s.archivoData}" download="${s.archivoNombre}">${s.archivoNombre}</a>` 
+                        : "Sin archivo"}
+                </td>
+
+                <td>
+                    <!-- Editar -->
+                    <img src="https://cdn-icons-png.flaticon.com/512/1828/1828911.png" 
+                         title="Editar" onclick="editar(${i})">
+
+                    <!-- Eliminar -->
+                    <img src="https://cdn-icons-png.flaticon.com/512/1214/1214428.png" 
+                         title="Eliminar" onclick="eliminar(${i})">
+
+                    <!-- Reenviar -->
+                    <img src="https://cdn-icons-png.flaticon.com/512/561/561127.png" 
+                         title="Reenviar" onclick="reenviar(${i})">
+
+                    <!-- Seguimiento (NUEVO) -->
+                    <a href="${urlSeguimiento}">
+                        <img src="https://cdn-icons-png.flaticon.com/512/709/709612.png"
+                             title="Seguimiento">
+                    </a>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+// ---------------------------------------------------------------
+// GUARDAR SOLICITUD (NO ENVÍA ARCHIVO EN CORREO)
+// ---------------------------------------------------------------
+function guardarSolicitud() {
+
+    const zona = document.getElementById("zona").value;
+    const empresa = document.getElementById("empresa").value;
+    const solicita = document.getElementById("solicita").value;
+    const sucursal = document.getElementById("sucursal").value;
+    const fecha = document.getElementById("fecha").value;
+    const fileInput = document.getElementById("archivo");
+
+    if (!zona || !empresa || !solicita || !sucursal || !fecha){
+        alert("Todos los campos son obligatorios");
+        return;
+    }
+
+    let archivoNombre = "";
+    let archivoData = "";
+
+    const file = fileInput.files[0];
+
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e){
+            archivoData = e.target.result;
+            archivoNombre = file.name;
+
+            guardarFinal(zona, empresa, solicita, sucursal, fecha, archivoNombre, archivoData);
+        };
+        reader.readAsDataURL(file);
+    } else {
+        guardarFinal(zona, empresa, solicita, sucursal, fecha, "", "");
+    }
+}
+
+// Guardar en localStorage y enviar correo
+function guardarFinal(zona, empresa, solicita, sucursal, fecha, archivoNombre, archivoData){
+
+    const datos = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+
+    const nueva = { 
+        zona, empresa, solicita, sucursal, fecha,
+        archivoNombre, archivoData
+    };
+
+    datos.push(nueva);
+    localStorage.setItem("solicitudes", JSON.stringify(datos));
+
+    // Enviar solo aviso
+    emailjs.send("service_mya4ogg", "template_apg1whs", {
+        zona, empresa, solicita, sucursal, fecha,
+        archivo: archivoNombre
+    })
+    .then(() => {
+        alert("Solicitud guardada. Correo enviado.");
+        cargarSolicitudes();
+    })
+    .catch(() => {
+        alert("Solicitud guardada, pero error al enviar correo.");
+        cargarSolicitudes();
+    });
+}
+
+// ---------------------------------------------------------------
+// ELIMINAR
+// ---------------------------------------------------------------
+function eliminar(i){
+    const datos = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    datos.splice(i, 1);
+    localStorage.setItem("solicitudes", JSON.stringify(datos));
+    cargarSolicitudes();
+}
+
+// ---------------------------------------------------------------
+// EDITAR
+// ---------------------------------------------------------------
+function editar(i){
+    const datos = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    const s = datos[i];
+
+    document.getElementById("zona").value = s.zona;
+    document.getElementById("empresa").value = s.empresa;
+    document.getElementById("solicita").value = s.solicita;
+    document.getElementById("sucursal").value = s.sucursal;
+    document.getElementById("fecha").value = s.fecha;
+
+    eliminar(i);
+}
+
+// ---------------------------------------------------------------
+// REENVIAR
+// ---------------------------------------------------------------
+function reenviar(i){
+    const datos = JSON.parse(localStorage.getItem("solicitudes") || "[]");
+    const s = datos[i];
+
+    emailjs.send("service_mya4ogg", "template_apg1whs", {
+        zona: s.zona,
+        empresa: s.empresa,
+        solicita: s.solicita,
+        sucursal: s.sucursal,
+        fecha: s.fecha
+    })
+    .then(() => {
+        alert("Solicitud reenviada correctamente.");
+    })
+    .catch(() => {
+        alert("Error al reenviar.");
+    });
+}
+
+cargarSolicitudes();
+</script>
+
+</body>
+</html>

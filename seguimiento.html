@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seguimiento de Solicitud</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        background: #f7f7f7;
+    }
+    .card {
+        background: #fff;
+        padding: 20px;
+        border-radius: 12px;
+        max-width: 900px;
+        margin: auto;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.16);
+    }
+    h2 {
+        text-align: center;
+        margin-bottom: 25px;
+    }
+    label {
+        font-weight: bold;
+        display: block;
+        margin-top: 15px;
+    }
+    input, select, textarea {
+        width: 100%;
+        padding: 10px;
+        margin-top: 6px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+    }
+    input[readonly] {
+        background: #ececec;
+        cursor: not-allowed;
+    }
+    textarea {
+        height: 90px;
+        resize: vertical;
+    }
+    .btn {
+        margin-top: 20px;
+        padding: 12px;
+        background: #0078ff;
+        color: #fff;
+        border: none;
+        width: 100%;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+    .btn:hover {
+        background: #005fcc;
+    }
+
+    table {
+        width: 100%;
+        margin-top: 30px;
+        border-collapse: collapse;
+        background: #fff;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+    th, td {
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+        text-align: left;
+        font-size: 14px;
+    }
+    th {
+        background: #0078ff;
+        color: white;
+        font-weight: bold;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+    <h2>Seguimiento de Solicitud</h2>
+
+    <!-- CAMPOS BLOQUEADOS IMPORTADOS -->
+    <label>Empresa</label>
+    <input id="empresa" type="text" readonly>
+
+    <label>Zona</label>
+    <input id="zona" type="text" readonly>
+
+    <label>Solicita</label>
+    <input id="solicita" type="text" readonly>
+
+    <label>Sucursal</label>
+    <input id="sucursal" type="text" readonly>
+
+    <label>Fecha</label>
+    <input id="fecha" type="text" readonly>
+
+    <hr style="margin: 30px 0;">
+
+    <!-- CAMPOS EDITABLES -->
+    <label>Quién da seguimiento</label>
+    <select id="seguimiento">
+        <option value="">Seleccione...</option>
+        <option>Compras</option>
+        <option>Tecnología</option>
+        <option>Recursos Humanos</option>
+        <option>Gerencia</option>
+    </select>
+
+    <label>Fecha de Seguimiento a Compras</label>
+    <input id="fechaSeguimiento" type="date">
+
+    <label>Comentarios</label>
+    <textarea id="comentarios"></textarea>
+
+    <label>Folio de cotización</label>
+    <input id="folioCot" type="text">
+
+    <label>Fecha de autorización</label>
+    <input id="fechaAut" type="date">
+
+    <label>Quién autoriza</label>
+    <input id="autoriza" type="text">
+
+    <label>Fecha de entrega</label>
+    <input id="fechaEntrega" type="date">
+
+    <label>Quién recibe</label>
+    <input id="recibe" type="text">
+
+    <label>Fecha de envío a zona</label>
+    <input id="fechaEnvio" type="date">
+
+    <label>Quién envía</label>
+    <input id="envia" type="text">
+
+    <label>Folio Factura</label>
+    <input id="folioFactura" type="text">
+
+    <label>Status</label>
+    <select id="status">
+        <option>Pendiente</option>
+        <option>En proceso</option>
+        <option>Autorizado</option>
+        <option>Entregado</option>
+        <option>Cancelado</option>
+    </select>
+
+    <label>Observaciones</label>
+    <textarea id="observaciones"></textarea>
+
+    <!-- BOTÓN GUARDAR -->
+    <button class="btn" onclick="guardarSeguimiento()">Guardar seguimiento</button>
+
+    <!-- BOTÓN REGRESAR -->
+    <button class="btn" style="background:#444;" onclick="window.location.href='tecnologia.html'">
+        ⬅ Regresar a Tecnología
+    </button>
+
+</div>
+
+<!-- TABLA HISTORIAL -->
+<h2 style="text-align:center;margin-top:40px;">Historial de Seguimiento</h2>
+
+<table id="tablaSeguimiento">
+    <thead>
+        <tr>
+            <th>Empresa</th>
+            <th>Zona</th>
+            <th>Solicita</th>
+            <th>Sucursal</th>
+            <th>Fecha Solicitud</th>
+            <th>Seguimiento</th>
+            <th>Fecha Seg.</th>
+            <th>Comentarios</th>
+            <th>Folio</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+/* -------------------------------
+   CARGA DE VALORES DESDE LA URL
+------------------------------- */
+function obtenerParametro(nombre) {
+    const url = new URL(window.location.href);
+    return url.searchParams.get(nombre);
+}
+
+document.getElementById("empresa").value = obtenerParametro("empresa") || "";
+document.getElementById("zona").value = obtenerParametro("zona") || "";
+document.getElementById("solicita").value = obtenerParametro("solicita") || "";
+document.getElementById("sucursal").value = obtenerParametro("sucursal") || "";
+document.getElementById("fecha").value = obtenerParametro("fecha") || "";
+
+/* ---------------------------------------
+   GUARDAR SEGUIMIENTO EN LOCALSTORAGE
+--------------------------------------- */
+
+function guardarSeguimiento() {
+
+    const registro = {
+        empresa: document.getElementById("empresa").value,
+        zona: document.getElementById("zona").value,
+        solicita: document.getElementById("solicita").value,
+        sucursal: document.getElementById("sucursal").value,
+        fechaSolicitud: document.getElementById("fecha").value,
+
+        seguimiento: document.getElementById("seguimiento").value,
+        fechaSeguimiento: document.getElementById("fechaSeguimiento").value,
+        comentarios: document.getElementById("comentarios").value,
+        folio: document.getElementById("folioCot").value,
+        status: document.getElementById("status").value
+    };
+
+    let lista = JSON.parse(localStorage.getItem("seguimientoDatos") || "[]");
+    lista.push(registro);
+
+    localStorage.setItem("seguimientoDatos", JSON.stringify(lista));
+
+    mostrarTabla();
+
+    alert("Seguimiento guardado correctamente");
+}
+
+/* ---------------------------------------
+   MOSTRAR REGISTROS EN TABLA
+--------------------------------------- */
+
+function mostrarTabla() {
+    let lista = JSON.parse(localStorage.getItem("seguimientoDatos") || "[]");
+    const tbody = document.querySelector("#tablaSeguimiento tbody");
+    tbody.innerHTML = "";
+
+    lista.forEach(reg => {
+        let fila = `
+            <tr>
+                <td>${reg.empresa}</td>
+                <td>${reg.zona}</td>
+                <td>${reg.solicita}</td>
+                <td>${reg.sucursal}</td>
+                <td>${reg.fechaSolicitud}</td>
+                <td>${reg.seguimiento}</td>
+                <td>${reg.fechaSeguimiento}</td>
+                <td>${reg.comentarios}</td>
+                <td>${reg.folio}</td>
+                <td>${reg.status}</td>
+            </tr>`;
+        tbody.innerHTML += fila;
+    });
+}
+
+mostrarTabla();
+</script>
+
+</body>
+</html>
