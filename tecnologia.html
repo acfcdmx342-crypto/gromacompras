@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitud de Tecnología</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body { background: #f2f4f7; }
+        .card { border-radius: 20px; }
+        .action-btn { cursor: pointer; font-size: 22px; margin-right: 10px; }
+        .table thead { background:#0d6efd; color:white; }
+        .btn-rounded { border-radius: 50px; }
+ #btnRegresar {
+        cursor: pointer;
+        font-size: 40px; /* Aumentado de 24px a 40px */
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        color: #0d6efd;
+        z-index: 1000; /* Para que siempre esté encima */
+    }
+    #btnRegresar:hover { 
+        color: #0a58ca; 
+    }
+
+        /* ===================== NUEVO ===================== */
+        td:last-child {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        td .action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 8px;
+        }
+        td .action-btn:last-child {
+            margin-right: 0;
+        }
+    </style>
+</head>
+<body class="p-4">
+<span id="btnRegresar" title="Regresar al Login" onclick="irLogin()">🔙</span>
+<div class="container">
+    <h2 class="text-center mb-4 fw-bold">Solicitud de Tecnología</h2>
+
+    <!-- ==================== FORMULARIO ==================== -->
+    <div class="card shadow p-4 mb-4">
+        <h5 class="fw-bold mb-3">Registrar Solicitud</h5>
+
+        <form id="formTec" class="row g-3">
+
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Folio</label>
+                <input id="folio" class="form-control" readonly>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Empresa</label>
+                <input id="empresa" class="form-control text-uppercase">
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Zona</label>
+                <input id="zona" class="form-control text-uppercase">
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Soporte Zona</label>
+                <input id="soporte" class="form-control text-uppercase">
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Sucursal</label>
+                <input id="sucursal" class="form-control text-uppercase">
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Requisición (archivo)</label>
+                <input id="archivo" class="form-control" type="file">
+            </div>
+
+            <!-- Botones Guardar e Ir a Base -->
+            <div class="col-12 mt-3 d-flex justify-content-between">
+                <button type="button" class="btn btn-primary btn-rounded" onclick="guardarSolicitud()">Guardar Solicitud</button>
+                <button type="button" class="btn btn-secondary btn-rounded" onclick="irBase()">Ir a Base</button>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- ==================== TABLA ==================== -->
+    <div class="card shadow p-4">
+        <h5 class="fw-bold mb-3">Registros de Solicitudes</h5>
+
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>Folio</th>
+                    <th>Empresa</th>
+                    <th>Zona</th>
+                    <th>Soporte</th>
+                    <th>Sucursal</th>
+                    <th>Archivo</th>
+                    <th>Status</th>
+                    <th>Fecha Envío</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tablaTecBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ==================== MODAL EDITAR ==================== -->
+<div class="modal fade" id="modalEditarTec">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">Editar Solicitud</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <input id="editEmpresa" class="form-control mb-2 text-uppercase" placeholder="Empresa">
+        <input id="editZona" class="form-control mb-2 text-uppercase" placeholder="Zona">
+        <input id="editSoporte" class="form-control mb-2 text-uppercase" placeholder="Soporte Zona">
+        <input id="editSucursal" class="form-control mb-2 text-uppercase" placeholder="Sucursal">
+
+        <label class="fw-bold mt-2">Actualizar archivo:</label>
+        <input id="editArchivo" type="file" class="form-control mb-2">
+
+        <label class="fw-bold">Status:</label>
+        <select id="editStatus" class="form-select">
+            <option>Pendiente</option>
+            <option>Encurso</option>
+            <option>Entregado</option>
+        </select>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarEdicion()">Guardar Cambios</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ==================== EMAILJS SDK v3 ==================== -->
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+<script>
+
+function irLogin() {
+    if(confirm("¿Desea regresar al Login?")) {
+        localStorage.removeItem('usuarioLogueado');
+        window.location.href = 'login.html';
+    }
+}
+
+emailjs.init({ publicKey: "0aHlArLgvHrj2Xbk8" });
+
+let solicitudes = JSON.parse(localStorage.getItem("tecnologiaLS") || "[]");
+let indexEditar = null;
+let archivoActual = null;
+
+/* ===================== GENERAR FOLIO ====================== */
+function generarFolio(){
+    let folioNum = (solicitudes.length + 1).toString().padStart(4, "0");
+    return "TEC-" + folioNum;
+}
+document.getElementById("folio").value = generarFolio();
+
+/* ===================== GUARDAR SOLICITUD ====================== */
+function guardarSolicitud(){
+    let fol = folio.value;
+    let emp = empresa.value.toUpperCase();
+    let zon = zona.value.toUpperCase();
+    let sop = soporte.value.toUpperCase();
+    let suc = sucursal.value.toUpperCase();
+    let file = archivo.files[0];
+
+    if(!emp || !zon || !sop || !suc || !file){
+        alert("Todos los campos son obligatorios.");
+        return;
+    }
+
+    let reader = new FileReader();
+    reader.onload = function(){
+        let fechaEnvio = new Date().toLocaleString();
+
+        solicitudes.push({
+            folio: fol,
+            empresa: emp,
+            zona: zon,
+            soporte: sop,
+            sucursal: suc,
+            archivoNombre: file.name,
+            archivoData: reader.result,
+            status: "Pendiente",
+            fechaEnvio: fechaEnvio
+        });
+
+        localStorage.setItem("tecnologiaLS", JSON.stringify(solicitudes));
+        actualizarTabla();
+        formTec.reset();
+        document.getElementById("folio").value = generarFolio();
+    };
+    reader.readAsDataURL(file);
+}
+
+/* ===================== TABLA ====================== */
+function actualizarTabla(){
+    let t = document.getElementById("tablaTecBody");
+    t.innerHTML = "";
+    let seguimiento = JSON.parse(localStorage.getItem("seguimientoLS") || "[]");
+
+    solicitudes.forEach((s,i)=>{
+        let segStatus = seguimiento.find(seg => seg.folio === s.folio)?.status || s.status;
+
+        t.innerHTML += `
+        <tr>
+            <td>${s.folio}</td>
+            <td>${s.empresa}</td>
+            <td>${s.zona}</td>
+            <td>${s.soporte}</td>
+            <td>${s.sucursal}</td>
+            <td><a class='btn btn-success btn-sm btn-rounded' download='${s.archivoNombre}' href='${s.archivoData}'>📥 Descargar</a></td>
+            <td style="background-color:limegreen; color:white; font-weight:bold;">${segStatus}</td>
+            <td>${s.fechaEnvio}</td>
+            <td>
+                <span class='action-btn' onclick='abrirEditar(${i})'>✏️</span>
+                <span class='action-btn' onclick='eliminar(${i})'>🗑️</span>
+            </td>
+        </tr>`;
+    });
+}
+
+/* ===================== ELIMINAR ====================== */
+function eliminar(i){
+    if(confirm("¿Eliminar esta solicitud?")){
+        solicitudes.splice(i,1);
+        localStorage.setItem("tecnologiaLS", JSON.stringify(solicitudes));
+        actualizarTabla();
+        document.getElementById("folio").value = generarFolio();
+    }
+}
+
+/* ===================== EDITAR ====================== */
+function abrirEditar(i){
+    indexEditar = i;
+    let s = solicitudes[i];
+    editEmpresa.value = s.empresa;
+    editZona.value = s.zona;
+    editSoporte.value = s.soporte;
+    editSucursal.value = s.sucursal;
+    editStatus.value = s.status;
+    archivoActual = s.archivoData;
+    new bootstrap.Modal(document.getElementById("modalEditarTec")).show();
+}
+
+document.getElementById("editArchivo").addEventListener("change", function(){
+    let file = this.files[0];
+    if(!file) return;
+    let reader = new FileReader();
+    reader.onload = e => archivoActual = e.target.result;
+    reader.readAsDataURL(file);
+});
+
+function guardarEdicion(){
+    let s = solicitudes[indexEditar];
+    s.empresa = editEmpresa.value.toUpperCase();
+    s.zona = editZona.value.toUpperCase();
+    s.soporte = editSoporte.value.toUpperCase();
+    s.sucursal = editSucursal.value.toUpperCase();
+    s.status = editStatus.value;
+    s.archivoData = archivoActual;
+
+    localStorage.setItem("tecnologiaLS", JSON.stringify(solicitudes));
+    actualizarTabla();
+    bootstrap.Modal.getInstance(document.getElementById("modalEditarTec")).hide();
+}
+
+/* ===================== IR A BASE ====================== */
+function irBase(){
+    // Obtener usuario logueado
+    let usuarioLogueado = localStorage.getItem("usuarioLogueado");
+    if(!usuarioLogueado){
+        alert("No se encontró usuario logueado.");
+        return;
+    }
+
+    // Obtener la tabla de personal desde localStorage
+    let personal = JSON.parse(localStorage.getItem("personal")) || [];
+
+    // Buscar al usuario
+    let usuarioActual = personal.find(p => p.usuario === usuarioLogueado.toUpperCase());
+    if(!usuarioActual){
+        alert("Usuario no encontrado en la tabla de personal.");
+        return;
+    }
+
+    if(usuarioActual.puesto.toUpperCase() === "SOPORTE ZONA"){
+        alert("NO TIENES LOS PRIVILEGIOS NECESARIOS PARA INGRESAR.");
+        return;
+    }
+
+    // Redirigir a la página Base
+    window.location.href = "base.html";
+}
+
+
+actualizarTabla();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
