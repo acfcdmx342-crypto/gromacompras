@@ -2,8 +2,8 @@
 # ACF Compras – Firebase
 
 Sistema completo con:
-- Login
-- Base de personal
+- Index
+- Base
 - Tecnología
 - Seguimiento
 
