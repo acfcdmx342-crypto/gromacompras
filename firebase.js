@@ -1,11 +1,12 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getDatabase } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-import { getStorage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDakM1BpK2EF8QrMcurDVodrG8LhVbtydo",
   authDomain: "mydbu-fbc33.firebaseapp.com",
+  databaseURL: "https://mydbu-fbc33.firebaseio.com"
   projectId: "mydbu-fbc33",
   storageBucket: "mydbu-fbc33.firebasestorage.app",
   messagingSenderId: "3794457198",
