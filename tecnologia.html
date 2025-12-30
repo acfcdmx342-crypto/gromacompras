@@ -19,14 +19,8 @@ body { background:#f2f4f7; }
     top:20px;
     left:20px;
     color:#0d6efd;
-    z-index:1000;
 }
-#btnRegresar:hover { color:#0a58ca; }
-td:last-child {
-    display:flex;
-    justify-content:center;
-    align-items:center;
-}
+td:last-child { display:flex; justify-content:center; align-items:center; }
 </style>
 </head>
 
@@ -37,12 +31,10 @@ td:last-child {
 <div class="container">
 <h2 class="text-center mb-4 fw-bold">Solicitud de Tecnología</h2>
 
-<!-- ================= FORMULARIO ================= -->
 <div class="card shadow p-4 mb-4">
 <h5 class="fw-bold mb-3">Registrar Solicitud</h5>
 
 <form id="formTec" class="row g-3">
-
 <div class="col-md-3">
 <label class="fw-bold">Folio</label>
 <input id="folio" class="form-control" readonly>
@@ -78,11 +70,9 @@ td:last-child {
 Guardar Solicitud
 </button>
 </div>
-
 </form>
 </div>
 
-<!-- ================= TABLA ================= -->
 <div class="card shadow p-4">
 <h5 class="fw-bold mb-3">Registros de Solicitudes</h5>
 
@@ -105,152 +95,53 @@ Guardar Solicitud
 </div>
 </div>
 
-<!-- ================= FIREBASE ================= -->
 <script type="module">
 import { database, ref, push, set, get, onValue, remove } from "./firebase.js";
 
-/* ================= VARIABLES ================= */
-let solicitudes = [];
-let indexEditar = null;
+const solicitudesRef = ref(database,"tecnologia");
+let solicitudes=[];
 
-const solicitudesRef = ref(database, "tecnologia");
-
-/* ================= ELEMENTOS ================= */
-const folioInput = document.getElementById("folio");
-
-/* ================= FOLIO CONSECUTIVO ================= */
-async function generarFolioConsecutivo(empresa, zona) {
-
-    const key = `TEC_${empresa}_${zona}`.toUpperCase();
-    const folioRef = ref(database, "folios/" + key);
-
-    const snapshot = await get(folioRef);
-    let consecutivo = 1;
-
-    if (snapshot.exists()) {
-        consecutivo = snapshot.val() + 1;
-    }
-
-    await set(folioRef, consecutivo);
-
-    return `TEC-${empresa}-${zona}-${consecutivo.toString().padStart(4, "0")}`;
-}
-
-/* ================= VALIDAR DUPLICADO ================= */
-async function folioExiste(folio) {
-    const snap = await get(solicitudesRef);
-    if (!snap.exists()) return false;
-
-    return Object.values(snap.val()).some(s => s.folio === folio);
-}
-
-/* ================= MOSTRAR FOLIO AUTOMÁTICO ================= */
-async function mostrarFolioPreview(){
-    if (empresa.value && zona.value) {
-        folioInput.value = await generarFolioConsecutivo(
-            empresa.value.toUpperCase(),
-            zona.value.toUpperCase()
-        );
-    }
-}
-
-empresa.addEventListener("blur", mostrarFolioPreview);
-zona.addEventListener("blur", mostrarFolioPreview);
-
-/* ================= GUARDAR ================= */
-window.guardarSolicitud = async function(){
-
-    let emp = empresa.value.trim().toUpperCase();
-    let zon = zona.value.trim().toUpperCase();
-    let sop = soporte.value.trim().toUpperCase();
-    let suc = sucursal.value.trim().toUpperCase();
-    let file = archivo.files[0];
-
-    if(!emp || !zon || !sop || !suc || !file){
-        alert("Todos los campos son obligatorios");
-        return;
-    }
-
-    const folioGenerado = await generarFolioConsecutivo(emp, zon);
-
-    if (await folioExiste(folioGenerado)) {
-        alert("Error: folio duplicado, intente nuevamente.");
-        return;
-    }
-
-    folioInput.value = folioGenerado;
-
-    let reader = new FileReader();
-    reader.onload = async () => {
-
-        await push(solicitudesRef,{
-            folio: folioGenerado,
-            empresa: emp,
-            zona: zon,
-            soporte: sop,
-            sucursal: suc,
-            archivoNombre: file.name,
-            archivoData: reader.result,
-            status: "Pendiente",
-            fechaEnvio: new Date().toLocaleString()
-        });
-
-        formTec.reset();
-        folioInput.value = "";
-    };
-
-    reader.readAsDataURL(file);
-};
-
-/* ================= LEER EN TIEMPO REAL ================= */
-onValue(solicitudesRef, snapshot => {
-    solicitudes = [];
-    snapshot.forEach(child => {
-        solicitudes.push({ id: child.key, ...child.val() });
-    });
-    actualizarTabla();
+onValue(solicitudesRef,snap=>{
+  solicitudes=[];
+  snap.forEach(c=>solicitudes.push({id:c.key,...c.val()}));
+  pintar();
 });
 
-/* ================= TABLA ================= */
-function actualizarTabla(){
-    tablaTecBody.innerHTML = "";
-    solicitudes.forEach((s,i)=>{
-        tablaTecBody.innerHTML += `
-        <tr>
-            <td>${s.folio}</td>
-            <td>${s.empresa}</td>
-            <td>${s.zona}</td>
-            <td>${s.soporte}</td>
-            <td>${s.sucursal}</td>
-            <td>
-                <a class="btn btn-success btn-sm btn-rounded"
-                   download="${s.archivoNombre}"
-                   href="${s.archivoData}">📥</a>
-            </td>
-            <td class="bg-success text-white fw-bold">${s.status}</td>
-            <td>${s.fechaEnvio}</td>
-            <td>
-                <span class="action-btn" onclick="eliminar(${i})">🗑️</span>
-            </td>
-        </tr>`;
-    });
+function pintar(){
+  tablaTecBody.innerHTML="";
+  solicitudes.forEach((s,i)=>{
+    tablaTecBody.innerHTML+=`
+    <tr>
+      <td>${s.folio}</td>
+      <td>${s.empresa}</td>
+      <td>${s.zona}</td>
+      <td>${s.soporte}</td>
+      <td>${s.sucursal}</td>
+      <td><a class="btn btn-success btn-sm" href="${s.archivoData}" download>📥</a></td>
+      <td class="bg-success text-white">${s.status}</td>
+      <td>${s.fechaEnvio}</td>
+      <td>
+        <span class="action-btn" title="Seguimiento" onclick="irSeguimiento('${s.folio}')">🔍</span>
+        <span class="action-btn" title="Eliminar" onclick="eliminar(${i})">🗑️</span>
+      </td>
+    </tr>`;
+  });
 }
 
-/* ================= ELIMINAR ================= */
-window.eliminar = function(i){
-    if(confirm("¿Eliminar solicitud?")){
-        remove(ref(database,"tecnologia/"+solicitudes[i].id));
-    }
+window.irSeguimiento = folio=>{
+  window.location.href="seguimiento.html?folio="+folio;
 };
 
-/* ================= LOGIN ================= */
-window.irLogin = function(){
-    localStorage.removeItem("usuarioLogueado");
-    window.location.href = "index.html";
+window.eliminar=i=>{
+  if(confirm("¿Eliminar solicitud?")){
+    remove(ref(database,"tecnologia/"+solicitudes[i].id));
+  }
+};
+
+window.irLogin=()=>{
+  localStorage.clear();
+  window.location.href="index.html";
 };
 </script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
