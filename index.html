@@ -150,49 +150,14 @@ window.login = async function () {
     }
 };
 
-
-function irTabla() {
-    window.location.href = "tabla.html";
-}
-
-// -----------------------------------------------------------
-// FUNCION: RECUPERAR CONTRASEÑA
-// -----------------------------------------------------------
-function recuperar() {
-    const usuario = prompt("Ingresa tu usuario para recuperar el acceso:");
-
-    if (!usuario) {
-        alert("Debes escribir un usuario.");
-        return;
-    }
-
-    const datos = JSON.parse(localStorage.getItem("usuarios") || "[]");
-    const existe = datos.find(u => u.usuario === usuario.toUpperCase());
-
-   	if (!existe) {
-        alert("El usuario no existe.");
-        return;
-    }
-
-    const templateParams = {
-        to_email: existe.email,
-        usuario: existe.usuario,
-        password: existe.pass
-    };
-
-    emailjs.send("service_mya4ogg", "template_ub0ksu5", templateParams)
-        .then(() => {
-            alert("Tu contraseña ha sido enviada a tu correo: " + existe.email);
-        })
-        .catch(err => {
-            console.error("Error:", err);
-            alert("Hubo un error al enviar el correo.");
-        });
-}
 </script>
+
+}
+
 
 <script type="module" src="firebase.js"></script>
 </body>
 </html>
+
 
 
