@@ -98,16 +98,58 @@ Guardar Solicitud
 <script type="module">
 import { database, ref, push, set, get, onValue, remove } from "./firebase.js";
 
-const solicitudesRef = ref(database,"tecnologia");
-let solicitudes=[];
+const solicitudesRef = ref(database, "tecnologia");
+let solicitudes = [];
 
-onValue(solicitudesRef,snap=>{
-  solicitudes=[];
-  snap.forEach(c=>solicitudes.push({id:c.key,...c.val()}));
-  pintar();
-});
+/* ========= FOLIO CONSECUTIVO ========= */
+async function generarFolio(empresa, zona){
+  const key = `TEC_${empresa}_${zona}`.toUpperCase();
+  const folioRef = ref(database, "folios/" + key);
+  const snap = await get(folioRef);
+  let num = snap.exists() ? snap.val() + 1 : 1;
+  await set(folioRef, num);
+  return `TEC-${empresa}-${zona}-${num.toString().padStart(4,"0")}`;
+}
 
-function pintar(){
+/* ========= GUARDAR ========= */
+window.guardarSolicitud = async function(){
+  let emp = empresa.value.toUpperCase();
+  let zon = zona.value.toUpperCase();
+  let sop = soporte.value.toUpperCase();
+  let suc = sucursal.value.toUpperCase();
+  let file = archivo.files[0];
+
+  if(!emp || !zon || !sop || !suc || !file){
+    alert("Campos obligatorios");
+    return;
+  }
+
+  let folio = await generarFolio(emp, zon);
+
+  const reader = new FileReader();
+  reader.onload = async () => {
+    await push(solicitudesRef,{
+      folio,
+      empresa: emp,
+      zona: zon,
+      soporte: sop,
+      sucursal: suc,
+      archivoNombre: file.name,
+      archivoData: reader.result,
+      status: "Pendiente",
+      fechaEnvio: new Date().toLocaleString()
+    });
+    formTec.reset();
+  };
+  reader.readAsDataURL(file);
+};
+
+/* ========= LEER ========= */
+onValue(solicitudesRef, snap=>{
+  solicitudes = [];
+  snap.forEach(c=>{
+    solicitudes.push({id:c.key,...c.val()});
+  });
   tablaTecBody.innerHTML="";
   solicitudes.forEach((s,i)=>{
     tablaTecBody.innerHTML+=`
@@ -121,27 +163,27 @@ function pintar(){
       <td class="bg-success text-white">${s.status}</td>
       <td>${s.fechaEnvio}</td>
       <td>
-        <span class="action-btn" title="Seguimiento" onclick="irSeguimiento('${s.folio}')">🔍</span>
-        <span class="action-btn" title="Eliminar" onclick="eliminar(${i})">🗑️</span>
+        <span class="action-btn" onclick="irSeguimiento('${s.folio}')">📊</span>
+        <span class="action-btn" onclick="eliminar('${s.id}')">🗑️</span>
       </td>
     </tr>`;
   });
-}
+});
 
-window.irSeguimiento = folio=>{
-  window.location.href="seguimiento.html?folio="+folio;
-};
-
-window.eliminar=i=>{
-  if(confirm("¿Eliminar solicitud?")){
-    remove(ref(database,"tecnologia/"+solicitudes[i].id));
+/* ========= ELIMINAR ========= */
+window.eliminar = id =>{
+  if(confirm("Eliminar solicitud")){
+    remove(ref(database,"tecnologia/"+id));
   }
 };
 
-window.irLogin=()=>{
-  localStorage.clear();
-  window.location.href="index.html";
+/* ========= IR A SEGUIMIENTO ========= */
+window.irSeguimiento = folio =>{
+  localStorage.setItem("folioSeguimiento",folio);
+  window.location.href="seguimiento.html";
 };
 </script>
+
 </body>
 </html>
+
