@@ -50,25 +50,7 @@ fieldset:disabled { opacity:0.6; }
 <button type="button" id="btnArchivo" class="btn btn-secondary w-100" onclick="verArchivo()" disabled>Ver Archivo</button>
 </div>
 
-<div class="col-md-6">
-<label class="fw-bold">Descripción</label>
-<input id="descripcion" class="form-control text-uppercase">
-</div>
 
-<div class="col-md-3">
-<label class="fw-bold">Status</label>
-<select id="status" class="form-select">
-<option>ENVIADO A COMPRAS</option>
-<option>ENVIADO A ZONA</option>
-<option>PENDIENTE POR AUTORIZAR</option>
-<option>EN SISTEMAS</option>
-</select>
-</div>
-
-<div class="col-md-3">
-<label class="fw-bold">Fecha</label>
-<input id="fechaCompras" class="form-control" readonly>
-</div>
 
 <!-- ===== CHECK ACTIVADOR ===== -->
 <div class="col-12 mt-4">
@@ -165,7 +147,25 @@ Activar seguimiento avanzado
 <div class="col-12 mt-4">
 <button type="button" class="btn btn-primary btn-lg" onclick="guardarSeguimiento()">Guardar Seguimiento</button>
 </div>
+<div class="col-md-6">
+<label class="fw-bold">Descripción</label>
+<input id="descripcion" class="form-control text-uppercase">
+</div>
 
+<div class="col-md-3">
+<label class="fw-bold">Status</label>
+<select id="status" class="form-select">
+<option>ENVIADO A COMPRAS</option>
+<option>ENVIADO A ZONA</option>
+<option>PENDIENTE POR AUTORIZAR</option>
+<option>EN SISTEMAS</option>
+</select>
+</div>
+
+<div class="col-md-3">
+<label class="fw-bold">Fecha</label>
+<input id="fechaCompras" class="form-control" readonly>
+</div>
 </form>
 </div>
 </div>
@@ -237,3 +237,4 @@ window.guardarSeguimiento=async()=>{
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+
