@@ -5,15 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Login</title>
 
-<!-- ICONOS FONTAWESOME -->
+<!-- ICONOS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
-    
 body { font-family: Arial, sans-serif; padding: 20px; }
 .card { border: 1px solid #ccc; padding: 20px; max-width: 350px; }
 
-/* Contenido */
 .input-group {
     position: relative;
     width: 100%;
@@ -24,8 +22,6 @@ body { font-family: Arial, sans-serif; padding: 20px; }
     margin-bottom: 15px;
     box-sizing: border-box;
 }
-
-/* Icono dentro del campo */
 .input-group i {
     position: absolute;
     right: 10px;
@@ -37,37 +33,30 @@ body { font-family: Arial, sans-serif; padding: 20px; }
 }
 
 button { padding: 10px 15px; cursor: pointer; width: 100%; }
-.btn-tabla { background-color: #007bff; color: white; margin-top: 15px; }
 .btn-recover { background-color: #28a745; color: white; margin-top: 10px; }
-
 </style>
 </head>
+
 <body>
 
 <h2>Login</h2>
+
 <div class="card">
 
-    <!-- USUARIO EN MAYÚSCULAS -->
     <div class="input-group">
-        <input id="loginUser" placeholder="Usuario"
-               oninput="this.value = this.value.toUpperCase()">
+        <input id="loginUser" placeholder="Usuario" oninput="this.value = this.value.toUpperCase()">
         <i class="fa-solid fa-user"></i>
     </div>
 
-    <!-- CONTRASEÑA CON ICONO DE VER/OCULTAR -->
     <div class="input-group">
         <input id="loginPass" type="password" placeholder="Contraseña">
         <i class="fa-solid fa-eye toggle-pass" onclick="verPassword()"></i>
     </div>
 
     <button onclick="login()">Ingresar</button>
-
     <button class="btn-recover" onclick="recuperar()">¿Olvidaste tu contraseña?</button>
 
-    <div id="zonaBotonTabla"></div>
 </div>
-
-<p>¿No tienes cuenta? <a href="registro.html">Regístrate aquí</a></p>
 
 <!-- EmailJS -->
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
@@ -76,22 +65,22 @@ emailjs.init("0aHlArLgvHrj2Xbk8");
 </script>
 
 <script>
-
-// 👁️ FUNCIÓN VER/OCULTAR CONTRASEÑA (SIN CAMBIAR TAMAÑO)
+// VER / OCULTAR PASSWORD
 function verPassword() {
     const passField = document.getElementById("loginPass");
     const icon = document.querySelector(".toggle-pass");
 
     if (passField.type === "password") {
         passField.type = "text";
-        icon.classList.remove("fa-eye");
-        icon.classList.add("fa-eye-slash");
+        icon.classList.replace("fa-eye", "fa-eye-slash");
     } else {
         passField.type = "password";
-        icon.classList.remove("fa-eye-slash");
-        icon.classList.add("fa-eye");
+        icon.classList.replace("fa-eye-slash", "fa-eye");
     }
 }
+</script>
+
+<!-- LOGIN FIREBASE -->
 <script type="module">
 import { database, ref, get, child } from "./firebase.js";
 
@@ -105,8 +94,7 @@ window.login = async function () {
     }
 
     try {
-        const dbRef = ref(database);
-        const snapshot = await get(child(dbRef, `usuarios/${usuario}`));
+        const snapshot = await get(child(ref(database), `usuarios/${usuario}`));
 
         if (!snapshot.exists()) {
             alert("Usuario no existe");
@@ -120,28 +108,7 @@ window.login = async function () {
             return;
         }
 
-        // Usuario válido
         localStorage.setItem("usuarioActivo", JSON.stringify(data));
-
-        const puesto = data.puesto.toLowerCase();
-        const puestosConAcceso = [
-            "coordinador de soporte tecnico",
-            "gerente de sistemas",
-            "sistemas",
-            "soporte tecnico",
-            "jefe de infraestructura"
-        ];
-
-        if (puesto === "soporte jr") {
-            window.location.href = "tecnologia.html";
-            return;
-        }
-
-        if (puestosConAcceso.includes(puesto)) {
-            window.location.href = "tecnologia.html";
-            return;
-        }
-
         window.location.href = "tecnologia.html";
 
     } catch (error) {
@@ -150,15 +117,29 @@ window.login = async function () {
     }
 };
 
+window.recuperar = async function () {
+    const usuario = prompt("Ingresa tu usuario:");
+
+    if (!usuario) return;
+
+    const snapshot = await get(child(ref(database), `usuarios/${usuario.toUpperCase()}`));
+
+    if (!snapshot.exists()) {
+        alert("Usuario no encontrado");
+        return;
+    }
+
+    const data = snapshot.val();
+
+    emailjs.send("service_mya4ogg", "template_ub0ksu5", {
+        to_email: data.email,
+        usuario: data.usuario,
+        password: data.pass
+    }).then(() => {
+        alert("Tu contraseña fue enviada al correo");
+    });
+};
 </script>
 
-
-
-
-<script type="module" src="firebase.js"></script>
 </body>
 </html>
-
-
-
-
