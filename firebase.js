@@ -7,6 +7,7 @@ import {
   push,
   set,
   get,
+  child,
   onValue,
   remove
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
@@ -33,6 +34,7 @@ export {
   push,
   set,
   get,
+  child,
   onValue,
   remove
 };
