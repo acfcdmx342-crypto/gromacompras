@@ -14,7 +14,8 @@ const firebaseConfig = {
 
 
 const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
+export const database = getDatabase(app);
+export { ref, get, child };
 
 // EJEMPLO lectura
 const dataRef = ref(database, "datos");
