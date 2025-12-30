@@ -1,6 +1,5 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, onValue, push } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDakM1BpK2EF8QrMcurDVodrG8LhVbtydo",
@@ -12,14 +11,7 @@ const firebaseConfig = {
   appId: "1:3794457198:web:b591c3bdfbb06f1cf54c7f"
 };
 
-
 const app = initializeApp(firebaseConfig);
-export const database = getDatabase(app);
-export { ref, get, child };
+const database = getDatabase(app);
 
-// EJEMPLO lectura
-const dataRef = ref(database, "datos");
-onValue(dataRef, (snapshot) => {
-  const data = snapshot.val();
-  console.log(data);
-});
+export { database, ref, get, child };
