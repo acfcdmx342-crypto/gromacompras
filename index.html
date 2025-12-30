@@ -92,45 +92,64 @@ function verPassword() {
         icon.classList.add("fa-eye");
     }
 }
+<script type="module">
+import { database, ref, get, child } from "./firebase.js";
 
-function login() {
+window.login = async function () {
     const usuario = document.getElementById("loginUser").value.toUpperCase();
     const pass = document.getElementById("loginPass").value;
 
-    const datos = JSON.parse(localStorage.getItem("usuarios") || "[]");
-    const existe = datos.find(u => u.usuario === usuario && u.pass === pass);
-
-    if (!existe) {
-        alert("Usuario o contraseña incorrectos");
+    if (!usuario || !pass) {
+        alert("Completa todos los campos");
         return;
     }
 
-    localStorage.setItem("usuarioActivo", JSON.stringify(existe));
-    const puesto = existe.puesto.toLowerCase();
+    try {
+        const dbRef = ref(database);
+        const snapshot = await get(child(dbRef, `usuarios/${usuario}`));
 
-    const puestosConBotonTabla = [
-        "coordinador de soporte tecnico",
-        "gerente de sistemas",
-        "sistemas",
-        "soporte tecnico",
-        "jefe de infraestructura"
-    ];
+        if (!snapshot.exists()) {
+            alert("Usuario no existe");
+            return;
+        }
 
-    if (puesto === "soporte jr") {
+        const data = snapshot.val();
+
+        if (data.pass !== pass) {
+            alert("Contraseña incorrecta");
+            return;
+        }
+
+        // Usuario válido
+        localStorage.setItem("usuarioActivo", JSON.stringify(data));
+
+        const puesto = data.puesto.toLowerCase();
+        const puestosConAcceso = [
+            "coordinador de soporte tecnico",
+            "gerente de sistemas",
+            "sistemas",
+            "soporte tecnico",
+            "jefe de infraestructura"
+        ];
+
+        if (puesto === "soporte jr") {
+            window.location.href = "tecnologia.html";
+            return;
+        }
+
+        if (puestosConAcceso.includes(puesto)) {
+            window.location.href = "tecnologia.html";
+            return;
+        }
+
         window.location.href = "tecnologia.html";
-        return;
-    }
 
-    if (puestosConBotonTabla.includes(puesto)) {
-        document.getElementById("zonaBotonTabla").innerHTML = `
-            <button class="btn-tabla" onclick="irTabla()">Ir a tabla de usuarios</button>
-        `;
-        window.location.href = "tecnologia.html";
-        return;
+    } catch (error) {
+        console.error(error);
+        alert("Error al conectar con Firebase");
     }
+};
 
-    window.location.href = "tecnologia.html";
-}
 
 function irTabla() {
     window.location.href = "tabla.html";
@@ -175,4 +194,5 @@ function recuperar() {
 <script type="module" src="firebase.js"></script>
 </body>
 </html>
+
 
