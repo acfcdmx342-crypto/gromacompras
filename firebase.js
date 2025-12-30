@@ -16,7 +16,7 @@ import {
 const firebaseConfig = {
   apiKey: "AIzaSyDakM1BpK2EF8QrMcurDVodrG8LhVbtydo",
   authDomain: "mydbu-fbc33.firebaseapp.com",
-  databaseURL: "https://mydbu-fbc33-default-rtdb.firebaseio.com",
+  databaseURL: "https://mydbu-fbc33-default-rtdb.firebaseio.com/",
   projectId: "mydbu-fbc33",
   storageBucket: "mydbu-fbc33.appspot.com",
   messagingSenderId: "3794457198",
