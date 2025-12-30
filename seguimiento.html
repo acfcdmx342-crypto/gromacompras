@@ -36,7 +36,9 @@
 
             <div class="col-md-3">
                 <label class="form-label fw-bold">Folio</label>
-                <select id="folio" class="form-select"></select>
+                <select id="folio" class="form-control" required>
+                    <option value="">Seleccione un Folio</option>
+                </select>
             </div>
 
             <div class="col-md-3">
@@ -175,56 +177,77 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script type="module">
-import { database, ref, get, push, onValue } from "./firebase.js";
+import { database, ref, onValue, push } from "./firebase.js";
 
-const tecRef = ref(database,"tecnologia");
-const segRef = ref(database,"seguimiento");
-let solicitudes=[],seguimiento=[];
+/* ===== REFERENCIAS ===== */
+const tecnologiaRef = ref(database, "tecnologia");
+const seguimientoRef = ref(database, "seguimiento");
 
-/* ===== TECNOLOGIA ===== */
-onValue(tecRef,snap=>{
-  solicitudes=[];
-  snap.forEach(c=>solicitudes.push(c.val()));
-  folio.innerHTML="<option>Seleccione</option>";
-  solicitudes.forEach(s=>{
-    folio.innerHTML+=`<option>${s.folio}</option>`;
+/* ===== ELEMENTOS ===== */
+const folioSelect = document.getElementById("folio");
+const tablaSegBody = document.getElementById("tablaSegBody");
+
+/* ===== CARGAR FOLIOS DE TECNOLOGIA ===== */
+onValue(tecnologiaRef, snapshot => {
+
+  folioSelect.innerHTML = `<option value="">Seleccione un folio</option>`;
+
+  if (!snapshot.exists()) return;
+
+  snapshot.forEach(child => {
+    const data = child.val();
+    if (data.folio) {
+      const option = document.createElement("option");
+      option.value = data.folio;
+      option.textContent = data.folio;
+      folioSelect.appendChild(option);
+    }
   });
 });
 
-/* ===== SEGUIMIENTO ===== */
-onValue(segRef,snap=>{
-  seguimiento=[];
-  snap.forEach(c=>seguimiento.push(c.val()));
-  tablaSegBody.innerHTML="";
-  seguimiento.forEach(s=>{
-    tablaSegBody.innerHTML+=`
-    <tr>
-      <td>${s.folio}</td>
-      <td>${s.solicito}</td>
-      <td>${s.descripcion}</td>
-      <td>${s.folioCot}</td>
-      <td class="fw-bold">${s.status}</td>
-      <td>${s.fechaCompras}</td>
-    </tr>`;
+/* ===== CARGAR SEGUIMIENTO ===== */
+onValue(seguimientoRef, snapshot => {
+
+  tablaSegBody.innerHTML = "";
+
+  if (!snapshot.exists()) return;
+
+  snapshot.forEach(child => {
+    const s = child.val();
+    tablaSegBody.innerHTML += `
+      <tr>
+        <td>${s.folio}</td>
+        <td>${s.solicito}</td>
+        <td>${s.descripcion}</td>
+        <td>${s.folioCot || "-"}</td>
+        <td class="fw-bold">${s.status}</td>
+        <td>${s.fechaCompras}</td>
+      </tr>
+    `;
   });
 });
 
-/* ===== GUARDAR ===== */
-window.guardarSeguimiento = async ()=>{
-  await push(segRef,{
-    folio:folio.value,
-    solicito:solicito.value,
-    descripcion:descripcion.value.toUpperCase(),
-    folioCot:folioCot.value,
-    status:status.value,
-    fechaCompras:new Date().toLocaleString()
+/* ===== GUARDAR SEGUIMIENTO ===== */
+window.guardarSeguimiento = async function(){
+
+  if (!folio.value || !solicito.value || !descripcion.value) {
+    alert("Campos obligatorios");
+    return;
+  }
+
+  await push(seguimientoRef,{
+    folio: folio.value,
+    solicito: solicito.value,
+    descripcion: descripcion.value.toUpperCase(),
+    folioCot: folioCot.value || "",
+    status: status.value,
+    fechaCompras: new Date().toLocaleString()
   });
+
   formSeg.reset();
 };
 </script>
-
-
-
 </body>
 </html>
+
 
