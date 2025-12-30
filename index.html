@@ -45,7 +45,7 @@ button { padding: 10px 15px; cursor: pointer; width: 100%; }
 
     <div class="input-group">
         <input id="loginUser" placeholder="Usuario" oninput="this.value = this.value.toUpperCase()">
-        <i class="fa-solid fa-user"></i>
+        <i class="fa-solid fa-user" onclick="irBase()"title="ir a Base"></i>
     </div>
 
     <div class="input-group">
@@ -79,6 +79,11 @@ function verPassword() {
     }
 }
 </script>
+<script>
+function irBase() {
+    window.location.href = "base.html";
+}
+</script>    
 
 <!-- ================= LOGIN CON FIREBASE ================= -->
 <script type="module">
@@ -161,3 +166,4 @@ window.recuperar = async function () {
 
 </body>
 </html>
+
