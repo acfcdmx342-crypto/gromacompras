@@ -11,6 +11,7 @@ body { background:#eef1f5; }
 .card { border-radius:20px; }
 .table thead { background:#0d6efd; color:white; }
 .action-btn { cursor:pointer; font-size:22px; margin-right:10px; }
+fieldset:disabled { opacity:0.6; }
 </style>
 </head>
 
@@ -28,6 +29,7 @@ body { background:#eef1f5; }
 
 <form id="formSeg" class="row g-3">
 
+<!-- ===== DATOS BASE (NO SE TOCAN) ===== -->
 <div class="col-md-3">
 <label class="fw-bold">Folio</label>
 <input id="folio" class="form-control" readonly>
@@ -68,7 +70,99 @@ body { background:#eef1f5; }
 <input id="fechaCompras" class="form-control" readonly>
 </div>
 
-<div class="col-12">
+<!-- ===== CHECK ACTIVADOR ===== -->
+<div class="col-12 mt-4">
+<div class="form-check">
+<input class="form-check-input" type="checkbox" id="chkAvanzar" onchange="activarPasos()">
+<label class="form-check-label fw-bold">
+Activar seguimiento avanzado
+</label>
+</div>
+</div>
+
+<!-- ===== CONFIRMACIÓN COMPRAS ===== -->
+<fieldset id="bloqueCompras" disabled class="row g-3 mt-2">
+<div class="col-md-4">
+<label class="fw-bold">Confirmar requisición</label>
+<select id="confirmaReq" class="form-select">
+<option value="">Seleccione</option>
+<option>SI</option>
+<option>NO</option>
+</select>
+</div>
+
+<div class="col-md-4">
+<label class="fw-bold">Fecha solicitud a compras</label>
+<input type="date" id="fechaSolicitudCompras" class="form-control">
+</div>
+</fieldset>
+
+<!-- ===== PASO 1 ===== -->
+<fieldset id="paso1" disabled class="row g-3 mt-4">
+<h5 class="fw-bold text-primary">Paso 1 – Cotización</h5>
+
+<div class="col-md-4">
+<label class="fw-bold">Fecha de cotización</label>
+<input type="date" id="fechaCotizacion" class="form-control">
+</div>
+
+<div class="col-md-4">
+<label class="fw-bold">Folio cotización</label>
+<input id="folioCotizacion" class="form-control text-uppercase">
+</div>
+
+<div class="col-md-4">
+<label class="fw-bold">Añadir cotización</label>
+<input type="file" id="archivoCotizacion" class="form-control">
+</div>
+</fieldset>
+
+<!-- ===== PASO 2 ===== -->
+<fieldset id="paso2" disabled class="row g-3 mt-4">
+<h5 class="fw-bold text-primary">Paso 2 – Autorización y Entrega</h5>
+
+<div class="col-md-3">
+<label class="fw-bold">Fecha autorización</label>
+<input type="date" id="fechaAutorizacion" class="form-control">
+</div>
+
+<div class="col-md-3">
+<label class="fw-bold">Quien autoriza</label>
+<input id="quienAutoriza" class="form-control text-uppercase">
+</div>
+
+<div class="col-md-3">
+<label class="fw-bold">Fecha entrega</label>
+<input type="date" id="fechaEntrega" class="form-control">
+</div>
+
+<div class="col-md-3">
+<label class="fw-bold">Quien recibe</label>
+<input id="quienRecibe" class="form-control text-uppercase">
+</div>
+
+<div class="col-md-3">
+<label class="fw-bold">Fecha envío</label>
+<input type="date" id="fechaEnvio" class="form-control">
+</div>
+
+<div class="col-md-3">
+<label class="fw-bold">Quien envía</label>
+<input id="quienEnvia" class="form-control text-uppercase">
+</div>
+
+<div class="col-md-3">
+<label class="fw-bold">Añadir factura</label>
+<input type="file" id="factura" class="form-control">
+</div>
+
+<div class="col-md-3">
+<label class="fw-bold">Observaciones</label>
+<input id="observaciones" class="form-control text-uppercase">
+</div>
+</fieldset>
+
+<div class="col-12 mt-4">
 <button type="button" class="btn btn-primary btn-lg" onclick="guardarSeguimiento()">Guardar Seguimiento</button>
 </div>
 
@@ -105,6 +199,13 @@ window.verArchivo=()=>{
     if(archivoActual) window.open(archivoActual,"_blank");
 };
 
+window.activarPasos=()=>{
+    const activo = chkAvanzar.checked;
+    bloqueCompras.disabled = !activo;
+    paso1.disabled = !activo;
+    paso2.disabled = !activo;
+};
+
 window.guardarSeguimiento=async()=>{
     await push(seguimientoRef,{
         folio: folio.value,
@@ -112,10 +213,24 @@ window.guardarSeguimiento=async()=>{
         sucursal: sucursal.value,
         descripcion: descripcion.value.toUpperCase(),
         status: status.value,
-        fechaCompras: fechaCompras.value
+        fechaCompras: fechaCompras.value,
+
+        confirmaRequisicion: confirmaReq.value,
+        fechaSolicitudCompras: fechaSolicitudCompras.value,
+
+        fechaCotizacion: fechaCotizacion.value,
+        folioCotizacion: folioCotizacion.value,
+
+        fechaAutorizacion: fechaAutorizacion.value,
+        quienAutoriza: quienAutoriza.value,
+        fechaEntrega: fechaEntrega.value,
+        quienRecibe: quienRecibe.value,
+        fechaEnvio: fechaEnvio.value,
+        quienEnvia: quienEnvia.value,
+        observaciones: observaciones.value
     });
-    alert("Seguimiento guardado");
-    formSeg.reset();
+
+    alert("Seguimiento guardado correctamente");
 };
 </script>
 
