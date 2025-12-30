@@ -12,71 +12,56 @@ body { background:#f2f4f7; }
 .action-btn { cursor:pointer; font-size:22px; margin-right:10px; }
 .table thead { background:#0d6efd; color:white; }
 .btn-rounded { border-radius:50px; }
-#btnRegresar {
-    cursor:pointer;
-    font-size:40px;
-    position:fixed;
-    top:20px;
-    left:20px;
-    color:#0d6efd;
-}
-td:last-child { display:flex; justify-content:center; align-items:center; }
 </style>
 </head>
 
 <body class="p-4">
 
-<span id="btnRegresar" onclick="irLogin()">🔙</span>
-
 <div class="container">
-<h2 class="text-center mb-4 fw-bold">Solicitud de Tecnología</h2>
+<h2 class="text-center fw-bold mb-4">Solicitud de Tecnología</h2>
 
 <div class="card shadow p-4 mb-4">
-<h5 class="fw-bold mb-3">Registrar Solicitud</h5>
+<h5 class="fw-bold">Registrar Solicitud</h5>
 
 <form id="formTec" class="row g-3">
-<div class="col-md-3">
-<label class="fw-bold">Folio</label>
-<input id="folio" class="form-control" readonly>
-</div>
 
 <div class="col-md-3">
-<label class="fw-bold">Empresa</label>
+<label>Empresa</label>
 <input id="empresa" class="form-control text-uppercase">
 </div>
 
 <div class="col-md-3">
-<label class="fw-bold">Zona</label>
+<label>Zona</label>
 <input id="zona" class="form-control text-uppercase">
 </div>
 
 <div class="col-md-3">
-<label class="fw-bold">Soporte Zona</label>
+<label>Soporte</label>
 <input id="soporte" class="form-control text-uppercase">
 </div>
 
 <div class="col-md-3">
-<label class="fw-bold">Sucursal</label>
+<label>Sucursal</label>
 <input id="sucursal" class="form-control text-uppercase">
 </div>
 
 <div class="col-md-6">
-<label class="fw-bold">Requisición</label>
+<label>Archivo</label>
 <input id="archivo" type="file" class="form-control">
 </div>
 
-<div class="col-12 mt-3">
-<button type="button" class="btn btn-primary btn-rounded" onclick="guardarSolicitud()">
-Guardar Solicitud
-</button>
+<div class="col-12">
+<button type="button" class="btn btn-primary btn-rounded"
+onclick="guardarSolicitud()">Guardar</button>
 </div>
+
 </form>
 </div>
 
 <div class="card shadow p-4">
-<h5 class="fw-bold mb-3">Registros de Solicitudes</h5>
+<h5 class="fw-bold">Solicitudes</h5>
 
-<table class="table table-bordered table-striped">
+<table class="table table-bordered">
 <thead>
 <tr>
 <th>Folio</th>
@@ -85,8 +70,6 @@ Guardar Solicitud
 <th>Soporte</th>
 <th>Sucursal</th>
 <th>Archivo</th>
-<th>Status</th>
-<th>Fecha</th>
 <th>Acciones</th>
 </tr>
 </thead>
@@ -96,94 +79,78 @@ Guardar Solicitud
 </div>
 
 <script type="module">
-import { database, ref, push, set, get, onValue, remove } from "./firebase.js";
+import { database, ref, push, onValue } from "./firebase.js";
 
-const solicitudesRef = ref(database, "tecnologia");
-let solicitudes = [];
+const tecnologiaRef = ref(database, "tecnologia");
+const tabla = document.getElementById("tablaTecBody");
 
-/* ========= FOLIO CONSECUTIVO ========= */
-async function generarFolio(empresa, zona){
-  const key = `TEC_${empresa}_${zona}`.toUpperCase();
-  const folioRef = ref(database, "folios/" + key);
-  const snap = await get(folioRef);
-  let num = snap.exists() ? snap.val() + 1 : 1;
-  await set(folioRef, num);
-  return `TEC-${empresa}-${zona}-${num.toString().padStart(4,"0")}`;
-}
+/* ===== GUARDAR ===== */
+window.guardarSolicitud = function(){
 
-/* ========= GUARDAR ========= */
-window.guardarSolicitud = async function(){
-  let emp = empresa.value.toUpperCase();
-  let zon = zona.value.toUpperCase();
-  let sop = soporte.value.toUpperCase();
-  let suc = sucursal.value.toUpperCase();
-  let file = archivo.files[0];
+  const emp = empresa.value.toUpperCase();
+  const zon = zona.value.toUpperCase();
+  const sop = soporte.value.toUpperCase();
+  const suc = sucursal.value.toUpperCase();
+  const file = archivo.files[0];
 
   if(!emp || !zon || !sop || !suc || !file){
     alert("Campos obligatorios");
     return;
   }
 
-  let folio = await generarFolio(emp, zon);
+  const folio = `TEC-${emp}-${zon}-${Date.now()}`;
 
   const reader = new FileReader();
   reader.onload = async () => {
-    await push(solicitudesRef,{
+
+    await push(tecnologiaRef,{
       folio,
       empresa: emp,
       zona: zon,
       soporte: sop,
       sucursal: suc,
-      archivoNombre: file.name,
       archivoData: reader.result,
-      status: "Pendiente",
-      fechaEnvio: new Date().toLocaleString()
+      archivoNombre: file.name,
+      fecha: new Date().toLocaleString()
     });
+
     formTec.reset();
   };
+
   reader.readAsDataURL(file);
 };
 
-/* ========= LEER ========= */
-onValue(solicitudesRef, snap=>{
-  solicitudes = [];
-  snap.forEach(c=>{
-    solicitudes.push({id:c.key,...c.val()});
-  });
-  tablaTecBody.innerHTML="";
-  solicitudes.forEach((s,i)=>{
-    tablaTecBody.innerHTML+=`
-    <tr>
-      <td>${s.folio}</td>
-      <td>${s.empresa}</td>
-      <td>${s.zona}</td>
-      <td>${s.soporte}</td>
-      <td>${s.sucursal}</td>
-      <td><a class="btn btn-success btn-sm" href="${s.archivoData}" download>📥</a></td>
-      <td class="bg-success text-white">${s.status}</td>
-      <td>${s.fechaEnvio}</td>
-      <td>
-        <span class="action-btn" onclick="irSeguimiento('${s.folio}')">📊</span>
-        <span class="action-btn" onclick="eliminar('${s.id}')">🗑️</span>
-      </td>
-    </tr>`;
+/* ===== TABLA ===== */
+onValue(tecnologiaRef, snapshot => {
+  tabla.innerHTML = "";
+  snapshot.forEach(child => {
+    const s = child.val();
+    tabla.innerHTML += `
+      <tr>
+        <td>${s.folio}</td>
+        <td>${s.empresa}</td>
+        <td>${s.zona}</td>
+        <td>${s.soporte}</td>
+        <td>${s.sucursal}</td>
+        <td>
+          <a class="btn btn-success btn-sm"
+             download="${s.archivoNombre}"
+             href="${s.archivoData}">📥</a>
+        </td>
+        <td>
+          <span class="action-btn"
+            onclick="irSeguimiento('${s.folio}')">📋</span>
+        </td>
+      </tr>
+    `;
   });
 });
 
-/* ========= ELIMINAR ========= */
-window.eliminar = id =>{
-  if(confirm("Eliminar solicitud")){
-    remove(ref(database,"tecnologia/"+id));
-  }
-};
-
-/* ========= IR A SEGUIMIENTO ========= */
-window.irSeguimiento = folio =>{
-  localStorage.setItem("folioSeguimiento",folio);
-  window.location.href="seguimiento.html";
+/* ===== IR A SEGUIMIENTO ===== */
+window.irSeguimiento = function(folio){
+  window.location.href = `seguimiento.html?folio=${folio}`;
 };
 </script>
 
 </body>
 </html>
-
