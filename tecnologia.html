@@ -7,24 +7,25 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
-body { background: #f2f4f7; }
-.card { border-radius: 20px; }
-.action-btn { cursor: pointer; font-size: 22px; margin-right: 10px; }
+body { background:#f2f4f7; }
+.card { border-radius:20px; }
+.action-btn { cursor:pointer; font-size:22px; margin-right:10px; }
 .table thead { background:#0d6efd; color:white; }
-.btn-rounded { border-radius: 50px; }
+.btn-rounded { border-radius:50px; }
 #btnRegresar {
-    cursor: pointer;
-    font-size: 40px;
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    color: #0d6efd;
-    z-index: 1000;
+    cursor:pointer;
+    font-size:40px;
+    position:fixed;
+    top:20px;
+    left:20px;
+    color:#0d6efd;
+    z-index:1000;
 }
-#btnRegresar:hover { color: #0a58ca; }
+#btnRegresar:hover { color:#0a58ca; }
 td:last-child {
-    display: flex;
-    justify-content: center;
+    display:flex;
+    justify-content:center;
+    align-items:center;
 }
 </style>
 </head>
@@ -36,10 +37,12 @@ td:last-child {
 <div class="container">
 <h2 class="text-center mb-4 fw-bold">Solicitud de Tecnología</h2>
 
+<!-- ================= FORMULARIO ================= -->
 <div class="card shadow p-4 mb-4">
 <h5 class="fw-bold mb-3">Registrar Solicitud</h5>
 
 <form id="formTec" class="row g-3">
+
 <div class="col-md-3">
 <label class="fw-bold">Folio</label>
 <input id="folio" class="form-control" readonly>
@@ -67,17 +70,21 @@ td:last-child {
 
 <div class="col-md-6">
 <label class="fw-bold">Requisición</label>
-<input id="archivo" class="form-control" type="file">
+<input id="archivo" type="file" class="form-control">
 </div>
 
-<div class="col-12 d-flex justify-content-between mt-3">
-<button type="button" class="btn btn-primary btn-rounded" onclick="guardarSolicitud()">Guardar Solicitud</button>
+<div class="col-12 mt-3">
+<button type="button" class="btn btn-primary btn-rounded" onclick="guardarSolicitud()">
+Guardar Solicitud
+</button>
 </div>
+
 </form>
 </div>
 
+<!-- ================= TABLA ================= -->
 <div class="card shadow p-4">
-<h5 class="fw-bold mb-3">Registros</h5>
+<h5 class="fw-bold mb-3">Registros de Solicitudes</h5>
 
 <table class="table table-bordered table-striped">
 <thead>
@@ -100,46 +107,102 @@ td:last-child {
 
 <!-- ================= FIREBASE ================= -->
 <script type="module">
-import { database, ref, push, onValue, set, remove } from "./firebase.js";
+import { database, ref, push, onValue, set, get, remove } from "./firebase.js";
 
+/* ================= VARIABLES ================= */
 let solicitudes = [];
 let indexEditar = null;
+
 const solicitudesRef = ref(database, "tecnologia");
 
-/* ======= FOLIO ======= */
-function generarFolio(){
-    return "TEC-" + Date.now();
-}
-folio.value = generarFolio();
+/* ================= ELEMENTOS ================= */
+const folioInput = document.getElementById("folio");
 
-/* ======= GUARDAR ======= */
-window.guardarSolicitud = function(){
+/* ================= FOLIO CONSECUTIVO ================= */
+async function generarFolioConsecutivo(empresa, zona) {
+
+    const key = `TEC_${empresa}_${zona}`.toUpperCase();
+    const folioRef = ref(database, "folios/" + key);
+
+    const snapshot = await get(folioRef);
+    let consecutivo = 1;
+
+    if (snapshot.exists()) {
+        consecutivo = snapshot.val() + 1;
+    }
+
+    await set(folioRef, consecutivo);
+
+    return `TEC-${empresa}-${zona}-${consecutivo.toString().padStart(4, "0")}`;
+}
+
+/* ================= VALIDAR DUPLICADO ================= */
+async function folioExiste(folio) {
+    const snap = await get(solicitudesRef);
+    if (!snap.exists()) return false;
+
+    return Object.values(snap.val()).some(s => s.folio === folio);
+}
+
+/* ================= MOSTRAR FOLIO AUTOMÁTICO ================= */
+async function mostrarFolioPreview(){
+    if (empresa.value && zona.value) {
+        folioInput.value = await generarFolioConsecutivo(
+            empresa.value.toUpperCase(),
+            zona.value.toUpperCase()
+        );
+    }
+}
+
+empresa.addEventListener("blur", mostrarFolioPreview);
+zona.addEventListener("blur", mostrarFolioPreview);
+
+/* ================= GUARDAR ================= */
+window.guardarSolicitud = async function(){
+
+    let emp = empresa.value.trim().toUpperCase();
+    let zon = zona.value.trim().toUpperCase();
+    let sop = soporte.value.trim().toUpperCase();
+    let suc = sucursal.value.trim().toUpperCase();
     let file = archivo.files[0];
-    if(!empresa.value || !zona.value || !soporte.value || !sucursal.value || !file){
-        alert("Campos obligatorios");
+
+    if(!emp || !zon || !sop || !suc || !file){
+        alert("Todos los campos son obligatorios");
         return;
     }
 
+    const folioGenerado = await generarFolioConsecutivo(emp, zon);
+
+    if (await folioExiste(folioGenerado)) {
+        alert("Error: folio duplicado, intente nuevamente.");
+        return;
+    }
+
+    folioInput.value = folioGenerado;
+
     let reader = new FileReader();
-    reader.onload = () => {
-        push(solicitudesRef,{
-            folio: folio.value,
-            empresa: empresa.value,
-            zona: zona.value,
-            soporte: soporte.value,
-            sucursal: sucursal.value,
+    reader.onload = async () => {
+
+        await push(solicitudesRef,{
+            folio: folioGenerado,
+            empresa: emp,
+            zona: zon,
+            soporte: sop,
+            sucursal: suc,
             archivoNombre: file.name,
             archivoData: reader.result,
             status: "Pendiente",
             fechaEnvio: new Date().toLocaleString()
         });
+
         formTec.reset();
-        folio.value = generarFolio();
+        folioInput.value = "";
     };
+
     reader.readAsDataURL(file);
 };
 
-/* ======= LEER EN TIEMPO REAL ======= */
+/* ================= LEER EN TIEMPO REAL ================= */
 onValue(solicitudesRef, snapshot => {
     solicitudes = [];
     snapshot.forEach(child => {
@@ -148,38 +211,42 @@ onValue(solicitudesRef, snapshot => {
     actualizarTabla();
 });
 
-/* ======= TABLA ======= */
+/* ================= TABLA ================= */
 function actualizarTabla(){
     tablaTecBody.innerHTML = "";
     solicitudes.forEach((s,i)=>{
         tablaTecBody.innerHTML += `
         <tr>
-        <td>${s.folio}</td>
-        <td>${s.empresa}</td>
-        <td>${s.zona}</td>
-        <td>${s.soporte}</td>
-        <td>${s.sucursal}</td>
-        <td><a class="btn btn-success btn-sm" download="${s.archivoNombre}" href="${s.archivoData}">📥</a></td>
-        <td class="bg-success text-white fw-bold">${s.status}</td>
-        <td>${s.fechaEnvio}</td>
-        <td>
-            <span class="action-btn" onclick="eliminar(${i})">🗑️</span>
-        </td>
+            <td>${s.folio}</td>
+            <td>${s.empresa}</td>
+            <td>${s.zona}</td>
+            <td>${s.soporte}</td>
+            <td>${s.sucursal}</td>
+            <td>
+                <a class="btn btn-success btn-sm btn-rounded"
+                   download="${s.archivoNombre}"
+                   href="${s.archivoData}">📥</a>
+            </td>
+            <td class="bg-success text-white fw-bold">${s.status}</td>
+            <td>${s.fechaEnvio}</td>
+            <td>
+                <span class="action-btn" onclick="eliminar(${i})">🗑️</span>
+            </td>
         </tr>`;
     });
 }
 
-/* ======= ELIMINAR ======= */
+/* ================= ELIMINAR ================= */
 window.eliminar = function(i){
     if(confirm("¿Eliminar solicitud?")){
         remove(ref(database,"tecnologia/"+solicitudes[i].id));
     }
 };
 
-/* ======= LOGIN ======= */
+/* ================= LOGIN ================= */
 window.irLogin = function(){
     localStorage.removeItem("usuarioLogueado");
-    location.href = "index.html";
+    window.location.href = "index.html";
 };
 </script>
 
