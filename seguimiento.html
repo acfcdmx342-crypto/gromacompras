@@ -10,6 +10,7 @@
 body { background:#eef1f5; }
 .card { border-radius:20px; }
 fieldset:disabled { opacity:0.6; }
+.d-none { display:none; }
 </style>
 </head>
 
@@ -27,6 +28,7 @@ fieldset:disabled { opacity:0.6; }
 
 <form id="formSeg" class="row g-3">
 
+<!-- ===== DATOS BASE ===== -->
 <div class="col-md-3">
 <label class="fw-bold">Folio</label>
 <input id="folio" class="form-control" readonly>
@@ -49,26 +51,11 @@ Ver Archivo
 </button>
 </div>
 
-<div class="col-md-6">
-<label class="fw-bold">Descripción</label>
-<input id="descripcion" class="form-control text-uppercase">
-</div>
+<!-- ===== CAMPOS OCULTOS (SE GUARDAN PERO NO SE VEN) ===== -->
+<input id="descripcion" class="d-none">
+<input id="fechaCompras" class="d-none">
 
-<div class="col-md-3">
-<label class="fw-bold">Status</label>
-<select id="status" class="form-select">
-<option>ENVIADO A COMPRAS</option>
-<option>ENVIADO A ZONA</option>
-<option>PENDIENTE POR AUTORIZAR</option>
-<option>EN SISTEMAS</option>
-</select>
-</div>
-
-<div class="col-md-3">
-<label class="fw-bold">Fecha registro</label>
-<input id="fechaCompras" class="form-control" readonly>
-</div>
-
+<!-- ===== CHECK ===== -->
 <div class="col-12 mt-4">
 <div class="form-check">
 <input class="form-check-input" type="checkbox" id="chkAvanzar">
@@ -76,6 +63,7 @@ Ver Archivo
 </div>
 </div>
 
+<!-- ===== CONFIRMACIÓN COMPRAS ===== -->
 <fieldset id="bloqueCompras" disabled class="row g-3 mt-3">
 <div class="col-md-4">
 <label class="fw-bold">Confirmar requisición</label>
@@ -92,6 +80,7 @@ Ver Archivo
 </div>
 </fieldset>
 
+<!-- ===== PASO 1 ===== -->
 <fieldset id="paso1" disabled class="row g-3 mt-4">
 <h5 class="fw-bold text-primary">Paso 1 – Cotización</h5>
 
@@ -111,6 +100,7 @@ Ver Archivo
 </div>
 </fieldset>
 
+<!-- ===== PASO 2 ===== -->
 <fieldset id="paso2" disabled class="row g-3 mt-4">
 <h5 class="fw-bold text-primary">Paso 2 – Autorización y Entrega</h5>
 
@@ -149,10 +139,22 @@ Ver Archivo
 <input type="file" id="factura" class="form-control">
 </div>
 
+<!-- STATUS ANTES DE OBSERVACIONES -->
 <div class="col-md-3">
+<label class="fw-bold">Status</label>
+<select id="status" class="form-select">
+<option>ENVIADO A COMPRAS</option>
+<option>ENVIADO A ZONA</option>
+<option>PENDIENTE POR AUTORIZAR</option>
+<option>EN SISTEMAS</option>
+</select>
+</div>
+
+<div class="col-md-6">
 <label class="fw-bold">Observaciones</label>
 <input id="observaciones" class="form-control text-uppercase">
 </div>
+
 </fieldset>
 
 <div class="col-12 mt-4">
@@ -176,7 +178,10 @@ const folioParam = params.get("folio");
 
 let archivoActual = null;
 
+// Campos ocultos
 fechaCompras.value = new Date().toLocaleString();
+descripcion.value = "SEGUIMIENTO DE FOLIO " + folioParam;
+
 folio.value = folioParam;
 
 chkAvanzar.addEventListener("change", ()=>{
@@ -209,7 +214,7 @@ window.guardarSeguimiento = async ()=>{
     folio: folio.value,
     solicito: solicito.value,
     sucursal: sucursal.value,
-    descripcion: descripcion.value.toUpperCase(),
+    descripcion: descripcion.value,
     status: status.value,
     fechaRegistro: fechaCompras.value,
 
