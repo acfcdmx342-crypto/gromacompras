@@ -8,8 +8,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
-body { font-family: Arial, sans-serif; padding: 20px; }
-.card { border: 1px solid #ccc; padding: 20px; max-width: 350px; }
+body { font-family: Arial, sans-serif; padding: 20px; background:#f4f4f4; }
+.card { border: 1px solid #ccc; padding: 20px; max-width: 350px; background:#fff; }
 
 .input-group {
     position: relative;
@@ -43,8 +43,9 @@ button { padding: 10px 15px; cursor: pointer; width: 100%; }
 <div class="card">
 
     <div class="input-group">
-        <input id="loginUser" placeholder="Usuario" oninput="this.value = this.value.toUpperCase()">
-        <i class="fa-solid fa-user" title="Usuario"></i>
+        <input id="loginUser" placeholder="Usuario"
+               oninput="this.value = this.value.toUpperCase()">
+        <i class="fa-solid fa-user"></i>
     </div>
 
     <div class="input-group">
@@ -57,13 +58,13 @@ button { padding: 10px 15px; cursor: pointer; width: 100%; }
 
 </div>
 
-<!-- EMAILJS -->
+<!-- ================= EMAILJS ================= -->
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 <script>
 emailjs.init("0aHlArLgvHrj2Xbk8");
 </script>
 
-<!-- UTILIDADES -->
+<!-- ================= UTILIDADES ================= -->
 <script>
 function verPassword() {
     const passField = document.getElementById("loginPass");
@@ -79,10 +80,11 @@ function verPassword() {
 }
 </script>
 
-<!-- LOGIN FIREBASE -->
+<!-- ================= LOGIN FIREBASE ================= -->
 <script type="module">
 import { database, ref, get, child } from "./firebase.js";
 
+/* ===== LOGIN ===== */
 window.login = async function () {
 
     const usuario = loginUser.value.trim().toUpperCase();
@@ -114,7 +116,7 @@ window.login = async function () {
             return;
         }
 
-        // SESIÓN
+        // ✅ SESIÓN
         localStorage.setItem("usuarioLogueado", data.usuario);
         localStorage.setItem("puesto", data.puesto);
 
@@ -126,13 +128,17 @@ window.login = async function () {
     }
 };
 
+/* ===== RECUPERAR CONTRASEÑA ===== */
 window.recuperar = async function () {
+
     const usuario = prompt("Ingresa tu usuario:");
 
     if (!usuario) return;
 
     try {
-        const snapshot = await get(child(ref(database), "usuarios/" + usuario.toUpperCase()));
+        const snapshot = await get(
+            child(ref(database), "usuarios/" + usuario.toUpperCase())
+        );
 
         if (!snapshot.exists()) {
             alert("Usuario no encontrado");
@@ -142,12 +148,12 @@ window.recuperar = async function () {
         const data = snapshot.val();
 
         await emailjs.send("service_mya4ogg", "template_ub0ksu5", {
-            to_email: data.email,
+            to_email: data.correo,   // ✅ CAMPO CORRECTO
             usuario: data.usuario,
             password: data.contrasena
         });
 
-        alert("Contraseña enviada al correo");
+        alert("Tu contraseña fue enviada al correo");
 
     } catch (err) {
         console.error(err);
@@ -158,4 +164,3 @@ window.recuperar = async function () {
 
 </body>
 </html>
-
