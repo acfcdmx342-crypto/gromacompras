@@ -77,7 +77,7 @@ Guardar Solicitud
 </form>
 </div>
 
-<!-- ===== TABLA (MISMA LÓGICA) ===== -->
+<!-- ===== TABLA (SIN CAMBIOS) ===== -->
 <div class="card shadow p-4">
 <h5 class="fw-bold mb-3">Registros de Solicitudes</h5>
 
@@ -100,7 +100,7 @@ Guardar Solicitud
 </div>
 </div>
 
-<!-- ===== MODAL HISTORIAL (NUEVO, NO AFECTA LÓGICA) ===== -->
+<!-- ===== MODAL HISTORIAL ===== -->
 <div class="modal fade" id="modalHistorial" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
@@ -122,9 +122,10 @@ Guardar Solicitud
 import { database, ref, push, set, get, onValue, remove } from "./firebase.js";
 
 const solicitudesRef = ref(database,"tecnologia");
+const seguimientoRef = ref(database,"seguimiento");
 let solicitudes = [];
 
-/* ===== LÓGICA ORIGINAL (SIN CAMBIOS) ===== */
+/* ===== LÓGICA ORIGINAL ===== */
 
 async function generarFolio(emp, zon){
     const key = `TEC_${emp}_${zon}`.toUpperCase();
@@ -169,7 +170,7 @@ onValue(solicitudesRef,snap=>{
     snap.forEach(c=>{
         solicitudes.push({id:c.key,...c.val()});
     });
-    solicitudes.forEach((s,i)=>{
+    solicitudes.forEach(s=>{
         tablaTecBody.innerHTML+=`
         <tr>
             <td>${s.folio}</td>
@@ -204,33 +205,35 @@ window.irLogin=()=>{
     window.location.href="index.html";
 };
 
-/* ===== NUEVA FUNCIÓN: VER HISTORIAL (NO TOCA LO DEMÁS) ===== */
+/* ===== HISTORIAL CORREGIDO (LEE /seguimiento) ===== */
 
 window.verHistorial = async (folio)=>{
     const lista = document.getElementById("listaHistorial");
     lista.innerHTML = "";
 
-    const snap = await get(
-        ref(database,"historialSeguimiento/"+folio)
-    );
+    const snap = await get(seguimientoRef);
+    let existe = false;
 
-    if(!snap.exists()){
-        lista.innerHTML = `
-          <li class="list-group-item text-center text-muted">
-            Sin historial registrado
-          </li>`;
-    } else {
-        snap.forEach(h=>{
-            const d = h.val();
+    snap.forEach(h=>{
+        const d = h.val();
+        if(d.folio === folio){
+            existe = true;
             lista.innerHTML += `
               <li class="list-group-item">
                 <div class="fw-bold text-primary">${d.status}</div>
                 <div>${d.observaciones || "Sin observaciones"}</div>
                 <small class="text-muted">
-                  ${d.fecha} · ${d.usuario || "Usuario"}
+                  ${d.fechaRegistro} · ${d.solicito || "Usuario"}
                 </small>
               </li>`;
-        });
+        }
+    });
+
+    if(!existe){
+        lista.innerHTML = `
+          <li class="list-group-item text-center text-muted">
+            Sin historial registrado
+          </li>`;
     }
 
     new bootstrap.Modal(
