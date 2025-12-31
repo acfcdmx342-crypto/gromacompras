@@ -27,7 +27,7 @@ fieldset:disabled { opacity:0.6; }
 <div class="card shadow p-4 mb-4">
 <h4 class="fw-bold mb-3">Detalle del Folio</h4>
 
-<form class="row g-3">
+<form id="formSeg" class="row g-3">
 
 <div class="col-md-3">
 <label class="fw-bold">Folio</label>
@@ -154,6 +154,7 @@ Guardar Seguimiento
 import { database, ref, get, push } from "./firebase.js";
 
 const tecnologiaRef = ref(database,"tecnologia");
+const seguimientoRef = ref(database,"seguimiento");
 
 const folioParam = new URLSearchParams(window.location.search).get("folio");
 const usuarioActual = localStorage.getItem("usuario") || "USUARIO DESCONOCIDO";
@@ -164,7 +165,7 @@ folio.value = folioParam;
 fechaCompras.value = new Date().toLocaleString();
 descripcion.value = "SEGUIMIENTO DE FOLIO " + folioParam;
 
-chkAvanzar.addEventListener("change",()=>{
+chkAvanzar.addEventListener("change", ()=>{
   bloqueCompras.disabled = !chkAvanzar.checked;
   paso1.disabled = !chkAvanzar.checked;
   paso2.disabled = !chkAvanzar.checked;
@@ -189,6 +190,28 @@ window.verArchivo = ()=>{
 };
 
 window.guardarSeguimiento = async ()=>{
+  // 🔹 LÓGICA ORIGINAL (NO SE TOCA)
+  await push(seguimientoRef,{
+    folio: folio.value,
+    solicito: solicito.value,
+    sucursal: sucursal.value,
+    descripcion: descripcion.value,
+    status: status.value,
+    fechaRegistro: fechaCompras.value,
+    confirmaReq: confirmaReq.value,
+    fechaSolicitudCompras: fechaSolicitudCompras.value,
+    fechaCotizacion: fechaCotizacion.value,
+    folioCotizacion: folioCotizacion.value,
+    fechaAutorizacion: fechaAutorizacion.value,
+    quienAutoriza: quienAutoriza.value,
+    fechaEntrega: fechaEntrega.value,
+    quienRecibe: quienRecibe.value,
+    fechaEnvio: fechaEnvio.value,
+    quienEnvia: quienEnvia.value,
+    observaciones: observaciones.value
+  });
+
+  // 🔹 NUEVO: HISTORIAL (NO AFECTA LO ANTERIOR)
   await push(ref(database,"historialSeguimiento/"+folio.value),{
     status: status.value,
     observaciones: observaciones.value,
@@ -196,7 +219,7 @@ window.guardarSeguimiento = async ()=>{
     usuario: usuarioActual
   });
 
-  alert("Seguimiento guardado y agregado al historial");
+  alert("Seguimiento guardado correctamente");
 };
 </script>
 
