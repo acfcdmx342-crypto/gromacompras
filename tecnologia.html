@@ -11,6 +11,10 @@
 body { background:#f2f4f7; }
 .card { border-radius:20px; }
 .action-btn { cursor:pointer; font-size:22px; margin-right:10px; }
+.action-disabled {
+    color:#adb5bd;
+    cursor:not-allowed;
+}
 .table thead { background:#0d6efd; color:white; }
 .btn-rounded { border-radius:50px; }
 #btnRegresar {
@@ -42,7 +46,6 @@ td:last-child { display:flex; justify-content:center; }
 <h5 class="fw-bold mb-3">Registrar Solicitud</h5>
 
 <form id="formTec" class="row g-3">
-
 <div class="col-md-3">
 <label class="fw-bold">Folio</label>
 <input id="folio" class="form-control" readonly>
@@ -78,7 +81,6 @@ td:last-child { display:flex; justify-content:center; }
 Guardar Solicitud
 </button>
 </div>
-
 </form>
 </div>
 
@@ -154,8 +156,16 @@ import { database, ref, push, set, get, onValue, remove } from "./firebase.js";
 const solicitudesRef = ref(database,"tecnologia");
 const seguimientoRef = ref(database,"seguimiento");
 
-let solicitudes = [];
 let folioActual = "";
+let foliosConSeguimiento = new Set();
+
+/* ===== DETECTAR FOLIOS CON SEGUIMIENTO ===== */
+onValue(seguimientoRef,snap=>{
+    foliosConSeguimiento.clear();
+    snap.forEach(c=>{
+        foliosConSeguimiento.add(c.val().folio);
+    });
+});
 
 /* ===== GENERAR FOLIO ===== */
 async function generarFolio(emp, zon){
@@ -201,6 +211,8 @@ onValue(solicitudesRef,snap=>{
     tablaTecBody.innerHTML="";
     snap.forEach(c=>{
         const s = c.val();
+        const tieneSeguimiento = foliosConSeguimiento.has(s.folio);
+
         tablaTecBody.innerHTML+=`
         <tr>
           <td>${s.folio}</td>
@@ -212,7 +224,11 @@ onValue(solicitudesRef,snap=>{
           <td class="bg-success text-white">${s.status}</td>
           <td>${s.fechaEnvio}</td>
           <td>
-            <span class="action-btn" onclick="irSeguimiento('${s.folio}')">📋</span>
+            ${
+              tieneSeguimiento
+              ? `<span class="action-btn action-disabled" title="Seguimiento ya registrado">📋</span>`
+              : `<span class="action-btn" onclick="irSeguimiento('${s.folio}')">📋</span>`
+            }
             <span class="action-btn" onclick="verHistorial('${s.folio}')">📜</span>
             <span class="action-btn" onclick="eliminar('${c.key}')">🗑️</span>
           </td>
