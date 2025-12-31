@@ -5,15 +5,15 @@
 <title>Base - Registro de Personal</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <style>
-.action-icon {
-  cursor: pointer;
-  font-size: 18px;
-  margin-right: 10px;
+.action-btn{
+  cursor:pointer;
+  font-size:18px;
+  margin-right:10px;
 }
 </style>
 </head>
@@ -89,10 +89,11 @@
 </table>
 
 <script type="module">
-import { database, ref, set, onValue, update, remove } from "./firebase.js";
+import { database, ref, set, onValue, update, remove, get } from "./firebase.js";
 
 /* ===== GUARDAR ===== */
 window.guardarPersonal = function(){
+
   const data = {
     empresa: empresa.value,
     zona: zona.value,
@@ -121,7 +122,6 @@ onValue(ref(database, "usuarios"), snapshot=>{
   tablaBody.innerHTML = "";
   snapshot.forEach(child=>{
     const u = child.val();
-
     tablaBody.innerHTML += `
       <tr>
         <td>${u.empresa}</td>
@@ -132,25 +132,58 @@ onValue(ref(database, "usuarios"), snapshot=>{
         <td>${u.contrasena}</td>
         <td>${u.bloqueado ? "Inactivo" : "Activo"}</td>
         <td>
-          <i class="fa-solid fa-lock action-icon text-warning"
-             title="Bloquear / Desbloquear"
-             onclick="toggleBloqueo('${u.usuario}', ${u.bloqueado})"></i>
+          <i class="fa-solid fa-pen action-btn text-primary"
+             onclick="editarUsuario('${u.usuario}')"
+             title="Editar usuario / contraseña"></i>
 
-          <i class="fa-solid fa-pen-to-square action-icon text-primary"
-             title="Modificar"
-             onclick="editarUsuario('${u.usuario}')"></i>
+          <i class="fa-solid fa-ban action-btn text-warning"
+             onclick="bloquearUsuario('${u.usuario}', ${u.bloqueado})"
+             title="Bloquear / Desbloquear"></i>
 
-          <i class="fa-solid fa-trash action-icon text-danger"
-             title="Eliminar"
-             onclick="eliminarUsuario('${u.usuario}')"></i>
+          <i class="fa-solid fa-trash action-btn text-danger"
+             onclick="eliminarUsuario('${u.usuario}')"
+             title="Eliminar"></i>
         </td>
       </tr>
     `;
   });
 });
 
-/* ===== BLOQUEAR / DESBLOQUEAR ===== */
-window.toggleBloqueo = function(usuario, estado){
+/* ===== EDITAR SOLO USUARIO Y CONTRASEÑA ===== */
+window.editarUsuario = async function(usuarioActual){
+
+  const nuevoUsuario = prompt("Nuevo usuario (deja vacío para no cambiar):", usuarioActual);
+  const nuevaPass = prompt("Nueva contraseña (deja vacío para no cambiar):");
+
+  if(!nuevoUsuario && !nuevaPass) return;
+
+  const userRef = ref(database, "usuarios/" + usuarioActual);
+  const snap = await get(userRef);
+
+  if(!snap.exists()){
+    alert("Usuario no encontrado");
+    return;
+  }
+
+  const data = snap.val();
+
+  if(nuevoUsuario && nuevoUsuario.toUpperCase() !== usuarioActual){
+    const nuevoUser = nuevoUsuario.toUpperCase();
+    data.usuario = nuevoUser;
+    if(nuevaPass) data.contrasena = nuevaPass;
+
+    await set(ref(database, "usuarios/" + nuevoUser), data);
+    await remove(userRef);
+
+  } else if(nuevaPass){
+    await update(userRef, { contrasena: nuevaPass });
+  }
+
+  alert("Datos actualizados");
+};
+
+/* ===== BLOQUEAR ===== */
+window.bloquearUsuario = function(usuario, estado){
   update(ref(database, "usuarios/" + usuario), {
     bloqueado: !estado
   });
@@ -158,23 +191,9 @@ window.toggleBloqueo = function(usuario, estado){
 
 /* ===== ELIMINAR ===== */
 window.eliminarUsuario = function(usuario){
-  if(confirm("¿Eliminar usuario " + usuario + "?")){
+  if(confirm("¿Eliminar usuario definitivamente?")){
     remove(ref(database, "usuarios/" + usuario));
   }
-};
-
-/* ===== EDITAR ===== */
-window.editarUsuario = function(usuario){
-  const nuevoPuesto = prompt("Nuevo puesto:");
-  const nuevaPass = prompt("Nueva contraseña:");
-
-  if(!nuevoPuesto && !nuevaPass) return;
-
-  const data = {};
-  if(nuevoPuesto) data.puesto = nuevoPuesto;
-  if(nuevaPass) data.contrasena = nuevaPass;
-
-  update(ref(database, "usuarios/" + usuario), data);
 };
 </script>
 
