@@ -22,11 +22,8 @@ body { background:#f2f4f7; }
     color:#0d6efd;
 }
 td:last-child { display:flex; justify-content:center; }
-.list-group-item { position:relative; }
 .btn-delete {
-    position:absolute;
-    right:15px;
-    top:15px;
+    float:right;
     cursor:pointer;
     color:#dc3545;
 }
@@ -40,8 +37,73 @@ td:last-child { display:flex; justify-content:center; }
 <div class="container">
 <h2 class="text-center mb-4 fw-bold">Solicitud de Tecnología</h2>
 
-<!-- FORMULARIO Y TABLA (SIN CAMBIOS) -->
-<!-- …………… (idéntico a lo que ya tenías) …………… -->
+<!-- ===== FORMULARIO ===== -->
+<div class="card shadow p-4 mb-4">
+<h5 class="fw-bold mb-3">Registrar Solicitud</h5>
+
+<form id="formTec" class="row g-3">
+
+<div class="col-md-3">
+<label class="fw-bold">Folio</label>
+<input id="folio" class="form-control" readonly>
+</div>
+
+<div class="col-md-3">
+<label class="fw-bold">Empresa</label>
+<input id="empresa" class="form-control text-uppercase">
+</div>
+
+<div class="col-md-3">
+<label class="fw-bold">Zona</label>
+<input id="zona" class="form-control text-uppercase">
+</div>
+
+<div class="col-md-3">
+<label class="fw-bold">Soporte Zona</label>
+<input id="soporte" class="form-control text-uppercase">
+</div>
+
+<div class="col-md-3">
+<label class="fw-bold">Sucursal</label>
+<input id="sucursal" class="form-control text-uppercase">
+</div>
+
+<div class="col-md-6">
+<label class="fw-bold">Requisición</label>
+<input id="archivo" type="file" class="form-control">
+</div>
+
+<div class="col-12">
+<button type="button" class="btn btn-primary btn-rounded" onclick="guardarSolicitud()">
+Guardar Solicitud
+</button>
+</div>
+
+</form>
+</div>
+
+<!-- ===== TABLA ===== -->
+<div class="card shadow p-4">
+<h5 class="fw-bold mb-3">Registros de Solicitudes</h5>
+
+<table class="table table-bordered table-striped">
+<thead>
+<tr>
+<th>Folio</th>
+<th>Empresa</th>
+<th>Zona</th>
+<th>Soporte</th>
+<th>Sucursal</th>
+<th>Archivo</th>
+<th>Status</th>
+<th>Fecha</th>
+<th>Acciones</th>
+</tr>
+</thead>
+<tbody id="tablaTecBody"></tbody>
+</table>
+</div>
+</div>
 
 <!-- ===== MODAL HISTORIAL ===== -->
 <div class="modal fade" id="modalHistorial" tabindex="-1">
@@ -55,9 +117,8 @@ td:last-child { display:flex; justify-content:center; }
 
       <div class="modal-body">
 
-        <!-- NUEVO SEGUIMIENTO -->
         <div class="card p-3 mb-3">
-          <h6 class="fw-bold text-primary mb-2">➕ Agregar seguimiento</h6>
+          <h6 class="fw-bold text-primary">➕ Agregar seguimiento</h6>
 
           <select id="nuevoStatus" class="form-select mb-2">
             <option value="">Seleccione status</option>
@@ -75,7 +136,6 @@ td:last-child { display:flex; justify-content:center; }
           </button>
         </div>
 
-        <!-- HISTORIAL -->
         <ul class="list-group" id="listaHistorial"></ul>
 
       </div>
@@ -89,12 +149,78 @@ td:last-child { display:flex; justify-content:center; }
 </div>
 
 <script type="module">
-import { database, ref, push, get, remove } from "./firebase.js";
+import { database, ref, push, set, get, onValue, remove } from "./firebase.js";
 
+const solicitudesRef = ref(database,"tecnologia");
 const seguimientoRef = ref(database,"seguimiento");
+
+let solicitudes = [];
 let folioActual = "";
 
-/* ===== ABRIR HISTORIAL ===== */
+/* ===== GENERAR FOLIO ===== */
+async function generarFolio(emp, zon){
+    const key = `TEC_${emp}_${zon}`.toUpperCase();
+    const r = ref(database,"folios/"+key);
+    const s = await get(r);
+    let n = s.exists() ? s.val()+1 : 1;
+    await set(r,n);
+    return `TEC-${emp}-${zon}-${n.toString().padStart(4,"0")}`;
+}
+
+/* ===== GUARDAR SOLICITUD ===== */
+window.guardarSolicitud = async ()=>{
+    if(!empresa.value||!zona.value||!soporte.value||!sucursal.value||!archivo.files[0]){
+        alert("Campos obligatorios");
+        return;
+    }
+
+    const fol = await generarFolio(empresa.value,zona.value);
+    folio.value = fol;
+
+    const reader = new FileReader();
+    reader.onload = async ()=>{
+        await push(solicitudesRef,{
+            folio: fol,
+            empresa: empresa.value.toUpperCase(),
+            zona: zona.value.toUpperCase(),
+            soporte: soporte.value.toUpperCase(),
+            sucursal: sucursal.value.toUpperCase(),
+            archivoData: reader.result,
+            archivoNombre: archivo.files[0].name,
+            status: "Pendiente",
+            fechaEnvio: new Date().toLocaleString()
+        });
+        formTec.reset();
+        folio.value="";
+    };
+    reader.readAsDataURL(archivo.files[0]);
+};
+
+/* ===== LISTAR SOLICITUDES ===== */
+onValue(solicitudesRef,snap=>{
+    tablaTecBody.innerHTML="";
+    snap.forEach(c=>{
+        const s = c.val();
+        tablaTecBody.innerHTML+=`
+        <tr>
+          <td>${s.folio}</td>
+          <td>${s.empresa}</td>
+          <td>${s.zona}</td>
+          <td>${s.soporte}</td>
+          <td>${s.sucursal}</td>
+          <td><a class="btn btn-success btn-sm" download="${s.archivoNombre}" href="${s.archivoData}">📥</a></td>
+          <td class="bg-success text-white">${s.status}</td>
+          <td>${s.fechaEnvio}</td>
+          <td>
+            <span class="action-btn" onclick="irSeguimiento('${s.folio}')">📋</span>
+            <span class="action-btn" onclick="verHistorial('${s.folio}')">📜</span>
+            <span class="action-btn" onclick="eliminar('${c.key}')">🗑️</span>
+          </td>
+        </tr>`;
+    });
+});
+
+/* ===== HISTORIAL ===== */
 window.verHistorial = async (folio)=>{
     folioActual = folio;
     listaHistorial.innerHTML = "";
@@ -106,14 +232,12 @@ window.verHistorial = async (folio)=>{
         const d = h.val();
         if(d.folio === folio){
             existe = true;
-            listaHistorial.innerHTML += `
+            listaHistorial.innerHTML+=`
               <li class="list-group-item">
                 <span class="btn-delete" onclick="eliminarSeguimiento('${h.key}')">🗑️</span>
-                <div class="fw-bold text-primary">${d.status}</div>
-                <div>${d.observaciones || "Sin observaciones"}</div>
-                <small class="text-muted">
-                  ${d.fechaRegistro} · ${d.solicito || "Usuario"}
-                </small>
+                <strong>${d.status}</strong><br>
+                ${d.observaciones || ""}<br>
+                <small>${d.fechaRegistro}</small>
               </li>`;
         }
     });
@@ -121,42 +245,48 @@ window.verHistorial = async (folio)=>{
     if(!existe){
         listaHistorial.innerHTML = `
           <li class="list-group-item text-center text-muted">
-            Sin historial registrado
+            Sin historial
           </li>`;
     }
 
-    new bootstrap.Modal(
-        document.getElementById("modalHistorial")
-    ).show();
+    new bootstrap.Modal(modalHistorial).show();
 };
 
-/* ===== AGREGAR SEGUIMIENTO ===== */
 window.agregarSeguimiento = async ()=>{
-    if(!nuevoStatus.value){
-        alert("Seleccione un status");
-        return;
-    }
+    if(!nuevoStatus.value) return alert("Seleccione status");
 
     await push(seguimientoRef,{
         folio: folioActual,
         status: nuevoStatus.value,
         observaciones: nuevaObs.value.toUpperCase(),
-        fechaRegistro: new Date().toLocaleString(),
-        solicito: localStorage.getItem("usuario") || "Sistema"
+        fechaRegistro: new Date().toLocaleString()
     });
 
-    nuevoStatus.value = "";
-    nuevaObs.value = "";
-
+    nuevoStatus.value="";
+    nuevaObs.value="";
     verHistorial(folioActual);
 };
 
-/* ===== ELIMINAR SEGUIMIENTO ===== */
 window.eliminarSeguimiento = async (id)=>{
-    if(confirm("¿Eliminar este seguimiento?")){
+    if(confirm("¿Eliminar seguimiento?")){
         await remove(ref(database,"seguimiento/"+id));
         verHistorial(folioActual);
     }
+};
+
+window.eliminar = id=>{
+    if(confirm("¿Eliminar solicitud?")){
+        remove(ref(database,"tecnologia/"+id));
+    }
+};
+
+window.irSeguimiento = folio=>{
+    location.href="seguimiento.html?folio="+encodeURIComponent(folio);
+};
+
+window.irLogin = ()=>{
+    localStorage.clear();
+    location.href="index.html";
 };
 </script>
 
