@@ -13,16 +13,72 @@ body { background:#f2f4f7; }
 .action-btn { cursor:pointer; font-size:22px; margin-right:10px; }
 .table thead { background:#0d6efd; color:white; }
 .btn-rounded { border-radius:50px; }
+#btnRegresar {
+    cursor:pointer;
+    font-size:40px;
+    position:fixed;
+    top:20px;
+    left:20px;
+    color:#0d6efd;
+}
 td:last-child { display:flex; justify-content:center; }
 </style>
 </head>
 
 <body class="p-4">
 
+<span id="btnRegresar" onclick="irLogin()">🔙</span>
+
 <div class="container">
 <h2 class="text-center mb-4 fw-bold">Solicitud de Tecnología</h2>
 
+<!-- ===== FORMULARIO (SIN CAMBIOS) ===== -->
 <div class="card shadow p-4 mb-4">
+<h5 class="fw-bold mb-3">Registrar Solicitud</h5>
+
+<form id="formTec" class="row g-3">
+
+<div class="col-md-3">
+<label class="fw-bold">Folio</label>
+<input id="folio" class="form-control" readonly>
+</div>
+
+<div class="col-md-3">
+<label class="fw-bold">Empresa</label>
+<input id="empresa" class="form-control text-uppercase">
+</div>
+
+<div class="col-md-3">
+<label class="fw-bold">Zona</label>
+<input id="zona" class="form-control text-uppercase">
+</div>
+
+<div class="col-md-3">
+<label class="fw-bold">Soporte Zona</label>
+<input id="soporte" class="form-control text-uppercase">
+</div>
+
+<div class="col-md-3">
+<label class="fw-bold">Sucursal</label>
+<input id="sucursal" class="form-control text-uppercase">
+</div>
+
+<div class="col-md-6">
+<label class="fw-bold">Requisición</label>
+<input id="archivo" type="file" class="form-control">
+</div>
+
+<div class="col-12">
+<button type="button" class="btn btn-primary btn-rounded" onclick="guardarSolicitud()">
+Guardar Solicitud
+</button>
+</div>
+
+</form>
+</div>
+
+<!-- ===== TABLA (MISMA LÓGICA) ===== -->
+<div class="card shadow p-4">
 <h5 class="fw-bold mb-3">Registros de Solicitudes</h5>
 
 <table class="table table-bordered table-striped">
@@ -44,77 +100,142 @@ td:last-child { display:flex; justify-content:center; }
 </div>
 </div>
 
-<!-- MODAL HISTORIAL -->
+<!-- ===== MODAL HISTORIAL (NUEVO, NO AFECTA LÓGICA) ===== -->
 <div class="modal fade" id="modalHistorial" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header bg-primary text-white">
         <h5 class="modal-title">📜 Historial de Seguimiento</h5>
-        <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <ul class="list-group" id="listaHistorial"></ul>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
       </div>
     </div>
   </div>
 </div>
 
 <script type="module">
-import { database, ref, onValue, get } from "./firebase.js";
+import { database, ref, push, set, get, onValue, remove } from "./firebase.js";
 
 const solicitudesRef = ref(database,"tecnologia");
+let solicitudes = [];
 
-onValue(solicitudesRef, snap=>{
-  tablaTecBody.innerHTML="";
-  snap.forEach(c=>{
-    const s=c.val();
-    tablaTecBody.innerHTML+=`
-    <tr>
-      <td>${s.folio}</td>
-      <td>${s.empresa}</td>
-      <td>${s.zona}</td>
-      <td>${s.soporte}</td>
-      <td>${s.sucursal}</td>
-      <td><a class="btn btn-success btn-sm" href="${s.archivoData}" download>📥</a></td>
-      <td class="bg-success text-white">${s.status || "Pendiente"}</td>
-      <td>${s.fechaEnvio}</td>
-      <td>
-        <span class="action-btn" onclick="irSeguimiento('${s.folio}')">📋</span>
-        <span class="action-btn" onclick="verHistorial('${s.folio}')">📜</span>
-      </td>
-    </tr>`;
-  });
+/* ===== LÓGICA ORIGINAL (SIN CAMBIOS) ===== */
+
+async function generarFolio(emp, zon){
+    const key = `TEC_${emp}_${zon}`.toUpperCase();
+    const r = ref(database,"folios/"+key);
+    const s = await get(r);
+    let n = s.exists() ? s.val()+1 : 1;
+    await set(r,n);
+    return `TEC-${emp}-${zon}-${n.toString().padStart(4,"0")}`;
+}
+
+window.guardarSolicitud = async function(){
+    if(!empresa.value||!zona.value||!soporte.value||!sucursal.value||!archivo.files[0]){
+        alert("Campos obligatorios");
+        return;
+    }
+
+    const fol = await generarFolio(empresa.value,zona.value);
+    folio.value = fol;
+
+    const reader = new FileReader();
+    reader.onload = async ()=>{
+        await push(solicitudesRef,{
+            folio: fol,
+            empresa: empresa.value.toUpperCase(),
+            zona: zona.value.toUpperCase(),
+            soporte: soporte.value.toUpperCase(),
+            sucursal: sucursal.value.toUpperCase(),
+            archivoData: reader.result,
+            archivoNombre: archivo.files[0].name,
+            status: "Pendiente",
+            fechaEnvio: new Date().toLocaleString()
+        });
+        formTec.reset();
+        folio.value="";
+    };
+    reader.readAsDataURL(archivo.files[0]);
+};
+
+onValue(solicitudesRef,snap=>{
+    solicitudes=[];
+    tablaTecBody.innerHTML="";
+    snap.forEach(c=>{
+        solicitudes.push({id:c.key,...c.val()});
+    });
+    solicitudes.forEach((s,i)=>{
+        tablaTecBody.innerHTML+=`
+        <tr>
+            <td>${s.folio}</td>
+            <td>${s.empresa}</td>
+            <td>${s.zona}</td>
+            <td>${s.soporte}</td>
+            <td>${s.sucursal}</td>
+            <td><a class="btn btn-success btn-sm" download="${s.archivoNombre}" href="${s.archivoData}">📥</a></td>
+            <td class="bg-success text-white">${s.status}</td>
+            <td>${s.fechaEnvio}</td>
+            <td>
+                <span class="action-btn" onclick="irSeguimiento('${s.folio}')">📋</span>
+                <span class="action-btn" onclick="verHistorial('${s.folio}')">📜</span>
+                <span class="action-btn" onclick="eliminar('${s.id}')">🗑️</span>
+            </td>
+        </tr>`;
+    });
 });
 
-window.verHistorial = async folio=>{
-  const lista=document.getElementById("listaHistorial");
-  lista.innerHTML="";
-
-  const snap = await get(ref(database,"historialSeguimiento/"+folio));
-
-  if(!snap.exists()){
-    lista.innerHTML=`<li class="list-group-item text-center text-muted">
-      Sin historial registrado
-    </li>`;
-  }else{
-    snap.forEach(h=>{
-      const d=h.val();
-      lista.innerHTML+=`
-      <li class="list-group-item">
-        <strong>${d.status}</strong><br>
-        ${d.observaciones || ""}<br>
-        <small class="text-muted">${d.fecha} · ${d.usuario}</small>
-      </li>`;
-    });
-  }
-
-  new bootstrap.Modal(
-    document.getElementById("modalHistorial")
-  ).show();
+window.eliminar=id=>{
+    if(confirm("¿Eliminar solicitud?")){
+        remove(ref(database,"tecnologia/"+id));
+    }
 };
 
 window.irSeguimiento = folio=>{
-  window.location.href="seguimiento.html?folio="+encodeURIComponent(folio);
+    window.location.href="seguimiento.html?folio="+encodeURIComponent(folio);
+};
+
+window.irLogin=()=>{
+    localStorage.clear();
+    window.location.href="index.html";
+};
+
+/* ===== NUEVA FUNCIÓN: VER HISTORIAL (NO TOCA LO DEMÁS) ===== */
+
+window.verHistorial = async (folio)=>{
+    const lista = document.getElementById("listaHistorial");
+    lista.innerHTML = "";
+
+    const snap = await get(
+        ref(database,"historialSeguimiento/"+folio)
+    );
+
+    if(!snap.exists()){
+        lista.innerHTML = `
+          <li class="list-group-item text-center text-muted">
+            Sin historial registrado
+          </li>`;
+    } else {
+        snap.forEach(h=>{
+            const d = h.val();
+            lista.innerHTML += `
+              <li class="list-group-item">
+                <div class="fw-bold text-primary">${d.status}</div>
+                <div>${d.observaciones || "Sin observaciones"}</div>
+                <small class="text-muted">
+                  ${d.fecha} · ${d.usuario || "Usuario"}
+                </small>
+              </li>`;
+        });
+    }
+
+    new bootstrap.Modal(
+        document.getElementById("modalHistorial")
+    ).show();
 };
 </script>
 
