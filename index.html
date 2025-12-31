@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Login</title>
 
-<!-- ICONOS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
@@ -45,7 +44,7 @@ button { padding: 10px 15px; cursor: pointer; width: 100%; }
 
     <div class="input-group">
         <input id="loginUser" placeholder="Usuario" oninput="this.value = this.value.toUpperCase()">
-        <i class="fa-solid fa-user" onclick="irBase()"title="ir a Base"></i>
+        <i class="fa-solid fa-user" title="Usuario"></i>
     </div>
 
     <div class="input-group">
@@ -58,13 +57,13 @@ button { padding: 10px 15px; cursor: pointer; width: 100%; }
 
 </div>
 
-<!-- ================= EMAILJS ================= -->
+<!-- EMAILJS -->
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 <script>
 emailjs.init("0aHlArLgvHrj2Xbk8");
 </script>
 
-<!-- ================= UTILIDADES ================= -->
+<!-- UTILIDADES -->
 <script>
 function verPassword() {
     const passField = document.getElementById("loginPass");
@@ -79,20 +78,15 @@ function verPassword() {
     }
 }
 </script>
-<script>
-function irBase() {
-    window.location.href = "base.html";
-}
-</script>    
 
-<!-- ================= LOGIN CON FIREBASE ================= -->
+<!-- LOGIN FIREBASE -->
 <script type="module">
 import { database, ref, get, child } from "./firebase.js";
 
-/* ===== LOGIN ===== */
 window.login = async function () {
-    const usuario = document.getElementById("loginUser").value.toUpperCase();
-    const pass = document.getElementById("loginPass").value;
+
+    const usuario = loginUser.value.trim().toUpperCase();
+    const pass = loginPass.value.trim();
 
     if (!usuario || !pass) {
         alert("Completa todos los campos");
@@ -100,38 +94,38 @@ window.login = async function () {
     }
 
     try {
-        const snapshot = await get(child(ref(database), "usuarios/" + usuario));
+        const userRef = child(ref(database), "usuarios/" + usuario);
+        const snapshot = await get(userRef);
 
         if (!snapshot.exists()) {
-            alert("Usuario no existe");
+            alert("❌ Usuario no existe");
             return;
         }
 
         const data = snapshot.val();
 
         if (data.bloqueado === true) {
-            alert("Usuario bloqueado");
+            alert("⛔ Usuario bloqueado");
             return;
         }
 
         if (data.contrasena !== pass) {
-            alert("Contraseña incorrecta");
+            alert("❌ Contraseña incorrecta");
             return;
         }
 
-        // ✅ Sesión mínima
+        // SESIÓN
         localStorage.setItem("usuarioLogueado", data.usuario);
         localStorage.setItem("puesto", data.puesto);
 
         window.location.href = "tecnologia.html";
 
     } catch (error) {
-        console.error(error);
+        console.error("ERROR LOGIN:", error);
         alert("Error al conectar con Firebase");
     }
 };
 
-/* ===== RECUPERAR CONTRASEÑA ===== */
 window.recuperar = async function () {
     const usuario = prompt("Ingresa tu usuario:");
 
@@ -147,15 +141,13 @@ window.recuperar = async function () {
 
         const data = snapshot.val();
 
-        emailjs.send("service_mya4ogg", "template_ub0ksu5", {
+        await emailjs.send("service_mya4ogg", "template_ub0ksu5", {
             to_email: data.email,
             usuario: data.usuario,
             password: data.contrasena
-        }).then(() => {
-            alert("Tu contraseña fue enviada al correo");
-        }).catch(() => {
-            alert("Error al enviar el correo");
         });
+
+        alert("Contraseña enviada al correo");
 
     } catch (err) {
         console.error(err);
