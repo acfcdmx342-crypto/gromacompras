@@ -201,9 +201,7 @@ window.guardarSeguimiento=async()=>{
         folio: folio.value,
         solicito: solicito.value,
         sucursal: sucursal.value,
-        descripcion: descripcion.value.toUpperCase(),
-        status: status.value,
-        fechaCompras: fechaCompras.value,
+        
 
         confirmaRequisicion: confirmaReq.value,
         fechaSolicitudCompras: fechaSolicitudCompras.value,
@@ -217,7 +215,10 @@ window.guardarSeguimiento=async()=>{
         quienRecibe: quienRecibe.value,
         fechaEnvio: fechaEnvio.value,
         quienEnvia: quienEnvia.value,
+        status: status.value,
         observaciones: observaciones.value
+      
+   
     });
 
     alert("Seguimiento guardado correctamente");
@@ -227,6 +228,7 @@ window.guardarSeguimiento=async()=>{
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+
 
 
 
