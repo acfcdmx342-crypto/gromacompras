@@ -12,6 +12,8 @@ body { background:#f2f4f7; }
 .card { border-radius:20px; }
 .action-btn { cursor:pointer; font-size:22px; margin-right:10px; }
 .table thead { background:#0d6efd; color:white; }
+.btn-rounded { border-radius:50px; }
+td:last-child { display:flex; justify-content:center; }
 </style>
 </head>
 
@@ -20,7 +22,9 @@ body { background:#f2f4f7; }
 <div class="container">
 <h2 class="text-center mb-4 fw-bold">Solicitud de Tecnología</h2>
 
-<div class="card shadow p-4">
+<div class="card shadow p-4 mb-4">
+<h5 class="fw-bold mb-3">Registros de Solicitudes</h5>
+
 <table class="table table-bordered table-striped">
 <thead>
 <tr>
@@ -29,7 +33,9 @@ body { background:#f2f4f7; }
 <th>Zona</th>
 <th>Soporte</th>
 <th>Sucursal</th>
+<th>Archivo</th>
 <th>Status</th>
+<th>Fecha</th>
 <th>Acciones</th>
 </tr>
 </thead>
@@ -56,7 +62,9 @@ body { background:#f2f4f7; }
 <script type="module">
 import { database, ref, onValue, get } from "./firebase.js";
 
-onValue(ref(database,"tecnologia"), snap=>{
+const solicitudesRef = ref(database,"tecnologia");
+
+onValue(solicitudesRef, snap=>{
   tablaTecBody.innerHTML="";
   snap.forEach(c=>{
     const s=c.val();
@@ -67,8 +75,11 @@ onValue(ref(database,"tecnologia"), snap=>{
       <td>${s.zona}</td>
       <td>${s.soporte}</td>
       <td>${s.sucursal}</td>
-      <td>${s.status || "Pendiente"}</td>
+      <td><a class="btn btn-success btn-sm" href="${s.archivoData}" download>📥</a></td>
+      <td class="bg-success text-white">${s.status || "Pendiente"}</td>
+      <td>${s.fechaEnvio}</td>
       <td>
+        <span class="action-btn" onclick="irSeguimiento('${s.folio}')">📋</span>
         <span class="action-btn" onclick="verHistorial('${s.folio}')">📜</span>
       </td>
     </tr>`;
@@ -82,7 +93,9 @@ window.verHistorial = async folio=>{
   const snap = await get(ref(database,"historialSeguimiento/"+folio));
 
   if(!snap.exists()){
-    lista.innerHTML=`<li class="list-group-item text-center text-muted">Sin historial</li>`;
+    lista.innerHTML=`<li class="list-group-item text-center text-muted">
+      Sin historial registrado
+    </li>`;
   }else{
     snap.forEach(h=>{
       const d=h.val();
@@ -95,7 +108,13 @@ window.verHistorial = async folio=>{
     });
   }
 
-  new bootstrap.Modal(document.getElementById("modalHistorial")).show();
+  new bootstrap.Modal(
+    document.getElementById("modalHistorial")
+  ).show();
+};
+
+window.irSeguimiento = folio=>{
+  window.location.href="seguimiento.html?folio="+encodeURIComponent(folio);
 };
 </script>
 
