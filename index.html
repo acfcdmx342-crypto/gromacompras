@@ -44,7 +44,7 @@ button { padding: 10px 15px; cursor: pointer; width: 100%; }
 
     <div class="input-group">
         <input id="loginUser" placeholder="Usuario"
-               oninput="this.value = this.value.toUpperCase()">
+               oninput="this.value = this.value.toUpperCase().trim()">
         <i class="fa-solid fa-user"></i>
     </div>
 
@@ -82,7 +82,7 @@ function verPassword() {
 
 <!-- ================= LOGIN FIREBASE ================= -->
 <script type="module">
-import { database, ref, get, child } from "./firebase.js";
+import { database, ref, get } from "./firebase.js";
 
 /* ===== LOGIN ===== */
 window.login = async function () {
@@ -96,11 +96,11 @@ window.login = async function () {
     }
 
     try {
-        const userRef = child(ref(database), "usuarios/" + usuario);
-        const snapshot = await get(userRef);
+        // 🔐 SOLO valida contra usuarios registrados en Base
+        const snapshot = await get(ref(database, "usuarios/" + usuario));
 
         if (!snapshot.exists()) {
-            alert("❌ Usuario no existe");
+            alert("❌ Usuario NO registrado en Base");
             return;
         }
 
@@ -137,18 +137,18 @@ window.recuperar = async function () {
 
     try {
         const snapshot = await get(
-            child(ref(database), "usuarios/" + usuario.toUpperCase())
+            ref(database, "usuarios/" + usuario.trim().toUpperCase())
         );
 
         if (!snapshot.exists()) {
-            alert("Usuario no encontrado");
+            alert("Usuario no encontrado en Base");
             return;
         }
 
         const data = snapshot.val();
 
         await emailjs.send("service_mya4ogg", "template_ub0ksu5", {
-            to_email: data.correo,   // ✅ CAMPO CORRECTO
+            to_email: data.correo,
             usuario: data.usuario,
             password: data.contrasena
         });
