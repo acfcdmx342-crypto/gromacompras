@@ -51,9 +51,11 @@ Ver Archivo
 </button>
 </div>
 
+<!-- ===== CAMPOS OCULTOS ===== -->
 <input id="descripcion" class="d-none">
 <input id="fechaCompras" class="d-none">
 
+<!-- ===== CHECK ===== -->
 <div class="col-12 mt-4">
 <div class="form-check">
 <input class="form-check-input" type="checkbox" id="chkAvanzar">
@@ -61,6 +63,7 @@ Ver Archivo
 </div>
 </div>
 
+<!-- ===== CONFIRMACIÓN COMPRAS ===== -->
 <fieldset id="bloqueCompras" disabled class="row g-3 mt-3">
 <div class="col-md-4">
 <label class="fw-bold">Confirmar requisición</label>
@@ -77,6 +80,7 @@ Ver Archivo
 </div>
 </fieldset>
 
+<!-- ===== PASO 1 ===== -->
 <fieldset id="paso1" disabled class="row g-3 mt-4">
 <h5 class="fw-bold text-primary">Paso 1 – Cotización</h5>
 
@@ -96,6 +100,7 @@ Ver Archivo
 </div>
 </fieldset>
 
+<!-- ===== PASO 2 ===== -->
 <fieldset id="paso2" disabled class="row g-3 mt-4">
 <h5 class="fw-bold text-primary">Paso 2 – Autorización y Entrega</h5>
 
@@ -148,6 +153,7 @@ Ver Archivo
 <label class="fw-bold">Observaciones</label>
 <input id="observaciones" class="form-control text-uppercase">
 </div>
+
 </fieldset>
 
 <div class="col-12 mt-4">
@@ -163,6 +169,34 @@ Guardar Seguimiento
 <script type="module">
 import { database, ref, get, push } from "./firebase.js";
 
+/* ===== REFERENCIAS (OBLIGATORIAS EN MODULES) ===== */
+const folio = document.getElementById("folio");
+const solicito = document.getElementById("solicito");
+const sucursal = document.getElementById("sucursal");
+const btnArchivo = document.getElementById("btnArchivo");
+
+const descripcion = document.getElementById("descripcion");
+const fechaCompras = document.getElementById("fechaCompras");
+
+const chkAvanzar = document.getElementById("chkAvanzar");
+const bloqueCompras = document.getElementById("bloqueCompras");
+const paso1 = document.getElementById("paso1");
+const paso2 = document.getElementById("paso2");
+
+const confirmaReq = document.getElementById("confirmaReq");
+const fechaSolicitudCompras = document.getElementById("fechaSolicitudCompras");
+const fechaCotizacion = document.getElementById("fechaCotizacion");
+const folioCotizacion = document.getElementById("folioCotizacion");
+const fechaAutorizacion = document.getElementById("fechaAutorizacion");
+const quienAutoriza = document.getElementById("quienAutoriza");
+const fechaEntrega = document.getElementById("fechaEntrega");
+const quienRecibe = document.getElementById("quienRecibe");
+const fechaEnvio = document.getElementById("fechaEnvio");
+const quienEnvia = document.getElementById("quienEnvia");
+const status = document.getElementById("status");
+const observaciones = document.getElementById("observaciones");
+
+/* ===== FIREBASE ===== */
 const tecnologiaRef = ref(database,"tecnologia");
 const seguimientoRef = ref(database,"seguimiento");
 
@@ -171,10 +205,12 @@ const folioParam = params.get("folio");
 
 let archivoActual = null;
 
+/* ===== CAMPOS OCULTOS ===== */
 fechaCompras.value = new Date().toLocaleString();
 descripcion.value = "SEGUIMIENTO DE FOLIO " + folioParam;
 folio.value = folioParam;
 
+/* ===== EVENTOS ===== */
 chkAvanzar.addEventListener("change", ()=>{
   bloqueCompras.disabled = !chkAvanzar.checked;
   paso1.disabled = !chkAvanzar.checked;
@@ -200,10 +236,7 @@ window.verArchivo = ()=>{
   if(archivoActual) window.open(archivoActual,"_blank");
 };
 
-/* ========= FUNCIÓN ORIGINAL + HISTORIAL ========= */
 window.guardarSeguimiento = async ()=>{
-
-  /* ---- GUARDADO ORIGINAL (NO SE TOCA) ---- */
   await push(seguimientoRef,{
     folio: folio.value,
     solicito: solicito.value,
@@ -211,13 +244,10 @@ window.guardarSeguimiento = async ()=>{
     descripcion: descripcion.value,
     status: status.value,
     fechaRegistro: fechaCompras.value,
-
     confirmaReq: confirmaReq.value,
     fechaSolicitudCompras: fechaSolicitudCompras.value,
-
     fechaCotizacion: fechaCotizacion.value,
     folioCotizacion: folioCotizacion.value,
-
     fechaAutorizacion: fechaAutorizacion.value,
     quienAutoriza: quienAutoriza.value,
     fechaEntrega: fechaEntrega.value,
@@ -226,17 +256,6 @@ window.guardarSeguimiento = async ()=>{
     quienEnvia: quienEnvia.value,
     observaciones: observaciones.value
   });
-
-  /* ---- NUEVO: HISTORIAL (PARA MODAL 📜) ---- */
-  await push(
-    ref(database,"historialSeguimiento/"+folio.value),
-    {
-      status: status.value,
-      observaciones: observaciones.value || "",
-      fecha: new Date().toLocaleString(),
-      usuario: solicito.value
-    }
-  );
 
   alert("Seguimiento guardado correctamente");
 };
