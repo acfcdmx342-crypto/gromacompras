@@ -26,17 +26,31 @@ body { background:#f2f4f7; }
     color:#0d6efd;
 }
 td:last-child { display:flex; justify-content:center; }
-.btn-delete {
-    float:right;
-    cursor:pointer;
-    color:#dc3545;
-}
 </style>
 </head>
 
 <body class="p-4">
 
-<span id="btnRegresar" onclick="irLogin()">🔙</span>
+<!-- ================= VALIDACIÓN DE SESIÓN ================= -->
+<script>
+const usuarioSesion = localStorage.getItem("usuarioLogueado");
+const puestoSesion  = localStorage.getItem("puesto");
+
+const puestosPermitidos = [
+  "GERENTE DE SISTEMAS",
+  "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO",
+  "COORDINADOR DE SOPORTE TECNICO",
+  "SOPORTE TECNICO",
+  "BECARIO"
+];
+
+if (!usuarioSesion || !puestoSesion) {
+  alert("Sesión no válida");
+  location.href = "index.html";
+}
+</script>
+
+<span id="btnRegresar" onclick="cerrarSesion()">🔙</span>
 
 <div class="container">
 <h2 class="text-center mb-4 fw-bold">Solicitud de Tecnología</h2>
@@ -63,7 +77,8 @@ td:last-child { display:flex; justify-content:center; }
 
 <div class="col-md-3">
 <label class="fw-bold">Soporte Zona</label>
-<input id="soporte" class="form-control text-uppercase">
+<input id="soporte" class="form-control text-uppercase"
+       value="">
 </div>
 
 <div class="col-md-3">
@@ -172,7 +187,8 @@ window.guardarSolicitud = async ()=>{
             archivoData: reader.result,
             archivoNombre: archivo.files[0].name,
             status: "Pendiente",
-            fechaEnvio: new Date().toLocaleString()
+            fechaEnvio: new Date().toLocaleString(),
+            usuario: usuarioSesion
         });
         formTec.reset();
         folio.value="";
@@ -187,6 +203,12 @@ onValue(solicitudesRef,snap=>{
         const s = c.val();
         const tieneSeg = foliosConSeguimiento.has(s.folio);
 
+        // 🔐 FILTRO POR PUESTO
+        if (
+          puestosPermitidos.includes(puestoSesion) ||
+          s.usuario === usuarioSesion
+        ) {
+
         tablaTecBody.innerHTML+=`
         <tr>
           <td>${s.folio}</td>
@@ -200,17 +222,22 @@ onValue(solicitudesRef,snap=>{
           <td>
             ${
               tieneSeg
-              ? `<span class="action-btn action-disabled" title="Seguimiento bloqueado">📋</span>`
+              ? `<span class="action-btn action-disabled">📋</span>`
               : `<span class="action-btn" onclick="irSeguimiento('${s.folio}')">📋</span>`
             }
             ${
               tieneSeg
               ? `<span class="action-btn" onclick="verHistorial('${s.folio}')">📜</span>`
-              : `<span class="action-btn action-disabled" title="Sin seguimiento">📜</span>`
+              : `<span class="action-btn action-disabled">📜</span>`
             }
-            <span class="action-btn" onclick="eliminar('${c.key}')">🗑️</span>
+            ${
+              puestosPermitidos.includes(puestoSesion)
+              ? `<span class="action-btn" onclick="eliminar('${c.key}')">🗑️</span>`
+              : ``
+            }
           </td>
         </tr>`;
+        }
     });
 });
 
@@ -242,7 +269,7 @@ window.eliminar = id=>{
     }
 };
 
-window.irLogin = ()=>{
+window.cerrarSesion = ()=>{
     localStorage.clear();
     location.href="index.html";
 };
