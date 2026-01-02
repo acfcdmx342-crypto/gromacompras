@@ -10,27 +10,21 @@
 <style>
 body { font-family: Arial, sans-serif; padding: 20px; background:#f4f4f4; }
 .card { border: 1px solid #ccc; padding: 20px; max-width: 350px; background:#fff; }
-.input-group {
-    position: relative;
-    width: 100%;
-}
+.input-group { position: relative; width: 100%; }
 .input-group input {
-    width: 100%;
-    padding: 10px 40px 10px 10px;
-    margin-bottom: 15px;
-    box-sizing: border-box;
+  width: 100%;
+  padding: 10px 40px 10px 10px;
+  margin-bottom: 15px;
 }
 .input-group i {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    cursor: pointer;
-    font-size: 18px;
-    color: #555;
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
 }
-button { padding: 10px 15px; cursor: pointer; width: 100%; }
-.btn-recover { background-color: #28a745; color: white; margin-top: 10px; }
+button { padding: 10px; width: 100%; cursor: pointer; }
+.btn-recover { background:#28a745; color:white; margin-top:10px; }
 </style>
 </head>
 
@@ -39,124 +33,101 @@ button { padding: 10px 15px; cursor: pointer; width: 100%; }
 <h2>Login</h2>
 
 <div class="card">
-    <div class="input-group">
-        <input id="loginUser" placeholder="Usuario"
-               oninput="this.value = this.value.toUpperCase().trim()">
-        <i class="fa-solid fa-user"></i>
-    </div>
 
-    <div class="input-group">
-        <input id="loginPass" type="password" placeholder="Contraseña">
-        <i class="fa-solid fa-eye toggle-pass" onclick="verPassword()"></i>
-    </div>
-
-    <button onclick="login()">Ingresar</button>
-    <button class="btn-recover" onclick="recuperar()">¿Olvidaste tu contraseña?</button>
+<div class="input-group">
+<input id="loginUser" placeholder="Usuario"
+ oninput="this.value=this.value.toUpperCase().trim()">
+<i class="fa-solid fa-user"></i>
 </div>
 
-<!-- ================= EMAILJS ================= -->
+<div class="input-group">
+<input id="loginPass" type="password" placeholder="Contraseña">
+<i class="fa-solid fa-eye toggle-pass" onclick="verPassword()"></i>
+</div>
+
+<button onclick="login()">Ingresar</button>
+<button class="btn-recover" onclick="recuperar()">¿Olvidaste tu contraseña?</button>
+
+</div>
+
+<!-- EMAILJS -->
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 <script>
 emailjs.init("0aHlArLgvHrj2Xbk8");
 </script>
 
-<!-- ================= UTILIDADES ================= -->
 <script>
 function verPassword() {
-    const passField = document.getElementById("loginPass");
-    const icon = document.querySelector(".toggle-pass");
-
-    if (passField.type === "password") {
-        passField.type = "text";
-        icon.classList.replace("fa-eye", "fa-eye-slash");
-    } else {
-        passField.type = "password";
-        icon.classList.replace("fa-eye-slash", "fa-eye");
-    }
+  const p = loginPass;
+  const i = document.querySelector(".toggle-pass");
+  p.type = p.type === "password" ? "text" : "password";
+  i.classList.toggle("fa-eye");
+  i.classList.toggle("fa-eye-slash");
 }
 </script>
 
-<!-- ================= LOGIN FIREBASE ================= -->
 <script type="module">
 import { database, ref, get } from "./firebase.js";
 
-/* ===== LOGIN ===== */
-window.login = async function () {
+window.login = async () => {
 
-    const usuario = loginUser.value.trim().toUpperCase();
-    const pass = loginPass.value.trim();
+  const usuario = loginUser.value.trim().toUpperCase();
+  const pass = loginPass.value.trim();
 
-    if (!usuario || !pass) {
-        alert("Completa todos los campos");
-        return;
-    }
+  if (!usuario || !pass) {
+    alert("Completa todos los campos");
+    return;
+  }
 
-    try {
-        // 🔐 Validar usuario registrado
-        const snapshot = await get(ref(database, "usuarios/" + usuario));
+  const snap = await get(ref(database,"usuarios/"+usuario));
 
-        if (!snapshot.exists()) {
-            alert("❌ Usuario NO registrado en Base");
-            return;
-        }
+  if (!snap.exists()) {
+    alert("❌ Usuario NO registrado");
+    return;
+  }
 
-        const data = snapshot.val();
+  const data = snap.val();
 
-        if (data.bloqueado === true) {
-            alert("⛔ Usuario bloqueado");
-            return;
-        }
+  if (data.bloqueado) {
+    alert("⛔ Usuario bloqueado");
+    return;
+  }
 
-        if (data.contrasena !== pass) {
-            alert("❌ Contraseña incorrecta");
-            return;
-        }
+  if (data.contrasena !== pass) {
+    alert("❌ Contraseña incorrecta");
+    return;
+  }
 
-        // ✅ SESIÓN (SIN CAMBIAR LÓGICA)
-        localStorage.setItem("usuarioLogueado", data.usuario);
-        localStorage.setItem("puesto", data.puesto.toUpperCase());
-        localStorage.setItem("empresa", data.empresa || "");
-        localStorage.setItem("zona", data.zona || "");
+  // ✅ SESIÓN COMPLETA
+  localStorage.setItem("usuarioLogueado", JSON.stringify({
+    usuario: data.usuario,
+    nombre: data.nombre,
+    puesto: data.puesto.toUpperCase(),
+    empresa: data.empresa || "",
+    zona: data.zona || ""
+  }));
 
-        // 👉 Redirección normal
-        window.location.href = "tecnologia.html";
-
-    } catch (error) {
-        console.error("ERROR LOGIN:", error);
-        alert("Error al conectar con Firebase");
-    }
+  window.location.href = "tecnologia.html";
 };
 
-/* ===== RECUPERAR CONTRASEÑA ===== */
-window.recuperar = async function () {
+window.recuperar = async () => {
+  const u = prompt("Ingresa tu usuario:");
+  if (!u) return;
 
-    const usuario = prompt("Ingresa tu usuario:");
-    if (!usuario) return;
+  const snap = await get(ref(database,"usuarios/"+u.toUpperCase()));
+  if (!snap.exists()) {
+    alert("Usuario no encontrado");
+    return;
+  }
 
-    try {
-        const snapshot = await get(
-            ref(database, "usuarios/" + usuario.trim().toUpperCase())
-        );
+  const d = snap.val();
+  await emailjs.send("service_mya4ogg","template_ub0ksu5",{
+    to_email: d.correo,
+    usuario: d.usuario,
+    password: d.contrasena
+  });
 
-        if (!snapshot.exists()) {
-            alert("Usuario no encontrado en Base");
-            return;
-        }
-
-        const data = snapshot.val();
-
-        await emailjs.send("service_mya4ogg", "template_ub0ksu5", {
-            to_email: data.correo,
-            usuario: data.usuario,
-            password: data.contrasena
-        });
-
-        alert("Tu contraseña fue enviada al correo");
-
-    } catch (err) {
-        console.error(err);
-        alert("Error de conexión");
-    }
+  alert("Contraseña enviada al correo");
 };
 </script>
 
