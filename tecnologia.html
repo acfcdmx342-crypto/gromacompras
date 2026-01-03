@@ -9,92 +9,22 @@
 
 <style>
 body { background:#f2f4f7; }
-
-.card {
-  border-radius:20px;
-}
-
-.action-btn {
-  cursor:pointer;
-  font-size:22px;
-  margin-right:10px;
-}
-
-.action-disabled {
-  color:#adb5bd;
-  cursor:not-allowed;
-}
-
-.table thead {
-  background:#0d6efd;
-  color:white;
-}
-
-.btn-rounded {
-  border-radius:50px;
-}
-
-#btnRegresar {
-  cursor:pointer;
-  font-size:40px;
-  position:fixed;
-  top:20px;
-  left:20px;
-  color:#0d6efd;
-  z-index:1000;
-}
-
-td:last-child {
-  display:flex;
-  justify-content:center;
-  align-items:center;
-}
-
-/* ===== RESPONSIVE ===== */
-@media (max-width: 768px) {
-
-  h2, h5 {
-    text-align:center;
-  }
-
-  #btnRegresar {
-    font-size:30px;
-    top:10px;
-    left:10px;
-  }
-
-  .card {
-    padding:15px !important;
-    border-radius:12px;
-  }
-
-  .action-btn {
-    font-size:18px;
-    margin-right:6px;
-  }
-
-  td:last-child {
-    flex-wrap:wrap;
-    gap:6px;
-  }
-}
+.card { border-radius:20px; }
+.action-btn { cursor:pointer; font-size:22px; margin-right:10px; }
+.action-disabled { color:#adb5bd; cursor:not-allowed; }
+.table thead { background:#0d6efd; color:white; }
+.btn-rounded { border-radius:50px; }
+#btnRegresar { cursor:pointer; font-size:40px; position:fixed; top:20px; left:20px; color:#0d6efd; }
+td:last-child { display:flex; justify-content:center; }
 </style>
 </head>
 
-<body class="p-3">
+<body class="p-4">
 
-<!-- ================= SESIÓN ================= -->
+<!-- ================= VALIDACIÓN SESIÓN ================= -->
 <script>
-const sesion = JSON.parse(localStorage.getItem("usuarioLogueado"));
-
-if (!sesion) {
-  alert("Sesión no válida");
-  location.href = "index.html";
-}
-
-const usuarioSesion = sesion.usuario;
-const nombreSesion  = sesion.nombre;
-const puestoSesion  = sesion.puesto;
+const usuarioSesion = localStorage.getItem("usuarioLogueado");
+const puestoSesion  = localStorage.getItem("puesto");
 
 const puestosPermitidos = [
   "GERENTE DE SISTEMAS",
@@ -103,62 +33,63 @@ const puestosPermitidos = [
   "SOPORTE TECNICO",
   "BECARIO"
 ];
+
+if (!usuarioSesion || !puestoSesion) {
+  alert("Sesión no válida");
+  location.href = "index.html";
+}
 </script>
 
 <span id="btnRegresar" onclick="cerrarSesion()">🔙</span>
 
 <div class="container">
 
-<div class="text-end fw-bold text-primary mb-2">
-  👤 <span id="usuarioActivo"></span>
-</div>
+<h2 class="text-center mb-2 fw-bold">Solicitud de Tecnología</h2>
 
-<h2 class="fw-bold mb-4">Solicitud de Tecnología</h2>
+<div class="text-end mb-3 fw-bold text-primary">
+  👤 Usuario: <span id="nombreUsuario"></span>
+</div>
 
 <!-- FORMULARIO -->
 <div class="card shadow p-4 mb-4">
 <h5 class="fw-bold mb-3">Registrar Solicitud</h5>
 
 <form id="formTec" class="row g-3">
-
-<div class="col-12 col-md-3">
+<div class="col-md-3">
 <label class="fw-bold">Folio</label>
 <input id="folio" class="form-control" readonly>
 </div>
 
-<div class="col-12 col-md-3">
+<div class="col-md-3">
 <label class="fw-bold">Empresa</label>
 <input id="empresa" class="form-control text-uppercase">
 </div>
 
-<div class="col-12 col-md-3">
+<div class="col-md-3">
 <label class="fw-bold">Zona</label>
 <input id="zona" class="form-control text-uppercase">
 </div>
 
-<div class="col-12 col-md-3">
+<div class="col-md-3">
 <label class="fw-bold">Soporte Zona</label>
-<input id="soporte" class="form-control text-uppercase" readonly>
+<input id="soporte" class="form-control text-uppercase">
 </div>
 
-<div class="col-12 col-md-3">
+<div class="col-md-3">
 <label class="fw-bold">Sucursal</label>
 <input id="sucursal" class="form-control text-uppercase">
 </div>
 
-<div class="col-12 col-md-6">
+<div class="col-md-6">
 <label class="fw-bold">Requisición</label>
 <input id="archivo" type="file" class="form-control">
 </div>
 
 <div class="col-12">
-<button type="button"
-        class="btn btn-primary btn-rounded w-100"
-        onclick="guardarSolicitud()">
+<button type="button" class="btn btn-primary btn-rounded" onclick="guardarSolicitud()">
 Guardar Solicitud
 </button>
 </div>
-
 </form>
 </div>
 
@@ -166,7 +97,6 @@ Guardar Solicitud
 <div class="card shadow p-4">
 <h5 class="fw-bold mb-3">Registros de Solicitudes</h5>
 
-<div class="table-responsive">
 <table class="table table-bordered table-striped">
 <thead>
 <tr>
@@ -185,46 +115,23 @@ Guardar Solicitud
 </table>
 </div>
 </div>
-</div>
-
-<!-- MODAL HISTORIAL -->
-<div class="modal fade" id="modalHistorial" tabindex="-1">
-<div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-<div class="modal-content">
-<div class="modal-header bg-primary text-white">
-<h5 class="modal-title">📜 Historial de Seguimiento</h5>
-<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-</div>
-<div class="modal-body">
-<ul class="list-group" id="listaHistorial"></ul>
-</div>
-<div class="modal-footer">
-<button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-</div>
-</div>
-</div>
-</div>
 
 <script type="module">
 import { database, ref, push, set, get, onValue, remove } from "./firebase.js";
 
-document.getElementById("usuarioActivo").textContent =
-  `${nombreSesion} (${puestoSesion})`;
-
-document.getElementById("soporte").value = nombreSesion;
+document.getElementById("nombreUsuario").textContent = usuarioSesion;
 
 const solicitudesRef = ref(database,"tecnologia");
 const seguimientoRef = ref(database,"seguimiento");
-
 let foliosConSeguimiento = new Set();
 
+/* DETECTAR SEGUIMIENTO */
 onValue(seguimientoRef,snap=>{
   foliosConSeguimiento.clear();
-  snap.forEach(c=>{
-    foliosConSeguimiento.add(c.val().folio);
-  });
+  snap.forEach(c=>foliosConSeguimiento.add(c.val().folio));
 });
 
+/* FOLIO */
 async function generarFolio(emp, zon){
   const key = `TEC_${emp}_${zon}`.toUpperCase();
   const r = ref(database,"folios/"+key);
@@ -234,10 +141,10 @@ async function generarFolio(emp, zon){
   return `TEC-${emp}-${zon}-${n.toString().padStart(4,"0")}`;
 }
 
+/* GUARDAR */
 window.guardarSolicitud = async ()=>{
   if(!empresa.value||!zona.value||!soporte.value||!sucursal.value||!archivo.files[0]){
-    alert("Campos obligatorios");
-    return;
+    alert("Campos obligatorios"); return;
   }
 
   const fol = await generarFolio(empresa.value,zona.value);
@@ -259,11 +166,11 @@ window.guardarSolicitud = async ()=>{
     });
     formTec.reset();
     folio.value="";
-    document.getElementById("soporte").value = nombreSesion;
   };
   reader.readAsDataURL(archivo.files[0]);
 };
 
+/* LISTAR (LÓGICA ORIGINAL RESTAURADA) */
 onValue(solicitudesRef,snap=>{
   tablaTecBody.innerHTML="";
   snap.forEach(c=>{
@@ -272,9 +179,9 @@ onValue(solicitudesRef,snap=>{
 
     if (
       puestosPermitidos.includes(puestoSesion) ||
+      !s.usuario ||
       s.usuario === usuarioSesion
     ) {
-
       tablaTecBody.innerHTML+=`
       <tr>
         <td>${s.folio}</td>
@@ -286,57 +193,18 @@ onValue(solicitudesRef,snap=>{
         <td class="bg-success text-white">${s.status}</td>
         <td>${s.fechaEnvio}</td>
         <td>
-          ${
-            tieneSeg
-            ? `<span class="action-btn action-disabled">📋</span>`
-            : `<span class="action-btn" onclick="irSeguimiento('${s.folio}')">📋</span>`
-          }
-          ${
-            tieneSeg
-            ? `<span class="action-btn" onclick="verHistorial('${s.folio}')">📜</span>`
-            : `<span class="action-btn action-disabled">📜</span>`
-          }
-          ${
-            puestosPermitidos.includes(puestoSesion)
-            ? `<span class="action-btn" onclick="eliminar('${c.key}')">🗑️</span>`
-            : ``
-          }
+          ${tieneSeg ? `<span class="action-btn action-disabled">📋</span>` : `<span class="action-btn" onclick="irSeguimiento('${s.folio}')">📋</span>`}
+          ${tieneSeg ? `<span class="action-btn" onclick="verHistorial('${s.folio}')">📜</span>` : `<span class="action-btn action-disabled">📜</span>`}
+          ${puestosPermitidos.includes(puestoSesion) ? `<span class="action-btn" onclick="eliminar('${c.key}')">🗑️</span>` : ``}
         </td>
       </tr>`;
     }
   });
 });
 
-window.verHistorial = async (folio)=>{
-  listaHistorial.innerHTML="";
-  const snap = await get(seguimientoRef);
-  snap.forEach(h=>{
-    if(h.val().folio === folio){
-      listaHistorial.innerHTML+=`
-      <li class="list-group-item">
-        <strong>${h.val().status}</strong><br>
-        ${h.val().observaciones || ""}<br>
-        <small>${h.val().fechaRegistro}</small>
-      </li>`;
-    }
-  });
-  new bootstrap.Modal(modalHistorial).show();
-};
-
-window.irSeguimiento = folio=>{
-  location.href="seguimiento.html?folio="+encodeURIComponent(folio);
-};
-
-window.eliminar = id=>{
-  if(confirm("¿Eliminar solicitud?")){
-    remove(ref(database,"tecnologia/"+id));
-  }
-};
-
-window.cerrarSesion = ()=>{
-  localStorage.clear();
-  location.href="index.html";
-};
+window.irSeguimiento = f=>location.href="seguimiento.html?folio="+encodeURIComponent(f);
+window.eliminar = id=>confirm("¿Eliminar?") && remove(ref(database,"tecnologia/"+id));
+window.cerrarSesion = ()=>{ localStorage.clear(); location.href="index.html"; };
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
