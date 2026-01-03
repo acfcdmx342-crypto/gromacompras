@@ -3,49 +3,35 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Seguimiento de Solicitudes</title>
+<title>Seguimiento</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
-body { background:#eef1f5; }
-.card { border-radius:20px; }
-fieldset:disabled { opacity:0.6; }
-.d-none { display:none; }
+body{ background:#eef1f5; }
+.card{ border-radius:20px; }
+fieldset:disabled{ opacity:.6; }
 </style>
 </head>
 
 <body class="p-4">
 
-<!-- ================= VALIDACIÓN DE SESIÓN ================= -->
-<script>
-const usuarioSesion = localStorage.getItem("usuarioLogueado");
-const puestoSesion  = localStorage.getItem("puesto");
-
-if (!usuarioSesion || !puestoSesion) {
-  alert("Sesión no válida");
-  location.href = "index.html";
-}
-</script>
-
 <div class="container">
 
-<h2 class="fw-bold text-center mb-2">Seguimiento de Solicitudes</h2>
+<h3 class="fw-bold text-center mb-2">Seguimiento de Solicitud</h3>
 
 <div class="text-end mb-3 fw-bold text-primary">
-  👤 Usuario: <span id="nombreUsuario"></span>
+👤 <span id="infoUsuario"></span>
 </div>
 
-<div class="text-end mb-3">
-  <a href="tecnologia.html" class="btn btn-dark">Ir a Tecnología</a>
-</div>
+<a href="tecnologia.html" class="btn btn-dark mb-3">
+Volver a Tecnología
+</a>
 
-<div class="card shadow p-4 mb-4">
-<h4 class="fw-bold mb-3">Detalle del Folio</h4>
+<div class="card p-4 shadow">
 
 <form id="formSeg" class="row g-3">
 
-<!-- ===== DATOS BASE ===== -->
 <div class="col-md-3">
 <label class="fw-bold">Folio</label>
 <input id="folio" class="form-control" readonly>
@@ -63,117 +49,13 @@ if (!usuarioSesion || !puestoSesion) {
 
 <div class="col-md-3">
 <label class="fw-bold">Archivo</label>
-<button type="button" id="btnArchivo" class="btn btn-secondary w-100" onclick="verArchivo()" disabled>
-Ver Archivo
+<button type="button" id="btnArchivo" class="btn btn-secondary w-100" disabled>
+Ver archivo
 </button>
 </div>
 
-<!-- ===== CAMPOS OCULTOS ===== -->
-<input id="descripcion" class="d-none">
-<input id="fechaCompras" class="d-none">
-
-<!-- ===== CHECK ===== -->
 <div class="col-12 mt-4">
-<div class="form-check">
-<input class="form-check-input" type="checkbox" id="chkAvanzar">
-<label class="form-check-label fw-bold">Activar seguimiento avanzado</label>
-</div>
-</div>
-
-<!-- ===== CONFIRMACIÓN COMPRAS ===== -->
-<fieldset id="bloqueCompras" disabled class="row g-3 mt-3">
-<div class="col-md-4">
-<label class="fw-bold">Confirmar requisición</label>
-<select id="confirmaReq" class="form-select">
-<option value="">Seleccione</option>
-<option>SI</option>
-<option>NO</option>
-</select>
-</div>
-
-<div class="col-md-4">
-<label class="fw-bold">Fecha solicitud a compras</label>
-<input type="date" id="fechaSolicitudCompras" class="form-control">
-</div>
-</fieldset>
-
-<!-- ===== PASO 1 ===== -->
-<fieldset id="paso1" disabled class="row g-3 mt-4">
-<h5 class="fw-bold text-primary">Paso 1 – Cotización</h5>
-
-<div class="col-md-4">
-<label class="fw-bold">Fecha cotización</label>
-<input type="date" id="fechaCotizacion" class="form-control">
-</div>
-
-<div class="col-md-4">
-<label class="fw-bold">Folio cotización</label>
-<input id="folioCotizacion" class="form-control text-uppercase">
-</div>
-
-<div class="col-md-4">
-<label class="fw-bold">Añadir cotización</label>
-<input type="file" id="archivoCotizacion" class="form-control">
-</div>
-</fieldset>
-
-<!-- ===== PASO 2 ===== -->
-<fieldset id="paso2" disabled class="row g-3 mt-4">
-<h5 class="fw-bold text-primary">Paso 2 – Autorización y Entrega</h5>
-
-<div class="col-md-3">
-<label class="fw-bold">Fecha autorización</label>
-<input type="date" id="fechaAutorizacion" class="form-control">
-</div>
-
-<div class="col-md-3">
-<label class="fw-bold">Quien autoriza</label>
-<input id="quienAutoriza" class="form-control text-uppercase">
-</div>
-
-<div class="col-md-3">
-<label class="fw-bold">Fecha entrega</label>
-<input type="date" id="fechaEntrega" class="form-control">
-</div>
-
-<div class="col-md-3">
-<label class="fw-bold">Quien recibe</label>
-<input id="quienRecibe" class="form-control text-uppercase">
-</div>
-
-<div class="col-md-3">
-<label class="fw-bold">Fecha envío</label>
-<input type="date" id="fechaEnvio" class="form-control">
-</div>
-
-<div class="col-md-3">
-<label class="fw-bold">Quien envía</label>
-<input id="quienEnvia" class="form-control text-uppercase">
-</div>
-
-<div class="col-md-3">
-<label class="fw-bold">Factura</label>
-<input type="file" id="factura" class="form-control">
-</div>
-
-<div class="col-md-3">
-<label class="fw-bold">Status</label>
-<select id="status" class="form-select">
-<option>ENVIADO A COMPRAS</option>
-<option>ENVIADO A ZONA</option>
-<option>PENDIENTE POR AUTORIZAR</option>
-<option>EN SISTEMAS</option>
-</select>
-</div>
-
-<div class="col-md-6">
-<label class="fw-bold">Observaciones</label>
-<input id="observaciones" class="form-control text-uppercase">
-</div>
-</fieldset>
-
-<div class="col-12 mt-4">
-<button type="button" class="btn btn-primary btn-lg w-100" onclick="guardarSeguimiento()">
+<button type="button" class="btn btn-primary btn-lg" onclick="guardarSeguimiento()">
 Guardar Seguimiento
 </button>
 </div>
@@ -185,31 +67,25 @@ Guardar Seguimiento
 <script type="module">
 import { database, ref, get, push } from "./firebase.js";
 
-/* ===== MOSTRAR USUARIO ===== */
-document.getElementById("nombreUsuario").textContent = usuarioSesion;
+// 👤 Usuario
+document.getElementById("infoUsuario").textContent =
+`${localStorage.getItem("nombreCompleto")} | ${localStorage.getItem("puesto")}`;
 
-/* ===== REFERENCIAS ===== */
-const tecnologiaRef = ref(database,"tecnologia");
-const seguimientoRef = ref(database,"seguimiento");
+// Referencias
+const folio = document.getElementById("folio");
+const solicito = document.getElementById("solicito");
+const sucursal = document.getElementById("sucursal");
+const btnArchivo = document.getElementById("btnArchivo");
 
 const params = new URLSearchParams(window.location.search);
 const folioParam = params.get("folio");
+folio.value = folioParam;
 
 let archivoActual = null;
 
-/* ===== CAMPOS BASE ===== */
-folio.value = folioParam;
-fechaCompras.value = new Date().toLocaleString();
-descripcion.value = "SEGUIMIENTO DE FOLIO " + folioParam;
+// Cargar datos
+const tecnologiaRef = ref(database,"tecnologia");
 
-/* ===== ACTIVAR CAMPOS ===== */
-chkAvanzar.addEventListener("change", ()=>{
-  bloqueCompras.disabled = !chkAvanzar.checked;
-  paso1.disabled = !chkAvanzar.checked;
-  paso2.disabled = !chkAvanzar.checked;
-});
-
-/* ===== CARGAR DATOS DEL FOLIO ===== */
 async function cargarDetalle(){
   const snap = await get(tecnologiaRef);
   snap.forEach(c=>{
@@ -222,40 +98,26 @@ async function cargarDetalle(){
     }
   });
 }
+
 cargarDetalle();
 
-/* ===== VER ARCHIVO ===== */
-window.verArchivo = ()=>{
+btnArchivo.onclick = ()=>{
   if(archivoActual) window.open(archivoActual,"_blank");
 };
 
-/* ===== GUARDAR SEGUIMIENTO ===== */
 window.guardarSeguimiento = async ()=>{
-  await push(seguimientoRef,{
+  await push(ref(database,"seguimiento"),{
     folio: folio.value,
     solicito: solicito.value,
     sucursal: sucursal.value,
-    descripcion: descripcion.value,
-    status: status.value,
-    fechaRegistro: fechaCompras.value,
-    confirmaReq: confirmaReq.value,
-    fechaSolicitudCompras: fechaSolicitudCompras.value,
-    fechaCotizacion: fechaCotizacion.value,
-    folioCotizacion: folioCotizacion.value,
-    fechaAutorizacion: fechaAutorizacion.value,
-    quienAutoriza: quienAutoriza.value,
-    fechaEntrega: fechaEntrega.value,
-    quienRecibe: quienRecibe.value,
-    fechaEnvio: fechaEnvio.value,
-    quienEnvia: quienEnvia.value,
-    observaciones: observaciones.value,
-    usuario: usuarioSesion
+    usuarioSeguimiento: localStorage.getItem("nombreCompleto"),
+    puesto: localStorage.getItem("puesto"),
+    fecha: new Date().toLocaleString()
   });
 
-  alert("Seguimiento guardado correctamente");
+  alert("Seguimiento guardado");
 };
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
