@@ -1,75 +1,121 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Login</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
-body{
+body {
+  font-family: Arial, sans-serif;
   background:#eef1f5;
   display:flex;
   justify-content:center;
   align-items:center;
   height:100vh;
 }
-.card{
+
+.card {
+  background:#fff;
   padding:30px;
-  border-radius:20px;
+  border-radius:15px;
   width:350px;
+  box-shadow:0 0 10px rgba(0,0,0,.1);
+}
+
+.input-group {
+  position: relative;
+  margin-bottom: 15px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 10px 40px 10px 10px;
+}
+
+.input-group i {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color:#555;
+}
+button {
+  width:100%;
+  padding:10px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="card shadow">
-<h3 class="text-center fw-bold mb-4">Iniciar Sesión</h3>
+<div class="card">
+<h3 class="text-center fw-bold mb-4">Iniciar sesión</h3>
 
-<input id="usuario" class="form-control mb-3" placeholder="Usuario">
-<input id="password" type="password" class="form-control mb-3" placeholder="Contraseña">
+<div class="input-group">
+<input id="loginUser" placeholder="Usuario"
+oninput="this.value=this.value.toUpperCase().trim()">
+<i class="fa-solid fa-user"></i>
+</div>
 
-<button onclick="login()" class="btn btn-primary w-100">
+<div class="input-group">
+<input id="loginPass" type="password" placeholder="Contraseña">
+<i class="fa-solid fa-lock"></i>
+</div>
+
+<button onclick="login()" class="btn btn-primary">
 Ingresar
 </button>
 </div>
 
+<!-- ================= LOGIN FIREBASE ================= -->
 <script type="module">
 import { database, ref, get } from "./firebase.js";
 
-window.login = async () => {
-  const usuario = document.getElementById("usuario").value.trim();
-  const password = document.getElementById("password").value.trim();
+window.login = async function () {
 
-  if(!usuario || !password){
-    alert("Complete los campos");
+  const usuario = document.getElementById("loginUser").value.trim().toUpperCase();
+  const pass = document.getElementById("loginPass").value.trim();
+
+  if (!usuario || !pass) {
+    alert("Completa todos los campos");
     return;
   }
 
-  const snap = await get(ref(database,"usuarios"));
-  let acceso = false;
+  try {
+    const snapshot = await get(ref(database, "usuarios"));
 
-  snap.forEach(c=>{
-    const data = c.val();
+    let encontrado = false;
 
-    if(data.usuario === usuario && data.password === password){
+    snapshot.forEach(child => {
+      const data = child.val();
 
-      // ✅ SESIÓN COMPLETA (COMO ANTES)
-      localStorage.setItem("usuarioLogueado", data.usuario);
-      localStorage.setItem("nombreCompleto", data.nombre);
-      localStorage.setItem("puesto", data.puesto.toUpperCase());
-      localStorage.setItem("empresa", data.empresa || "");
-      localStorage.setItem("zona", data.zona || "");
+      if (
+        data.usuario === usuario &&
+        data.contrasena === pass
+      ) {
+        encontrado = true;
 
-      acceso = true;
-      window.location.href = "tecnologia.html";
+        // ✅ SESIÓN (MISMA LÓGICA DE ANTES)
+        localStorage.setItem("usuarioLogueado", data.usuario);
+        localStorage.setItem("nombreCompleto", data.nombre);
+        localStorage.setItem("puesto", data.puesto);
+        localStorage.setItem("empresa", data.empresa || "");
+        localStorage.setItem("zona", data.zona || "");
+
+        window.location.href = "tecnologia.html";
+      }
+    });
+
+    if (!encontrado) {
+      alert("Usuario o contraseña incorrectos");
     }
-  });
 
-  if(!acceso){
-    alert("Usuario o contraseña incorrectos");
+  } catch (error) {
+    console.error(error);
+    alert("Error al conectar con Firebase");
   }
 };
 </script>
