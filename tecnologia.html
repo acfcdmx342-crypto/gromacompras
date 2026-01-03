@@ -9,11 +9,31 @@
 
 <style>
 body { background:#f2f4f7; }
-.card { border-radius:20px; }
-.action-btn { cursor:pointer; font-size:22px; margin-right:10px; }
-.action-disabled { color:#adb5bd; cursor:not-allowed; }
-.table thead { background:#0d6efd; color:white; }
-.btn-rounded { border-radius:50px; }
+
+.card {
+  border-radius:20px;
+}
+
+.action-btn {
+  cursor:pointer;
+  font-size:22px;
+  margin-right:10px;
+}
+
+.action-disabled {
+  color:#adb5bd;
+  cursor:not-allowed;
+}
+
+.table thead {
+  background:#0d6efd;
+  color:white;
+}
+
+.btn-rounded {
+  border-radius:50px;
+}
+
 #btnRegresar {
   cursor:pointer;
   font-size:40px;
@@ -21,14 +41,49 @@ body { background:#f2f4f7; }
   top:20px;
   left:20px;
   color:#0d6efd;
+  z-index:1000;
 }
-td:last-child { display:flex; justify-content:center; }
+
+td:last-child {
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+
+  h2, h5 {
+    text-align:center;
+  }
+
+  #btnRegresar {
+    font-size:30px;
+    top:10px;
+    left:10px;
+  }
+
+  .card {
+    padding:15px !important;
+    border-radius:12px;
+  }
+
+  .action-btn {
+    font-size:18px;
+    margin-right:6px;
+  }
+
+  td:last-child {
+    flex-wrap:wrap;
+    gap:6px;
+  }
+}
 </style>
 </head>
 
-<body class="p-4">
+<body class="p-3">
 
-<!-- ================= VALIDACIÓN DE SESIÓN ================= -->
+<!-- ================= SESIÓN ================= -->
 <script>
 const sesion = JSON.parse(localStorage.getItem("usuarioLogueado"));
 
@@ -54,61 +109,64 @@ const puestosPermitidos = [
 
 <div class="container">
 
-<!-- USUARIO LOGUEADO -->
-<div class="text-end mb-3 fw-bold text-primary">
-  👤 Usuario: <span id="usuarioActivo"></span>
+<div class="text-end fw-bold text-primary mb-2">
+  👤 <span id="usuarioActivo"></span>
 </div>
 
-<h2 class="text-center mb-4 fw-bold">Solicitud de Tecnología</h2>
+<h2 class="fw-bold mb-4">Solicitud de Tecnología</h2>
 
-<!-- ================= FORMULARIO ================= -->
+<!-- FORMULARIO -->
 <div class="card shadow p-4 mb-4">
 <h5 class="fw-bold mb-3">Registrar Solicitud</h5>
 
 <form id="formTec" class="row g-3">
 
-<div class="col-md-3">
+<div class="col-12 col-md-3">
 <label class="fw-bold">Folio</label>
 <input id="folio" class="form-control" readonly>
 </div>
 
-<div class="col-md-3">
+<div class="col-12 col-md-3">
 <label class="fw-bold">Empresa</label>
 <input id="empresa" class="form-control text-uppercase">
 </div>
 
-<div class="col-md-3">
+<div class="col-12 col-md-3">
 <label class="fw-bold">Zona</label>
 <input id="zona" class="form-control text-uppercase">
 </div>
 
-<div class="col-md-3">
+<div class="col-12 col-md-3">
 <label class="fw-bold">Soporte Zona</label>
 <input id="soporte" class="form-control text-uppercase" readonly>
 </div>
 
-<div class="col-md-3">
+<div class="col-12 col-md-3">
 <label class="fw-bold">Sucursal</label>
 <input id="sucursal" class="form-control text-uppercase">
 </div>
 
-<div class="col-md-6">
+<div class="col-12 col-md-6">
 <label class="fw-bold">Requisición</label>
 <input id="archivo" type="file" class="form-control">
 </div>
 
 <div class="col-12">
-<button type="button" class="btn btn-primary btn-rounded" onclick="guardarSolicitud()">
+<button type="button"
+        class="btn btn-primary btn-rounded w-100"
+        onclick="guardarSolicitud()">
 Guardar Solicitud
 </button>
 </div>
+
 </form>
 </div>
 
-<!-- ================= TABLA ================= -->
+<!-- TABLA -->
 <div class="card shadow p-4">
 <h5 class="fw-bold mb-3">Registros de Solicitudes</h5>
 
+<div class="table-responsive">
 <table class="table table-bordered table-striped">
 <thead>
 <tr>
@@ -127,8 +185,9 @@ Guardar Solicitud
 </table>
 </div>
 </div>
+</div>
 
-<!-- ================= MODAL HISTORIAL ================= -->
+<!-- MODAL HISTORIAL -->
 <div class="modal fade" id="modalHistorial" tabindex="-1">
 <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
 <div class="modal-content">
@@ -146,7 +205,6 @@ Guardar Solicitud
 </div>
 </div>
 
-<!-- ================= FIREBASE ================= -->
 <script type="module">
 import { database, ref, push, set, get, onValue, remove } from "./firebase.js";
 
@@ -160,13 +218,13 @@ const seguimientoRef = ref(database,"seguimiento");
 
 let foliosConSeguimiento = new Set();
 
-/* DETECTAR FOLIOS CON SEGUIMIENTO */
 onValue(seguimientoRef,snap=>{
   foliosConSeguimiento.clear();
-  snap.forEach(c=>foliosConSeguimiento.add(c.val().folio));
+  snap.forEach(c=>{
+    foliosConSeguimiento.add(c.val().folio);
+  });
 });
 
-/* GENERAR FOLIO */
 async function generarFolio(emp, zon){
   const key = `TEC_${emp}_${zon}`.toUpperCase();
   const r = ref(database,"folios/"+key);
@@ -176,9 +234,8 @@ async function generarFolio(emp, zon){
   return `TEC-${emp}-${zon}-${n.toString().padStart(4,"0")}`;
 }
 
-/* GUARDAR SOLICITUD */
 window.guardarSolicitud = async ()=>{
-  if(!empresa.value||!zona.value||!sucursal.value||!archivo.files[0]){
+  if(!empresa.value||!zona.value||!soporte.value||!sucursal.value||!archivo.files[0]){
     alert("Campos obligatorios");
     return;
   }
@@ -192,7 +249,7 @@ window.guardarSolicitud = async ()=>{
       folio: fol,
       empresa: empresa.value.toUpperCase(),
       zona: zona.value.toUpperCase(),
-      soporte: nombreSesion,
+      soporte: soporte.value.toUpperCase(),
       sucursal: sucursal.value.toUpperCase(),
       archivoData: reader.result,
       archivoNombre: archivo.files[0].name,
@@ -201,20 +258,22 @@ window.guardarSolicitud = async ()=>{
       usuario: usuarioSesion
     });
     formTec.reset();
-    soporte.value = nombreSesion;
     folio.value="";
+    document.getElementById("soporte").value = nombreSesion;
   };
   reader.readAsDataURL(archivo.files[0]);
 };
 
-/* LISTAR */
 onValue(solicitudesRef,snap=>{
   tablaTecBody.innerHTML="";
   snap.forEach(c=>{
     const s = c.val();
     const tieneSeg = foliosConSeguimiento.has(s.folio);
 
-    if (puestosPermitidos.includes(puestoSesion) || s.usuario === usuarioSesion) {
+    if (
+      puestosPermitidos.includes(puestoSesion) ||
+      s.usuario === usuarioSesion
+    ) {
 
       tablaTecBody.innerHTML+=`
       <tr>
@@ -227,30 +286,36 @@ onValue(solicitudesRef,snap=>{
         <td class="bg-success text-white">${s.status}</td>
         <td>${s.fechaEnvio}</td>
         <td>
-          ${tieneSeg
+          ${
+            tieneSeg
             ? `<span class="action-btn action-disabled">📋</span>`
-            : `<span class="action-btn" onclick="irSeguimiento('${s.folio}')">📋</span>`}
-          ${tieneSeg
+            : `<span class="action-btn" onclick="irSeguimiento('${s.folio}')">📋</span>`
+          }
+          ${
+            tieneSeg
             ? `<span class="action-btn" onclick="verHistorial('${s.folio}')">📜</span>`
-            : `<span class="action-btn action-disabled">📜</span>`}
-          ${puestosPermitidos.includes(puestoSesion)
+            : `<span class="action-btn action-disabled">📜</span>`
+          }
+          ${
+            puestosPermitidos.includes(puestoSesion)
             ? `<span class="action-btn" onclick="eliminar('${c.key}')">🗑️</span>`
-            : ``}
+            : ``
+          }
         </td>
       </tr>`;
     }
   });
 });
 
-window.verHistorial = async folio=>{
+window.verHistorial = async (folio)=>{
   listaHistorial.innerHTML="";
   const snap = await get(seguimientoRef);
   snap.forEach(h=>{
-    if(h.val().folio===folio){
+    if(h.val().folio === folio){
       listaHistorial.innerHTML+=`
       <li class="list-group-item">
         <strong>${h.val().status}</strong><br>
-        ${h.val().observaciones||""}<br>
+        ${h.val().observaciones || ""}<br>
         <small>${h.val().fechaRegistro}</small>
       </li>`;
     }
