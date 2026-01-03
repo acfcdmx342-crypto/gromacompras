@@ -12,11 +12,6 @@ body { background:#eef1f5; }
 .card { border-radius:20px; }
 fieldset:disabled { opacity:0.6; }
 .d-none { display:none; }
-
-@media (max-width:768px){
-  body { padding:10px !important; }
-  h2 { font-size:1.4rem; }
-}
 </style>
 </head>
 
@@ -27,30 +22,22 @@ fieldset:disabled { opacity:0.6; }
 const usuarioSesion = localStorage.getItem("usuarioLogueado");
 const puestoSesion  = localStorage.getItem("puesto");
 
-const puestosPermitidos = [
-  "GERENTE DE SISTEMAS",
-  "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO",
-  "COORDINADOR DE SOPORTE TECNICO",
-  "SOPORTE TECNICO",
-  "BECARIO"
-];
-
 if (!usuarioSesion || !puestoSesion) {
   alert("Sesión no válida");
   location.href = "index.html";
 }
-
-if (!puestosPermitidos.includes(puestoSesion)) {
-  alert("No tienes permisos para acceder a seguimiento");
-  location.href = "tecnologia.html";
-}
 </script>
 
 <div class="container">
-<h2 class="fw-bold text-center mb-4">Seguimiento de Solicitudes</h2>
+
+<h2 class="fw-bold text-center mb-2">Seguimiento de Solicitudes</h2>
+
+<div class="text-end mb-3 fw-bold text-primary">
+  👤 Usuario: <span id="nombreUsuario"></span>
+</div>
 
 <div class="text-end mb-3">
-<a href="tecnologia.html" class="btn btn-dark w-100 w-md-auto">Ir a Tecnología</a>
+  <a href="tecnologia.html" class="btn btn-dark">Ir a Tecnología</a>
 </div>
 
 <div class="card shadow p-4 mb-4">
@@ -198,6 +185,10 @@ Guardar Seguimiento
 <script type="module">
 import { database, ref, get, push } from "./firebase.js";
 
+/* ===== MOSTRAR USUARIO ===== */
+document.getElementById("nombreUsuario").textContent = usuarioSesion;
+
+/* ===== REFERENCIAS ===== */
 const tecnologiaRef = ref(database,"tecnologia");
 const seguimientoRef = ref(database,"seguimiento");
 
@@ -206,16 +197,19 @@ const folioParam = params.get("folio");
 
 let archivoActual = null;
 
+/* ===== CAMPOS BASE ===== */
+folio.value = folioParam;
 fechaCompras.value = new Date().toLocaleString();
 descripcion.value = "SEGUIMIENTO DE FOLIO " + folioParam;
-folio.value = folioParam;
 
+/* ===== ACTIVAR CAMPOS ===== */
 chkAvanzar.addEventListener("change", ()=>{
   bloqueCompras.disabled = !chkAvanzar.checked;
   paso1.disabled = !chkAvanzar.checked;
   paso2.disabled = !chkAvanzar.checked;
 });
 
+/* ===== CARGAR DATOS DEL FOLIO ===== */
 async function cargarDetalle(){
   const snap = await get(tecnologiaRef);
   snap.forEach(c=>{
@@ -228,13 +222,14 @@ async function cargarDetalle(){
     }
   });
 }
-
 cargarDetalle();
 
+/* ===== VER ARCHIVO ===== */
 window.verArchivo = ()=>{
   if(archivoActual) window.open(archivoActual,"_blank");
 };
 
+/* ===== GUARDAR SEGUIMIENTO ===== */
 window.guardarSeguimiento = async ()=>{
   await push(seguimientoRef,{
     folio: folio.value,
@@ -253,7 +248,8 @@ window.guardarSeguimiento = async ()=>{
     quienRecibe: quienRecibe.value,
     fechaEnvio: fechaEnvio.value,
     quienEnvia: quienEnvia.value,
-    observaciones: observaciones.value
+    observaciones: observaciones.value,
+    usuario: usuarioSesion
   });
 
   alert("Seguimiento guardado correctamente");
