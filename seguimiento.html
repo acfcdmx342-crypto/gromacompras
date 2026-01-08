@@ -193,81 +193,115 @@ Guardar Seguimiento
 
 </div>
 <script type="module">
-    import { database, ref, get, query, orderByChild, equalTo, onValue, push } from "./firebase.js";
+import { database, ref, get, query, orderByChild, equalTo, push, onValue } from "./firebase.js";
 
-    // 1. Obtener folio de la URL
-    const params = new URLSearchParams(window.location.search);
-    const folioURL = params.get("folio");
+// 1. Capturar el Folio que viene de tecnologia.html
+const params = new URLSearchParams(window.location.search);
+const folioURL = params.get("folio");
 
-    const fInput = document.getElementById("folio");
-    const sInput = document.getElementById("solicito");
-    const sucInput = document.getElementById("sucursal");
-    const btnArc = document.getElementById("btnArchivo");
-    let dataArchivo = null;
+// Elementos del DOM
+const folioInput = document.getElementById("folio");
+const solicitoInput = document.getElementById("solicito");
+const sucursalInput = document.getElementById("sucursal");
+const btnArchivo = document.getElementById("btnArchivo");
+const fechaCompras = document.getElementById("fechaCompras");
+const tablaSegBody = document.getElementById("tablaSegBody");
 
-    // 2. Cargar datos originales de 'tecnologia'
-    async function cargarDatosOriginales() {
-        if (!folioURL) return;
+let dataArchivoOriginal = null;
 
-        const q = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(folioURL));
-        const snap = await get(q);
+// 2. FUNCIÓN PARA LLENAR CAMPOS AUTOMÁTICAMENTE
+async function cargarDatosDeSolicitud() {
+  if (!folioURL) return;
 
-        if (snap.exists()) {
-            const data = snap.val();
-            const key = Object.keys(data)[0];
-            const item = data[key];
+  console.log("Buscando datos para:", folioURL);
+  
+  // Buscamos en el nodo 'tecnologia' el registro que coincida con el folio
+  const consulta = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(folioURL));
+  
+  try {
+    const snap = await get(consulta);
+    if (snap.exists()) {
+      const objeto = snap.val();
+      const idKey = Object.keys(objeto)[0];
+      const datos = objeto[idKey];
 
-            fInput.value = item.folio || "";
-            sInput.value = item.soporte || ""; // Soporte es quien solicitó
-            sucInput.value = item.sucursal || "";
-            dataArchivo = item.archivoData;
+      // Llenamos los campos que pediste
+      folioInput.value = datos.folio || "";
+      solicitoInput.value = datos.soporte || ""; // Soporte -> Quien solicitó
+      sucursalInput.value = datos.sucursal || "";
+      dataArchivoOriginal = datos.archivoData || null;
 
-            if (dataArchivo) {
-                btnArc.disabled = false;
-                btnArc.className = "btn btn-success w-100";
-            }
-        }
+      if (dataArchivoOriginal) {
+        btnArchivo.disabled = false;
+        btnArchivo.classList.remove("btn-secondary");
+        btnArchivo.classList.add("btn-success");
+      }
+      
+      console.log("Datos cargados correctamente");
+    } else {
+      console.log("No se encontró el folio en la base de datos");
     }
+  } catch (error) {
+    console.error("Error al cargar:", error);
+  }
+}
 
-    // Ver archivo
-    btnArc.onclick = () => {
-        if (dataArchivo) {
-            const win = window.open("");
-            win.document.write(`<iframe src="${dataArchivo}" frameborder="0" style="width:100%; height:100%;"></iframe>`);
-        }
-    };
+// 3. Manejo del botón de Archivo Solicitud
+btnArchivo.onclick = () => {
+  if (dataArchivoOriginal) {
+    const win = window.open();
+    win.document.write(`<iframe src="${dataArchivoOriginal}" frameborder="0" style="border:0; width:100%; height:100%;" allowfullscreen></iframe>`);
+  }
+};
 
-    // Guardar seguimiento sin alterar registros previos
-    window.guardarSeguimiento = async () => {
-        const desc = document.getElementById("descripcion").value;
-        if (!desc) return alert("Ingrese una descripción");
+// 4. Guardar Seguimiento (Firebase)
+window.guardarSeguimiento = async () => {
+  const desc = document.getElementById("descripcion").value;
+  const stat = document.getElementById("status").value;
 
-        await push(ref(database, "seguimiento"), {
-            folio: fInput.value,
-            descripcion: desc.toUpperCase(),
-            status: document.getElementById("status").value,
-            fecha: new Date().toLocaleString()
-        });
+  if (!desc) {
+    alert("Por favor escriba la descripción");
+    return;
+  }
 
-        alert("Seguimiento guardado");
-        location.reload();
-    };
+  await push(ref(database, "seguimiento"), {
+    folio: folioInput.value,
+    solicito: solicitoInput.value,
+    descripcion: desc.toUpperCase(),
+    status: stat,
+    fecha: new Date().toLocaleString()
+  });
 
-    // Cargar tabla de historial
-    onValue(ref(database, "seguimiento"), (snap) => {
-        const tbody = document.getElementById("tablaSegBody");
-        tbody.innerHTML = "";
-        snap.forEach(child => {
-            const s = child.val();
-            if (s.folio === folioURL) {
-                tbody.innerHTML += `<tr><td>${s.folio}</td><td>${s.descripcion}</td><td>${s.status}</td><td>${s.fecha}</td></tr>`;
-            }
-        });
-    });
+  alert("Seguimiento guardado");
+  location.reload();
+};
 
-    cargarDatosOriginales();
+// 5. Cargar la tabla de historial (Firebase)
+onValue(ref(database, "seguimiento"), (snap) => {
+  tablaSegBody.innerHTML = "";
+  snap.forEach(child => {
+    const s = child.val();
+    if (s.folio === folioURL) {
+      tablaSegBody.innerHTML += `
+        <tr>
+          <td>${s.folio}</td>
+          <td>${s.solicito}</td>
+          <td>${s.descripcion}</td>
+          <td class="fw-bold">${s.status}</td>
+          <td>${s.fecha}</td>
+          <td>📄</td>
+        </tr>`;
+    }
+  });
+});
+
+// Inicializar
+fechaCompras.value = new Date().toLocaleDateString();
+cargarDatosDeSolicitud();
+
 </script>
 
 </body>
 </html>
+
 
