@@ -7,7 +7,7 @@ import {
   get,
   onValue,
   remove,
-  update
+  update,
   query,        
   orderByChild, 
   equalTo      
