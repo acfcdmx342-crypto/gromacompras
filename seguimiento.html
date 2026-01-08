@@ -208,21 +208,24 @@ fechaCompras.value = new Date().toLocaleString();
 async function cargarFolios(){
   const snap = await get(solicitudesRef);
   folio.innerHTML="<option value=''>Seleccione</option>";
-  if(!snap.exists())return;
+  if(!snap.exists()) return;
 
-  let encontrado=false;
+  let datosURL = null;
 
   snap.forEach(c=>{
-    const f=c.val().folio;
-    folio.innerHTML+=`<option>${f}</option>`;
-    if(folioURL && f===folioURL){
-      encontrado=true;
-      cargarDatosFolio(f);
+    const s = c.val();
+    folio.innerHTML += `<option value="${s.folio}">${s.folio}</option>`;
+    if(folioURL && s.folio === folioURL){
+      datosURL = s;
     }
   });
 
-  if(folioURL && encontrado){
-    folio.value=folioURL;
+  if(datosURL){
+    folio.value = datosURL.folio;
+    solicito.value = datosURL.soporte;
+    sucursal.value = datosURL.sucursal;
+    archivoActual = datosURL.archivoData || null;
+    btnArchivo.disabled = !archivoActual;
   }
 }
 
