@@ -29,6 +29,7 @@ body { background:#eef1f5; }
 <a href="tecnologia.html" class="btn btn-dark">Ir a Tecnología</a>
 </div>
 
+<!-- ================= FORMULARIO ================= -->
 <div class="card shadow p-4 mb-4">
 <form id="formSeg" class="row g-3">
 
@@ -51,7 +52,9 @@ body { background:#eef1f5; }
 
 <div class="col-md-3">
 <label class="fw-bold">Archivo Solicitud</label>
-<button class="btn btn-secondary w-100" type="button" onclick="verArchivo()" id="btnArchivo" disabled>Ver</button>
+<button id="btnArchivo" type="button" class="btn btn-secondary w-100" disabled>
+Ver Archivo
+</button>
 </div>
 
 <hr>
@@ -163,12 +166,15 @@ body { background:#eef1f5; }
 </div>
 
 <div class="col-12 mt-3">
-<button type="button" class="btn btn-primary btn-lg" onclick="guardarSeguimiento()">Guardar Seguimiento</button>
+<button type="button" class="btn btn-primary btn-lg" onclick="guardarSeguimiento()">
+Guardar Seguimiento
+</button>
 </div>
 
 </form>
 </div>
 
+<!-- ================= TABLA ================= -->
 <div class="card shadow p-4">
 <h4 class="fw-bold mb-3">Tabla de Seguimiento</h4>
 
@@ -194,74 +200,80 @@ body { background:#eef1f5; }
 <script type="module">
 import { database, ref, get } from "./firebase.js";
 import { storage } from "./firebase.js";
-import { ref as sRef, uploadBytes, getDownloadURL } from
-"https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+import { ref as sRef, uploadBytes, getDownloadURL }
+from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
-let seguimiento = JSON.parse(localStorage.getItem("seguimientoLS")||"[]");
+let seguimiento = JSON.parse(localStorage.getItem("seguimientoLS") || "[]");
 let archivoActual = null;
 
-const solicitudesRef = ref(database,"tecnologia");
+const solicitudesRef = ref(database, "tecnologia");
 const folioURL = new URLSearchParams(window.location.search).get("folio");
 
 fechaCompras.value = new Date().toLocaleString();
 
+/* ===== CARGAR FOLIOS ===== */
 async function cargarFolios(){
   const snap = await get(solicitudesRef);
-  folio.innerHTML="<option value=''>Seleccione</option>";
+  folio.innerHTML = "<option value=''>Seleccione</option>";
   if(!snap.exists()) return;
-
-  let datosURL = null;
 
   snap.forEach(c=>{
     const s = c.val();
     folio.innerHTML += `<option value="${s.folio}">${s.folio}</option>`;
-    if(folioURL && s.folio === folioURL){
-      datosURL = s;
-    }
   });
 
-  // ✅ SOLUCIÓN APLICADA
-  if(datosURL){
-    folio.value = datosURL.folio;
-    folio.dispatchEvent(new Event("change"));
+  if(folioURL){
+    folio.value = folioURL;
+    setTimeout(()=>cargarDatosFolio(folioURL),0);
   }
 }
 
-folio.addEventListener("change",()=>cargarDatosFolio(folio.value));
-
+/* ===== CARGAR DATOS AUTOMÁTICOS ===== */
 async function cargarDatosFolio(f){
+  if(!f) return;
+
   const snap = await get(solicitudesRef);
   snap.forEach(c=>{
-    if(c.val().folio === f){
-      solicito.value = c.val().soporte;
-      sucursal.value = c.val().sucursal;
-      archivoActual = c.val().archivoData || null;
+    const s = c.val();
+    if(s.folio === f){
+      solicito.value = s.soporte || "";
+      sucursal.value = s.sucursal || "";
+      archivoActual = s.archivoData || null;
       btnArchivo.disabled = !archivoActual;
     }
   });
 }
 
-window.verArchivo = ()=> archivoActual && window.open(archivoActual);
+/* ===== EVENTOS ===== */
+folio.addEventListener("change",()=>{
+  cargarDatosFolio(folio.value);
+});
 
+btnArchivo.onclick = ()=>{
+  if(archivoActual) window.open(archivoActual,"_blank");
+};
+
+/* ===== SUBIR ARCHIVOS ===== */
 async function subirArchivo(file,carpeta){
   const r = sRef(storage,`${carpeta}/${folio.value}_${Date.now()}_${file.name}`);
   await uploadBytes(r,file);
   return await getDownloadURL(r);
 }
 
+/* ===== GUARDAR ===== */
 window.guardarSeguimiento = async ()=>{
   let cot="", fac="";
   if(archivoCotizacion.files[0]) cot = await subirArchivo(archivoCotizacion.files[0],"cotizaciones");
   if(archivoFactura.files[0]) fac = await subirArchivo(archivoFactura.files[0],"facturas");
 
   seguimiento.push({
-    folio:folio.value,
-    solicito:solicito.value,
-    descripcion:descripcion.value,
-    fechaCompras:fechaCompras.value,
-    status:status.value,
-    archivoCotizacion:cot,
-    archivoFactura:fac
+    folio: folio.value,
+    solicito: solicito.value,
+    descripcion: descripcion.value,
+    fechaCompras: fechaCompras.value,
+    status: status.value,
+    archivoCotizacion: cot,
+    archivoFactura: fac
   });
 
   localStorage.setItem("seguimientoLS",JSON.stringify(seguimiento));
@@ -269,6 +281,7 @@ window.guardarSeguimiento = async ()=>{
   formSeg.reset();
 };
 
+/* ===== TABLA ===== */
 function aplicarColor(s){
   return s==="EN SISTEMAS"?"status-sistemas":
          s==="ENVIADO A ZONA"?"status-zona":
@@ -289,13 +302,13 @@ function actualizarTabla(){
       <td>
         ${s.archivoCotizacion?`<span class="action-btn" onclick="window.open('${s.archivoCotizacion}')">📄</span>`:""}
         ${s.archivoFactura?`<span class="action-btn" onclick="window.open('${s.archivoFactura}')">🧾</span>`:""}
-        <span class="action-btn text-danger" onclick="eliminarSeguimiento(${i})">🗑️</span>
+        <span class="action-btn text-danger" onclick="eliminar(${i})">🗑️</span>
       </td>
     </tr>`;
   });
 }
 
-window.eliminarSeguimiento = i=>{
+window.eliminar = i=>{
   if(confirm("¿Eliminar seguimiento?")){
     seguimiento.splice(i,1);
     localStorage.setItem("seguimientoLS",JSON.stringify(seguimiento));
