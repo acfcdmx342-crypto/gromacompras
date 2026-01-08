@@ -102,16 +102,12 @@ Guardar Seguimiento
 </div>
 
 <script type="module">
-import { database, ref, get, push } from "./firebase.js";
-import { storage } from "./firebase.js";
-import { ref as sRef, uploadBytes, getDownloadURL }
-from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+import { database, ref, get, set } from "./firebase.js";
 
 /* ===== DOM ===== */
 const folio = document.getElementById("folio");
 const solicito = document.getElementById("solicito");
 const sucursal = document.getElementById("sucursal");
-const btnArchivo = document.getElementById("btnArchivo");
 const fechaCompras = document.getElementById("fechaCompras");
 const descripcion = document.getElementById("descripcion");
 const tablaSegBody = document.getElementById("tablaSegBody");
@@ -119,7 +115,6 @@ const formSeg = document.getElementById("formSeg");
 
 /* ===== VARIABLES ===== */
 let seguimiento = JSON.parse(localStorage.getItem("seguimientoLS") || "[]");
-let archivoActual = null;
 
 const solicitudesRef = ref(database, "tecnologia");
 const seguimientoRef = ref(database, "seguimiento");
@@ -150,22 +145,18 @@ async function cargarFolios(){
   });
 }
 
-/* ===== CARGAR DATOS ===== */
+/* ===== DATOS ===== */
 folio.addEventListener("change", async ()=>{
   const snap = await get(solicitudesRef);
   snap.forEach(c=>{
     if(c.val().folio === folio.value){
       solicito.value = c.val().soporte;
       sucursal.value = c.val().sucursal;
-      archivoActual = c.val().archivoData;
-      btnArchivo.disabled = !archivoActual;
     }
   });
 });
 
-btnArchivo.onclick = ()=> archivoActual && window.open(archivoActual);
-
-/* ===== GUARDAR ===== */
+/* ===== GUARDAR (CORREGIDO) ===== */
 window.guardarSeguimiento = async ()=>{
 
   if(!folio.value){
@@ -176,21 +167,21 @@ window.guardarSeguimiento = async ()=>{
   const data = {
     folio: folio.value,
     solicito: solicito.value,
+    sucursal: sucursal.value,
     descripcion: descripcion.value,
     fechaCompras: fechaCompras.value,
     status: "EN SISTEMAS"
   };
 
-  /* 🔥 GUARDA EN FIREBASE (CLAVE) */
-  await push(seguimientoRef, data);
+  /* 🔥 CLAVE DEL SISTEMA */
+  await set(ref(database, "seguimiento/" + folio.value), data);
 
-  /* 🧠 GUARDA LOCAL */
+  /* Local */
   seguimiento.push(data);
   localStorage.setItem("seguimientoLS", JSON.stringify(seguimiento));
 
   actualizarTabla();
   formSeg.reset();
-  btnArchivo.disabled = true;
 };
 
 /* ===== TABLA ===== */
@@ -212,13 +203,12 @@ function actualizarTabla(){
 }
 
 window.eliminar = i=>{
-  if(confirm("¿Eliminar seguimiento?")){
-    seguimiento.splice(i,1);
-    localStorage.setItem("seguimientoLS",JSON.stringify(seguimiento));
-    actualizarTabla();
-  }
+  seguimiento.splice(i,1);
+  localStorage.setItem("seguimientoLS",JSON.stringify(seguimiento));
+  actualizarTabla();
 };
 </script>
 
 </body>
 </html>
+
