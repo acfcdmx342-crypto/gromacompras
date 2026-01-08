@@ -7,7 +7,7 @@ import {
   get,
   onValue,
   remove,
-  update     
+  update
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
 const firebaseConfig = {
