@@ -95,109 +95,60 @@ button:hover {
 </head>
 
 <body>
-
 <div class="container">
-
-<h2>Login</h2>
-
-<div class="card">
-
-<div class="input-group">
-<input id="loginUser" placeholder="Usuario"
- oninput="this.value=this.value.toUpperCase().trim()">
-<i class="fa-solid fa-user"></i>
+    <h2>Login</h2>
+    <div class="card">
+        <div class="input-group">
+            <input id="loginUser" placeholder="Usuario" oninput="this.value=this.value.toUpperCase().trim()">
+            <i class="fa-solid fa-user"></i>
+        </div>
+        <div class="input-group">
+            <input id="loginPass" type="password" placeholder="Contraseña">
+            <i id="toggleBtn" class="fa-solid fa-eye toggle-pass"></i>
+        </div>
+        <button id="btnLogin">Ingresar</button>
+        <button id="btnRecover" class="btn-recover">¿Olvidaste tu contraseña?</button>
+    </div>
 </div>
 
-<div class="input-group">
-<input id="loginPass" type="password" placeholder="Contraseña">
-<i class="fa-solid fa-eye toggle-pass" onclick="verPassword()"></i>
-</div>
-
-<button onclick="login()">Ingresar</button>
-<button class="btn-recover" onclick="recuperar()">¿Olvidaste tu contraseña?</button>
-
-</div>
-</div>
-
-<!-- EMAILJS -->
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
-<script>
-emailjs.init("0aHlArLgvHrj2Xbk8");
-</script>
-
-<script>
-function verPassword() {
-  const p = loginPass;
-  const i = document.querySelector(".toggle-pass");
-  p.type = p.type === "password" ? "text" : "password";
-  i.classList.toggle("fa-eye");
-  i.classList.toggle("fa-eye-slash");
-}
-</script>
+<script>emailjs.init("0aHlArLgvHrj2Xbk8");</script>
 
 <script type="module">
-import { database, ref, get } from "./firebase.js";
+    import { database, ref, get } from "./firebase.js";
 
-window.login = async () => {
+    const loginUser = document.getElementById("loginUser");
+    const loginPass = document.getElementById("loginPass");
+    const toggleBtn = document.getElementById("toggleBtn");
 
-  const usuario = loginUser.value.trim().toUpperCase();
-  const pass = loginPass.value.trim();
+    toggleBtn.onclick = () => {
+        const isPass = loginPass.type === "password";
+        loginPass.type = isPass ? "text" : "password";
+        toggleBtn.classList.toggle("fa-eye");
+        toggleBtn.classList.toggle("fa-eye-slash");
+    };
 
-  if (!usuario || !pass) {
-    alert("Completa todos los campos");
-    return;
-  }
+    document.getElementById("btnLogin").onclick = async () => {
+        const usuario = loginUser.value.trim().toUpperCase();
+        const pass = loginPass.value.trim();
 
-  const snap = await get(ref(database,"usuarios/"+usuario));
+        if (!usuario || !pass) return alert("Completa todos los campos");
 
-  if (!snap.exists()) {
-    alert("❌ Usuario NO registrado");
-    return;
-  }
+        const snap = await get(ref(database, "usuarios/" + usuario));
+        if (!snap.exists()) return alert("❌ Usuario NO registrado");
 
-  const data = snap.val();
+        const data = snap.val();
+        if (data.contrasena !== pass) return alert("❌ Contraseña incorrecta");
 
-  if (data.bloqueado) {
-    alert("⛔ Usuario bloqueado");
-    return;
-  }
-
-  if (data.contrasena !== pass) {
-    alert("❌ Contraseña incorrecta");
-    return;
-  }
-
-  localStorage.setItem("usuarioLogueado", JSON.stringify({
-    usuario: data.usuario,
-    nombre: data.nombre,
-    puesto: data.puesto.toUpperCase(),
-    empresa: data.empresa || "",
-    zona: data.zona || ""
-  }));
-
-  window.location.href = "tecnologia.html";
-};
-
-window.recuperar = async () => {
-  const u = prompt("Ingresa tu usuario:");
-  if (!u) return;
-
-  const snap = await get(ref(database,"usuarios/"+u.toUpperCase()));
-  if (!snap.exists()) {
-    alert("Usuario no encontrado");
-    return;
-  }
-
-  const d = snap.val();
-  await emailjs.send("service_mya4ogg","template_ub0ksu5",{
-    to_email: d.correo,
-    usuario: d.usuario,
-    password: d.contrasena
-  });
-
-  alert("Contraseña enviada al correo");
-};
+        localStorage.setItem("usuarioLogueado", JSON.stringify({
+            usuario: data.usuario,
+            nombre: data.nombre,
+            puesto: data.puesto.toUpperCase()
+        }));
+        window.location.href = "tecnologia.html";
+    };
 </script>
 
 </body>
 </html>
+
