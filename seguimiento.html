@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Seguimiento de Solicitudes</title>
+
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
@@ -12,7 +13,6 @@ body { background: #eef1f5; }
 .table thead { background:#0d6efd; color:white; }
 .action-btn { cursor:pointer; font-size:22px; margin-right:10px; }
 
-/* COLORES AUTOMÁTICOS */
 .status-compras { background:#0d6efd !important; color:white !important; }
 .status-zona { background:#ffc107 !important; color:#000 !important; }
 .status-pendiente { background:#dc3545 !important; color:white !important; }
@@ -23,6 +23,7 @@ body { background: #eef1f5; }
 <body class="p-4">
 
 <div class="container">
+
 <h2 class="fw-bold text-center mb-4">Seguimiento de Solicitudes</h2>
 
 <div class="text-end mb-3">
@@ -51,7 +52,9 @@ body { background: #eef1f5; }
 
 <div class="col-md-3">
 <label class="form-label fw-bold">Archivo</label>
-<button type="button" class="btn btn-secondary w-100" onclick="verArchivo()" id="btnArchivo" disabled>Ver Archivo</button>
+<button type="button" class="btn btn-secondary w-100" onclick="verArchivo()" id="btnArchivo" disabled>
+Ver Archivo
+</button>
 </div>
 
 <div class="col-md-3">
@@ -125,7 +128,9 @@ body { background: #eef1f5; }
 </div>
 
 <div class="col-12 mt-3">
-<button type="button" class="btn btn-primary btn-lg" onclick="guardarSeguimiento()">Guardar Seguimiento</button>
+<button type="button" class="btn btn-primary btn-lg" onclick="guardarSeguimiento()">
+Guardar Seguimiento
+</button>
 </div>
 
 </form>
@@ -149,8 +154,10 @@ body { background: #eef1f5; }
 <tbody id="tablaSegBody"></tbody>
 </table>
 </div>
+
 </div>
 
+<!-- MODAL -->
 <div class="modal fade" id="modalComent">
 <div class="modal-dialog">
 <div class="modal-content">
@@ -171,8 +178,13 @@ body { background: #eef1f5; }
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<script>
-let solicitudesTec = JSON.parse(localStorage.getItem("tecnologiaLS") || "[]");
+<!-- 🔥 SCRIPT CON FIREBASE -->
+<script type="module">
+import { database, ref, get } from "./firebase.js";
+
+/* =============================
+   VARIABLES ORIGINALES
+============================= */
 let seguimiento = JSON.parse(localStorage.getItem("seguimientoLS") || "[]");
 let archivoActual = null;
 let indexComentario = null;
@@ -180,9 +192,22 @@ let indexComentario = null;
 const selectFolio = document.getElementById("folio");
 const folioURL = new URLSearchParams(window.location.search).get("folio");
 
-function actualizarSelectorFolios(){
+/* =============================
+   FIREBASE
+============================= */
+const solicitudesRef = ref(database,"tecnologia");
+
+/* =============================
+   CARGAR FOLIOS
+============================= */
+async function cargarFolios(){
   selectFolio.innerHTML = "<option value=''>Seleccione un folio</option>";
-  solicitudesTec.forEach(s=>{
+
+  const snap = await get(solicitudesRef);
+  if(!snap.exists()) return;
+
+  snap.forEach(c=>{
+    const s = c.val();
     selectFolio.innerHTML += `<option value="${s.folio}">${s.folio}</option>`;
   });
 
@@ -192,26 +217,56 @@ function actualizarSelectorFolios(){
   }
 }
 
-function cargarDatosFolio(fol){
-  const data = solicitudesTec.find(s=>s.folio===fol);
+/* =============================
+   DATOS DEL FOLIO
+============================= */
+async function cargarDatosFolio(fol){
+  const snap = await get(solicitudesRef);
+  if(!snap.exists()) return;
+
+  let data = null;
+  snap.forEach(c=>{
+    if(c.val().folio === fol){
+      data = c.val();
+    }
+  });
+
   if(!data) return;
+
   solicito.value = data.soporte;
   sucursal.value = data.sucursal;
-  archivoActual = data.archivo || null;
+  archivoActual = data.archivoData || null;
   btnArchivo.disabled = !archivoActual;
 }
 
-selectFolio.addEventListener("change",()=>cargarDatosFolio(selectFolio.value));
+selectFolio.addEventListener("change",()=>{
+  cargarDatosFolio(selectFolio.value);
+});
 
-function verArchivo(){
-  if(!archivoActual){ alert("No hay archivo"); return; }
+/* =============================
+   VER ARCHIVO
+============================= */
+window.verArchivo = ()=>{
+  if(!archivoActual){
+    alert("No hay archivo");
+    return;
+  }
   window.open(archivoActual,"_blank");
-}
+};
 
+/* =============================
+   FECHA AUTOMÁTICA
+============================= */
 fechaCompras.value = new Date().toLocaleString();
 
-function guardarSeguimiento(){
-  if(!folio.value){ alert("Debe seleccionar un folio"); return; }
+/* =============================
+   GUARDAR SEGUIMIENTO
+============================= */
+window.guardarSeguimiento = ()=>{
+  if(!folio.value){
+    alert("Debe seleccionar un folio");
+    return;
+  }
 
   if(seguimiento.some(s=>s.folio===folio.value)){
     alert("Este folio ya tiene seguimiento");
@@ -243,8 +298,11 @@ function guardarSeguimiento(){
   actualizarTabla();
   formSeg.reset();
   btnArchivo.disabled=true;
-}
+};
 
+/* =============================
+   TABLA
+============================= */
 function aplicarColorStatus(t){
   if(t==="ENVIADO A COMPRAS")return"status-compras";
   if(t==="ENVIADO A ZONA")return"status-zona";
@@ -272,27 +330,33 @@ function actualizarTabla(){
   });
 }
 
-function abrirComentario(i){
+/* =============================
+   COMENTARIOS
+============================= */
+window.abrirComentario = i=>{
   indexComentario=i;
   extraComentario.value=seguimiento[i].extra||"";
   new bootstrap.Modal(modalComent).show();
-}
+};
 
-function guardarComentarioExtra(){
+window.guardarComentarioExtra = ()=>{
   seguimiento[indexComentario].extra=extraComentario.value.toUpperCase();
   localStorage.setItem("seguimientoLS",JSON.stringify(seguimiento));
   bootstrap.Modal.getInstance(modalComent).hide();
-}
+};
 
-function eliminarSeguimiento(i){
+window.eliminarSeguimiento = i=>{
   if(confirm("¿Eliminar seguimiento?")){
     seguimiento.splice(i,1);
     localStorage.setItem("seguimientoLS",JSON.stringify(seguimiento));
     actualizarTabla();
   }
-}
+};
 
-actualizarSelectorFolios();
+/* =============================
+   INIT
+============================= */
+cargarFolios();
 actualizarTabla();
 </script>
 
