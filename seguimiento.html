@@ -192,132 +192,82 @@ Guardar Seguimiento
 </div>
 
 </div>
-
 <script type="module">
-import { database, ref, get } from "./firebase.js";
-import { storage } from "./firebase.js";
-import { ref as sRef, uploadBytes, getDownloadURL }
-from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+    import { database, ref, get, query, orderByChild, equalTo, onValue, push } from "./firebase.js";
 
-let seguimiento = JSON.parse(localStorage.getItem("seguimientoLS") || "[]");
-let archivoActual = null;
+    // 1. Obtener folio de la URL
+    const params = new URLSearchParams(window.location.search);
+    const folioURL = params.get("folio");
 
-const solicitudesRef = ref(database, "tecnologia");
-const folioURL = new URLSearchParams(window.location.search).get("folio");
+    const fInput = document.getElementById("folio");
+    const sInput = document.getElementById("solicito");
+    const sucInput = document.getElementById("sucursal");
+    const btnArc = document.getElementById("btnArchivo");
+    let dataArchivo = null;
 
-document.addEventListener("DOMContentLoaded", async ()=>{
+    // 2. Cargar datos originales de 'tecnologia'
+    async function cargarDatosOriginales() {
+        if (!folioURL) return;
 
-  fechaCompras.value = new Date().toLocaleString();
+        const q = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(folioURL));
+        const snap = await get(q);
 
-  await cargarFolios();
+        if (snap.exists()) {
+            const data = snap.val();
+            const key = Object.keys(data)[0];
+            const item = data[key];
 
-  if(folioURL){
-    folio.value = folioURL;
-    await cargarDatosFolio(folioURL);
-  }
+            fInput.value = item.folio || "";
+            sInput.value = item.soporte || ""; // Soporte es quien solicitó
+            sucInput.value = item.sucursal || "";
+            dataArchivo = item.archivoData;
 
-  actualizarTabla();
-});
-
-/* ===== CARGAR FOLIOS ===== */
-async function cargarFolios(){
-  const snap = await get(solicitudesRef);
-  folio.innerHTML = "<option value=''>Seleccione</option>";
-  if(!snap.exists()) return;
-
-  snap.forEach(c=>{
-    const s = c.val();
-    folio.innerHTML += `<option value="${s.folio}">${s.folio}</option>`;
-  });
-}
-
-/* ===== CARGAR DATOS AUTOMÁTICOS ===== */
-async function cargarDatosFolio(f){
-  if(!f) return;
-
-  const snap = await get(solicitudesRef);
-  snap.forEach(c=>{
-    const s = c.val();
-    if(s.folio === f){
-      solicito.value = s.soporte || "";
-      sucursal.value = s.sucursal || "";
-      archivoActual = s.archivoData || null;
-      btnArchivo.disabled = !archivoActual;
+            if (dataArchivo) {
+                btnArc.disabled = false;
+                btnArc.className = "btn btn-success w-100";
+            }
+        }
     }
-  });
-}
 
-/* ===== EVENTOS ===== */
-folio.addEventListener("change", async ()=>{
-  await cargarDatosFolio(folio.value);
-});
+    // Ver archivo
+    btnArc.onclick = () => {
+        if (dataArchivo) {
+            const win = window.open("");
+            win.document.write(`<iframe src="${dataArchivo}" frameborder="0" style="width:100%; height:100%;"></iframe>`);
+        }
+    };
 
-btnArchivo.onclick = ()=>{
-  if(archivoActual) window.open(archivoActual,"_blank");
-};
+    // Guardar seguimiento sin alterar registros previos
+    window.guardarSeguimiento = async () => {
+        const desc = document.getElementById("descripcion").value;
+        if (!desc) return alert("Ingrese una descripción");
 
-/* ===== SUBIR ARCHIVOS ===== */
-async function subirArchivo(file,carpeta){
-  const r = sRef(storage,`${carpeta}/${folio.value}_${Date.now()}_${file.name}`);
-  await uploadBytes(r,file);
-  return await getDownloadURL(r);
-}
+        await push(ref(database, "seguimiento"), {
+            folio: fInput.value,
+            descripcion: desc.toUpperCase(),
+            status: document.getElementById("status").value,
+            fecha: new Date().toLocaleString()
+        });
 
-/* ===== GUARDAR ===== */
-window.guardarSeguimiento = async ()=>{
-  let cot="", fac="";
-  if(archivoCotizacion.files[0]) cot = await subirArchivo(archivoCotizacion.files[0],"cotizaciones");
-  if(archivoFactura.files[0]) fac = await subirArchivo(archivoFactura.files[0],"facturas");
+        alert("Seguimiento guardado");
+        location.reload();
+    };
 
-  seguimiento.push({
-    folio: folio.value,
-    solicito: solicito.value,
-    descripcion: descripcion.value,
-    fechaCompras: fechaCompras.value,
-    status: status.value,
-    archivoCotizacion: cot,
-    archivoFactura: fac
-  });
+    // Cargar tabla de historial
+    onValue(ref(database, "seguimiento"), (snap) => {
+        const tbody = document.getElementById("tablaSegBody");
+        tbody.innerHTML = "";
+        snap.forEach(child => {
+            const s = child.val();
+            if (s.folio === folioURL) {
+                tbody.innerHTML += `<tr><td>${s.folio}</td><td>${s.descripcion}</td><td>${s.status}</td><td>${s.fecha}</td></tr>`;
+            }
+        });
+    });
 
-  localStorage.setItem("seguimientoLS",JSON.stringify(seguimiento));
-  actualizarTabla();
-  formSeg.reset();
-};
-
-/* ===== TABLA ===== */
-function aplicarColor(s){
-  return s==="EN SISTEMAS"?"status-sistemas":
-         s==="ENVIADO A ZONA"?"status-zona":
-         s==="PENDIENTE POR AUTORIZAR"?"status-pendiente":
-         "status-compras";
-}
-
-function actualizarTabla(){
-  tablaSegBody.innerHTML="";
-  seguimiento.forEach((s,i)=>{
-    tablaSegBody.innerHTML+=`
-    <tr>
-      <td>${s.folio}</td>
-      <td>${s.solicito}</td>
-      <td>${s.descripcion}</td>
-      <td class="${aplicarColor(s.status)} fw-bold">${s.status}</td>
-      <td>${s.fechaCompras}</td>
-      <td>
-        ${s.archivoCotizacion?`<span class="action-btn" onclick="window.open('${s.archivoCotizacion}')">📄</span>`:""}
-        ${s.archivoFactura?`<span class="action-btn" onclick="window.open('${s.archivoFactura}')">🧾</span>`:""}
-        <span class="action-btn text-danger" onclick="eliminar(${i})">🗑️</span>
-      </td>
-    </tr>`;
-  });
-}
-
-window.eliminar = i=>{
-  if(confirm("¿Eliminar seguimiento?")){
-    seguimiento.splice(i,1);
-    localStorage.setItem("seguimientoLS",JSON.stringify(seguimiento));
-    actualizarTabla();
-  }
-};
+    cargarDatosOriginales();
 </script>
+
 </body>
 </html>
+
