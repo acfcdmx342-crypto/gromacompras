@@ -14,15 +14,28 @@ body { background:#f2f4f7; }
 .action-disabled { color:#adb5bd; cursor:not-allowed; }
 .table thead { background:#0d6efd; color:white; }
 .btn-rounded { border-radius:50px; }
+#btnRegresar {
+  cursor:pointer;
+  font-size:40px;
+  position:fixed;
+  top:20px;
+  left:20px;
+  color:#0d6efd;
+}
 td:last-child { display:flex; justify-content:center; }
 </style>
 </head>
 
 <body class="p-4">
 
+<!-- ================= VALIDACIÓN DE SESIÓN ================= -->
 <script>
 const sesion = JSON.parse(localStorage.getItem("usuarioLogueado"));
-if (!sesion) { alert("Sesión no válida"); location.href = "index.html"; }
+
+if (!sesion) {
+  alert("Sesión no válida");
+  location.href = "index.html";
+}
 
 const usuarioSesion = sesion.usuario;
 const nombreSesion  = sesion.nombre;
@@ -37,51 +50,75 @@ const puestosPermitidos = [
 ];
 </script>
 
+<span id="btnRegresar" onclick="cerrarSesion()">🔙</span>
+
 <div class="container">
+
+<div class="text-end mb-3 fw-bold text-primary">
+  👤 Usuario: <span id="usuarioActivo"></span>
+</div>
+
 <h2 class="text-center mb-4 fw-bold">Solicitud de Tecnología</h2>
 
+<!-- ================= FORMULARIO ================= -->
 <div class="card shadow p-4 mb-4">
-<h5 class="fw-bold">Registrar Solicitud</h5>
+<h5 class="fw-bold mb-3">Registrar Solicitud</h5>
 
 <form id="formTec" class="row g-3">
 
 <div class="col-md-3">
-<label>Empresa</label>
+<label class="fw-bold">Folio</label>
+<input id="folio" class="form-control" readonly>
+</div>
+
+<div class="col-md-3">
+<label class="fw-bold">Empresa</label>
 <input id="empresa" class="form-control text-uppercase">
 </div>
 
 <div class="col-md-3">
-<label>Zona</label>
+<label class="fw-bold">Zona</label>
 <input id="zona" class="form-control text-uppercase">
 </div>
 
 <div class="col-md-3">
-<label>Sucursal</label>
-<input id="sucursal" class="form-control text-uppercase">
+<label class="fw-bold">Soporte Zona</label>
+<input id="soporte" class="form-control text-uppercase" readonly>
 </div>
 
 <div class="col-md-3">
-<label>Archivo</label>
+<label class="fw-bold">Sucursal</label>
+<input id="sucursal" class="form-control text-uppercase">
+</div>
+
+<div class="col-md-6">
+<label class="fw-bold">Requisición</label>
 <input id="archivo" type="file" class="form-control">
 </div>
 
 <div class="col-12">
-<button type="button" class="btn btn-primary" onclick="guardarSolicitud()">Guardar</button>
+<button type="button" class="btn btn-primary btn-rounded" onclick="guardarSolicitud()">
+Guardar Solicitud
+</button>
 </div>
 </form>
 </div>
 
+<!-- ================= TABLA ================= -->
 <div class="card shadow p-4">
-<h5 class="fw-bold">Solicitudes</h5>
+<h5 class="fw-bold mb-3">Registros de Solicitudes</h5>
 
-<table class="table table-bordered">
+<table class="table table-bordered table-striped">
 <thead>
 <tr>
 <th>Folio</th>
 <th>Empresa</th>
 <th>Zona</th>
+<th>Soporte</th>
 <th>Sucursal</th>
 <th>Archivo</th>
+<th>Status</th>
+<th>Fecha</th>
 <th>Acciones</th>
 </tr>
 </thead>
@@ -90,19 +127,26 @@ const puestosPermitidos = [
 </div>
 </div>
 
+<!-- ================= FIREBASE ================= -->
 <script type="module">
-import { database, ref, push, get, set, onValue } from "./firebase.js";
+import { database, ref, push, set, get, onValue, remove } from "./firebase.js";
+
+document.getElementById("usuarioActivo").textContent =
+  `${nombreSesion} (${puestoSesion})`;
+
+document.getElementById("soporte").value = nombreSesion;
 
 const solicitudesRef = ref(database,"tecnologia");
 const seguimientoRef = ref(database,"seguimiento");
 
 let foliosConSeguimiento = new Set();
 
-onValue(seguimientoRef,s=>{
+onValue(seguimientoRef,snap=>{
   foliosConSeguimiento.clear();
-  s.forEach(c=>foliosConSeguimiento.add(c.val().folio));
+  snap.forEach(c=>foliosConSeguimiento.add(c.val().folio));
 });
 
+/* GENERAR FOLIO */
 async function generarFolio(emp, zon){
   const key = `TEC_${emp}_${zon}`.toUpperCase();
   const r = ref(database,"folios/"+key);
@@ -112,54 +156,73 @@ async function generarFolio(emp, zon){
   return `TEC-${emp}-${zon}-${n.toString().padStart(4,"0")}`;
 }
 
+/* GUARDAR SOLICITUD */
 window.guardarSolicitud = async ()=>{
   if(!empresa.value||!zona.value||!sucursal.value||!archivo.files[0]){
-    alert("Campos obligatorios"); return;
+    alert("Campos obligatorios");
+    return;
   }
 
   const fol = await generarFolio(empresa.value,zona.value);
-  const reader = new FileReader();
+  folio.value = fol;
 
+  const reader = new FileReader();
   reader.onload = async ()=>{
     await push(solicitudesRef,{
       folio: fol,
       empresa: empresa.value.toUpperCase(),
       zona: zona.value.toUpperCase(),
+      soporte: nombreSesion,
       sucursal: sucursal.value.toUpperCase(),
       archivoData: reader.result,
       archivoNombre: archivo.files[0].name,
+      status: "Pendiente",
       fechaEnvio: new Date().toLocaleString(),
       usuario: usuarioSesion
     });
     formTec.reset();
+    soporte.value = nombreSesion;
+    folio.value="";
   };
   reader.readAsDataURL(archivo.files[0]);
 };
 
+/* LISTAR */
 onValue(solicitudesRef,snap=>{
   tablaTecBody.innerHTML="";
   snap.forEach(c=>{
     const s = c.val();
     const tieneSeg = foliosConSeguimiento.has(s.folio);
 
-    tablaTecBody.innerHTML+=`
-    <tr>
-      <td>${s.folio}</td>
-      <td>${s.empresa}</td>
-      <td>${s.zona}</td>
-      <td>${s.sucursal}</td>
-      <td><a class="btn btn-success btn-sm" download="${s.archivoNombre}" href="${s.archivoData}">📥</a></td>
-      <td>
-        ${tieneSeg
-          ? `<span class="action-btn action-disabled">📋</span>`
-          : `<span class="action-btn" onclick="irSeguimiento('${s.folio}')">📋</span>`}
-      </td>
-    </tr>`;
+    if (puestosPermitidos.includes(puestoSesion) || s.usuario === usuarioSesion) {
+
+      tablaTecBody.innerHTML+=`
+      <tr>
+        <td>${s.folio}</td>
+        <td>${s.empresa}</td>
+        <td>${s.zona}</td>
+        <td>${s.soporte}</td>
+        <td>${s.sucursal}</td>
+        <td><a class="btn btn-success btn-sm" download="${s.archivoNombre}" href="${s.archivoData}">📥</a></td>
+        <td class="bg-success text-white">${s.status}</td>
+        <td>${s.fechaEnvio}</td>
+        <td>
+          ${tieneSeg
+            ? `<span class="action-btn action-disabled">📋</span>`
+            : `<span class="action-btn" onclick="irSeguimiento('${s.folio}')">📋</span>`}
+        </td>
+      </tr>`;
+    }
   });
 });
 
 window.irSeguimiento = folio=>{
   location.href = "seguimiento.html?folio=" + encodeURIComponent(folio);
+};
+
+window.cerrarSesion = ()=>{
+  localStorage.clear();
+  location.href="index.html";
 };
 </script>
 
