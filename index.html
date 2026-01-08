@@ -95,7 +95,6 @@ button:hover {
 </head>
 
 <body>
-
 <div class="container">
     <h2>Login</h2>
     <div class="card">
@@ -103,113 +102,69 @@ button:hover {
             <input id="loginUser" placeholder="Usuario" oninput="this.value=this.value.toUpperCase().trim()">
             <i class="fa-solid fa-user"></i>
         </div>
-
         <div class="input-group">
             <input id="loginPass" type="password" placeholder="Contraseña">
             <i id="toggleBtn" class="fa-solid fa-eye toggle-pass"></i>
         </div>
-
         <button id="btnLogin">Ingresar</button>
         <button id="btnRecover" class="btn-recover">¿Olvidaste tu contraseña?</button>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
-<script>
-    emailjs.init("0aHlArLgvHrj2Xbk8");
-</script>
+<script>emailjs.init("0aHlArLgvHrj2Xbk8");</script>
 
 <script type="module">
-    // Importamos las referencias necesarias de tu firebase.js actualizado
     import { database, ref, get } from "./firebase.js";
 
-    // 1. Manejo de mostrar/ocultar contraseña (ahora dentro del módulo)
+    const loginUser = document.getElementById("loginUser");
+    const loginPass = document.getElementById("loginPass");
     const toggleBtn = document.getElementById("toggleBtn");
-    const loginPassInput = document.getElementById("loginPass");
 
     toggleBtn.onclick = () => {
-        const isPass = loginPassInput.type === "password";
-        loginPassInput.type = isPass ? "text" : "password";
+        const isPass = loginPass.type === "password";
+        loginPass.type = isPass ? "text" : "password";
         toggleBtn.classList.toggle("fa-eye");
         toggleBtn.classList.toggle("fa-eye-slash");
     };
 
-    // 2. Función de Login
-    const login = async () => {
-        const usuario = document.getElementById("loginUser").value.trim().toUpperCase();
-        const pass = loginPassInput.value.trim();
+    document.getElementById("btnLogin").onclick = async () => {
+        const usuario = loginUser.value.trim().toUpperCase();
+        const pass = loginPass.value.trim();
 
-        if (!usuario || !pass) {
-            alert("Completa todos los campos");
-            return;
-        }
+        if (!usuario || !pass) return alert("Completa todos los campos");
 
         try {
             const snap = await get(ref(database, "usuarios/" + usuario));
-
-            if (!snap.exists()) {
-                alert("❌ Usuario NO registrado");
-                return;
-            }
+            if (!snap.exists()) return alert("❌ Usuario NO registrado");
 
             const data = snap.val();
-
-            if (data.bloqueado) {
-                alert("⛔ Usuario bloqueado");
-                return;
-            }
-
-            if (data.contrasena !== pass) {
-                alert("❌ Contraseña incorrecta");
-                return;
-            }
+            if (data.bloqueado) return alert("⛔ Usuario bloqueado");
+            if (data.contrasena !== pass) return alert("❌ Contraseña incorrecta");
 
             localStorage.setItem("usuarioLogueado", JSON.stringify({
                 usuario: data.usuario,
                 nombre: data.nombre,
-                puesto: data.puesto.toUpperCase(),
-                empresa: data.empresa || "",
-                zona: data.zona || ""
+                puesto: data.puesto.toUpperCase()
             }));
 
             window.location.href = "tecnologia.html";
-        } catch (error) {
-            console.error("Error en login:", error);
-            alert("Error de conexión");
-        }
+        } catch (e) { alert("Error de conexión"); }
     };
 
-    // 3. Función de Recuperar
-    const recuperar = async () => {
+    document.getElementById("btnRecover").onclick = async () => {
         const u = prompt("Ingresa tu usuario:");
         if (!u) return;
-
-        try {
-            const snap = await get(ref(database, "usuarios/" + u.toUpperCase()));
-            if (!snap.exists()) {
-                alert("Usuario no encontrado");
-                return;
-            }
-
+        const snap = await get(ref(database, "usuarios/" + u.toUpperCase()));
+        if (snap.exists()) {
             const d = snap.val();
             await emailjs.send("service_mya4ogg", "template_ub0ksu5", {
-                to_email: d.correo,
-                usuario: d.usuario,
-                password: d.contrasena
+                to_email: d.correo, usuario: d.usuario, password: d.contrasena
             });
-
             alert("Contraseña enviada al correo");
-        } catch (error) {
-            console.error("Error en recuperar:", error);
-            alert("No se pudo enviar el correo");
         }
     };
-
-    // 4. ASIGNAR EVENTOS (Esto reemplaza el 'onclick' del HTML)
-    document.getElementById("btnLogin").onclick = login;
-    document.getElementById("btnRecover").onclick = recuperar;
-
 </script>
 </body>
-</html>
+
 
