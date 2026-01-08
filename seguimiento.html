@@ -51,12 +51,14 @@ body { background:#eef1f5; }
 
 <div class="col-md-3">
 <label class="fw-bold">Archivo Solicitud</label>
-<button id="btnArchivo" type="button" class="btn btn-secondary w-100" disabled>Ver Archivo</button>
+<button id="btnArchivo" type="button" class="btn btn-secondary w-100" disabled>
+Ver Archivo
+</button>
 </div>
 
 <hr>
 
-<h5 class="fw-bold text-primary">Seguimiento Depto. Sistemas</h5>
+<h5 class="fw-bold text-primary">Seguimiento Sistemas</h5>
 
 <div class="col-md-3">
 <label class="fw-bold">Fecha solicitud a compras</label>
@@ -64,7 +66,7 @@ body { background:#eef1f5; }
 </div>
 
 <div class="col-md-9">
-<label class="fw-bold">Descripción del artículo</label>
+<label class="fw-bold">Descripción</label>
 <input id="descripcion" class="form-control text-uppercase">
 </div>
 
@@ -72,33 +74,9 @@ body { background:#eef1f5; }
 
 <h5 class="fw-bold text-primary">Seguimiento Compras</h5>
 
-<div class="col-md-3">
-<label class="fw-bold">Fecha cotización</label>
-<input id="fechaCot" type="date" class="form-control">
-</div>
-
-<div class="col-md-3">
-<label class="fw-bold">Folio cotización</label>
-<input id="folioCot" class="form-control text-uppercase">
-</div>
-
 <div class="col-md-6">
 <label class="fw-bold">Archivo cotización</label>
 <input type="file" id="archivoCotizacion" class="form-control">
-</div>
-
-<hr>
-
-<h5 class="fw-bold text-primary">Seguimiento Autorización</h5>
-
-<div class="col-md-6">
-<label class="fw-bold">Quién autoriza</label>
-<input id="autoriza" class="form-control text-uppercase">
-</div>
-
-<div class="col-md-3">
-<label class="fw-bold">Fecha autorización</label>
-<input id="fechaAuto" type="date" class="form-control">
 </div>
 
 <hr>
@@ -115,11 +93,6 @@ body { background:#eef1f5; }
 <input id="recibe" class="form-control text-uppercase">
 </div>
 
-<div class="col-md-3">
-<label class="fw-bold">Folio factura</label>
-<input id="folioFactura" class="form-control text-uppercase">
-</div>
-
 <div class="col-md-6">
 <label class="fw-bold">Archivo factura</label>
 <input type="file" id="archivoFactura" class="form-control">
@@ -127,25 +100,9 @@ body { background:#eef1f5; }
 
 <hr>
 
-<h5 class="fw-bold text-primary">Seguimiento Envío</h5>
+<h5 class="fw-bold text-primary">Status</h5>
 
 <div class="col-md-3">
-<label class="fw-bold">Fecha envío</label>
-<input id="fechaEnvio" type="date" class="form-control">
-</div>
-
-<div class="col-md-3">
-<label class="fw-bold">Quién envía</label>
-<input id="envia" class="form-control text-uppercase">
-</div>
-
-<div class="col-md-3">
-<label class="fw-bold">A dónde se envía</label>
-<input id="destino" class="form-control text-uppercase">
-</div>
-
-<div class="col-md-3">
-<label class="fw-bold">Status</label>
 <select id="status" class="form-select">
 <option>ENVIADO A COMPRAS</option>
 <option>ENVIADO A ZONA</option>
@@ -154,16 +111,10 @@ body { background:#eef1f5; }
 </select>
 </div>
 
-<hr>
-
-<h5 class="fw-bold text-primary">Comentarios</h5>
-
-<div class="col-12">
-<textarea id="comentarios" class="form-control text-uppercase"></textarea>
-</div>
-
 <div class="col-12 mt-3">
-<button type="button" class="btn btn-primary btn-lg" onclick="guardarSeguimiento()">Guardar Seguimiento</button>
+<button type="button" class="btn btn-primary btn-lg" onclick="guardarSeguimiento()">
+Guardar Seguimiento
+</button>
 </div>
 
 </form>
@@ -192,7 +143,8 @@ body { background:#eef1f5; }
 <script type="module">
 import { database, ref, get } from "./firebase.js";
 import { storage } from "./firebase.js";
-import { ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+import { ref as sRef, uploadBytes, getDownloadURL }
+from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 const folio = document.getElementById("folio");
 const solicito = document.getElementById("solicito");
@@ -221,6 +173,7 @@ async function cargarFolios(){
   const snap = await get(solicitudesRef);
   folio.innerHTML = "<option value=''>Seleccione</option>";
   if(!snap.exists()) return;
+
   snap.forEach(c=>{
     const s = c.val();
     folio.innerHTML += `<option value="${s.folio}">${s.folio}</option>`;
@@ -230,6 +183,7 @@ async function cargarFolios(){
 async function cargarDatosFolio(f){
   if(!f) return;
   const snap = await get(solicitudesRef);
+
   snap.forEach(c=>{
     const s = c.val();
     if(s.folio === f){
@@ -247,15 +201,19 @@ btnArchivo.onclick = ()=> archivoActual && window.open(archivoActual,"_blank");
 async function subirArchivo(file,carpeta){
   const r = sRef(storage,`${carpeta}/${folio.value}_${Date.now()}_${file.name}`);
   await uploadBytes(r,file);
-  return await getDownloadURL(r);
+  return getDownloadURL(r);
 }
 
 window.guardarSeguimiento = async ()=>{
   if(!folio.value){ alert("Seleccione un folio"); return; }
 
-  let cot="", fac="";
-  if(archivoCotizacion.files[0]) cot = await subirArchivo(archivoCotizacion.files[0],"cotizaciones");
-  if(archivoFactura.files[0]) fac = await subirArchivo(archivoFactura.files[0],"facturas");
+  const cot = archivoCotizacion.files[0]
+    ? await subirArchivo(archivoCotizacion.files[0],"cotizaciones")
+    : "";
+
+  const fac = archivoFactura.files[0]
+    ? await subirArchivo(archivoFactura.files[0],"facturas")
+    : "";
 
   seguimiento.push({
     folio: folio.value,
@@ -270,12 +228,11 @@ window.guardarSeguimiento = async ()=>{
   localStorage.setItem("seguimientoLS",JSON.stringify(seguimiento));
   actualizarTabla();
 
-  const folioActual = folio.value;
+  const f = folio.value;
   formSeg.reset();
-
   fechaCompras.value = new Date().toLocaleString();
-  folio.value = folioActual;
-  cargarDatosFolio(folioActual);
+  folio.value = f;
+  cargarDatosFolio(f);
 };
 
 function aplicarColor(s){
