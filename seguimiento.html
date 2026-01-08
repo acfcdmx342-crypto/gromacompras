@@ -199,7 +199,7 @@ import { storage } from "./firebase.js";
 import { ref as sRef, uploadBytes, getDownloadURL }
 from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
-/* ✅ CORRECCIÓN CLAVE PARA MODULE */
+/* ===== REFERENCIAS DOM (CLAVE PARA MODULE) ===== */
 const folio = document.getElementById("folio");
 const solicito = document.getElementById("solicito");
 const sucursal = document.getElementById("sucursal");
@@ -212,21 +212,24 @@ const formSeg = document.getElementById("formSeg");
 const archivoCotizacion = document.getElementById("archivoCotizacion");
 const archivoFactura = document.getElementById("archivoFactura");
 
+/* ===== VARIABLES ===== */
 let seguimiento = JSON.parse(localStorage.getItem("seguimientoLS") || "[]");
 let archivoActual = null;
 
 const solicitudesRef = ref(database, "tecnologia");
 const folioURL = new URLSearchParams(window.location.search).get("folio");
 
+/* ===== INIT ===== */
 document.addEventListener("DOMContentLoaded", async ()=>{
 
   fechaCompras.value = new Date().toLocaleString();
 
   await cargarFolios();
 
+  /* 🔑 CORRECCIÓN CLAVE */
   if(folioURL){
     folio.value = folioURL;
-    await cargarDatosFolio(folioURL);
+    folio.dispatchEvent(new Event("change"));
   }
 
   actualizarTabla();
@@ -244,7 +247,7 @@ async function cargarFolios(){
   });
 }
 
-/* ===== CARGAR DATOS AUTOMÁTICOS ===== */
+/* ===== CARGAR DATOS DEL FOLIO ===== */
 async function cargarDatosFolio(f){
   if(!f) return;
 
@@ -278,9 +281,18 @@ async function subirArchivo(file,carpeta){
 
 /* ===== GUARDAR ===== */
 window.guardarSeguimiento = async ()=>{
+
+  if(!folio.value){
+    alert("Seleccione un folio");
+    return;
+  }
+
   let cot="", fac="";
-  if(archivoCotizacion.files[0]) cot = await subirArchivo(archivoCotizacion.files[0],"cotizaciones");
-  if(archivoFactura.files[0]) fac = await subirArchivo(archivoFactura.files[0],"facturas");
+  if(archivoCotizacion.files[0])
+    cot = await subirArchivo(archivoCotizacion.files[0],"cotizaciones");
+
+  if(archivoFactura.files[0])
+    fac = await subirArchivo(archivoFactura.files[0],"facturas");
 
   seguimiento.push({
     folio: folio.value,
@@ -295,6 +307,7 @@ window.guardarSeguimiento = async ()=>{
   localStorage.setItem("seguimientoLS",JSON.stringify(seguimiento));
   actualizarTabla();
   formSeg.reset();
+  btnArchivo.disabled = true;
 };
 
 /* ===== TABLA ===== */
@@ -332,5 +345,6 @@ window.eliminar = i=>{
   }
 };
 </script>
+
 </body>
 </html>
