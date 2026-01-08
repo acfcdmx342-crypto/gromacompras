@@ -198,7 +198,7 @@ import { ref as sRef, uploadBytes, getDownloadURL } from
 "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 let seguimiento = JSON.parse(localStorage.getItem("seguimientoLS")||"[]");
-let archivoActual=null;
+let archivoActual = null;
 
 const solicitudesRef = ref(database,"tecnologia");
 const folioURL = new URLSearchParams(window.location.search).get("folio");
@@ -220,6 +220,7 @@ async function cargarFolios(){
     }
   });
 
+  // 🔑 CARGA AUTOMÁTICA DESDE TECNOLOGÍA
   if(datosURL){
     folio.value = datosURL.folio;
     solicito.value = datosURL.soporte;
@@ -232,29 +233,29 @@ async function cargarFolios(){
 folio.addEventListener("change",()=>cargarDatosFolio(folio.value));
 
 async function cargarDatosFolio(f){
-  const snap=await get(solicitudesRef);
+  const snap = await get(solicitudesRef);
   snap.forEach(c=>{
-    if(c.val().folio===f){
-      solicito.value=c.val().soporte;
-      sucursal.value=c.val().sucursal;
-      archivoActual=c.val().archivoData||null;
-      btnArchivo.disabled=!archivoActual;
+    if(c.val().folio === f){
+      solicito.value = c.val().soporte;
+      sucursal.value = c.val().sucursal;
+      archivoActual = c.val().archivoData || null;
+      btnArchivo.disabled = !archivoActual;
     }
   });
 }
 
-window.verArchivo=()=> archivoActual && window.open(archivoActual);
+window.verArchivo = ()=> archivoActual && window.open(archivoActual);
 
 async function subirArchivo(file,carpeta){
-  const r=sRef(storage,`${carpeta}/${folio.value}_${Date.now()}_${file.name}`);
+  const r = sRef(storage,`${carpeta}/${folio.value}_${Date.now()}_${file.name}`);
   await uploadBytes(r,file);
   return await getDownloadURL(r);
 }
 
-window.guardarSeguimiento=async()=>{
+window.guardarSeguimiento = async ()=>{
   let cot="", fac="";
-  if(archivoCotizacion.files[0]) cot=await subirArchivo(archivoCotizacion.files[0],"cotizaciones");
-  if(archivoFactura.files[0]) fac=await subirArchivo(archivoFactura.files[0],"facturas");
+  if(archivoCotizacion.files[0]) cot = await subirArchivo(archivoCotizacion.files[0],"cotizaciones");
+  if(archivoFactura.files[0]) fac = await subirArchivo(archivoFactura.files[0],"facturas");
 
   seguimiento.push({
     folio:folio.value,
@@ -297,7 +298,7 @@ function actualizarTabla(){
   });
 }
 
-window.eliminarSeguimiento=i=>{
+window.eliminarSeguimiento = i=>{
   if(confirm("¿Eliminar seguimiento?")){
     seguimiento.splice(i,1);
     localStorage.setItem("seguimientoLS",JSON.stringify(seguimiento));
