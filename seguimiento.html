@@ -1,136 +1,192 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seguimiento de Solicitudes</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body{background:#eef1f5;}
-        .card{border-radius:20px;}
-        .table thead{background:#0d6efd;color:white;}
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seguimiento de Solicitudes</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+body{background:#eef1f5;}
+.card{border-radius:20px;}
+.table thead{background:#0d6efd;color:white;}
+.status-compras{background:#0d6efd;color:white;}
+.status-zona{background:#ffc107;color:black;}
+.status-pendiente{background:#dc3545;color:white;}
+.status-sistemas{background:#198754;color:white;}
+</style>
 </head>
+
 <body class="p-4">
 <div class="container">
-    <h3 class="fw-bold text-center mb-4">Seguimiento de Solicitudes</h3>
-    <div class="card shadow p-4 mb-4">
-        <form id="formSeg" class="row g-3">
-            <h6 class="fw-bold text-primary">Detalles del Seguimiento</h6>
-            <div class="col-md-3">
-                <label>Folio</label>
-                <input id="folio" class="form-control" readonly>
-            </div>
-            <div class="col-md-3">
-                <label>Solicitó</label>
-                <input id="solicito" class="form-control" readonly>
-            </div>
-            <div class="col-md-3">
-                <label>Sucursal</label>
-                <input id="sucursal" class="form-control" readonly>
-            </div>
-            <div class="col-md-3">
-                <label>Archivo Solicitud</label>
-                <button id="btnArchivo" type="button" class="btn btn-secondary w-100" disabled>Ver Archivo</button>
-            </div>
-            <hr>
-            <h6 class="fw-bold text-primary">Seguimiento Depto. Sistemas</h6>
-            <div class="col-md-3">
-                <label>Fecha solicitud a compras</label>
-                <input id="fechaCompras" class="form-control" readonly>
-            </div>
-            <div class="col-md-9">
-                <label>Descripción del artículo</label>
-                <input id="descripcion" class="form-control text-uppercase">
-            </div>
-            <hr>
-            <h6 class="fw-bold text-primary">Seguimiento Compras</h6>
-            <div class="col-md-3">
-                <label>Fecha cotización</label>
-                <input id="fechaCot" type="date" class="form-control">
-            </div>
-            <div class="col-md-3">
-                <label>Folio cotización</label>
-                <input id="folioCot" class="form-control text-uppercase">
-            </div>
-            <div class="col-md-6">
-                <label>Archivo cotización</label>
-                <input type="file" id="archivoCotizacion" class="form-control">
-            </div>
-            <hr>
-            <h6 class="fw-bold text-primary">Seguimiento Entrega</h6>
-            <div class="col-md-3">
-                <label>Fecha entrega</label>
-                <input id="fechaEntrega" type="date" class="form-control">
-            </div>
-            <div class="col-md-3">
-                <label>Quién recibe</label>
-                <input id="recibe" class="form-control text-uppercase">
-            </div>
-            <div class="col-md-6">
-                <label>Archivo factura</label>
-                <input type="file" id="archivoFactura" class="form-control">
-            </div>
-            <hr>
-            <h6 class="fw-bold text-primary">Seguimiento Envío</h6>
-            <div class="col-md-3">
-                <label>Fecha envío</label>
-                <input id="fechaEnvio" type="date" class="form-control">
-            </div>
-            <div class="col-md-3">
-                <label>Quién envía</label>
-                <input id="envia" class="form-control text-uppercase">
-            </div>
-            <div class="col-md-3">
-                <label>A dónde se envía</label>
-                <input id="destino" class="form-control text-uppercase">
-            </div>
-            <div class="col-md-3">
-                <label>Status</label>
-                <select id="status" class="form-select">
-                    <option>ENVIADO A COMPRAS</option>
-                    <option>ENVIADO A ZONA</option>
-                    <option>PENDIENTE POR AUTORIZAR</option>
-                    <option>EN SISTEMAS</option>
-                </select>
-            </div>
-            <hr>
-            <div class="col-12">
-                <label>Comentarios</label>
-                <textarea id="comentarios" class="form-control text-uppercase"></textarea>
-            </div>
-            <div class="col-12 mt-3">
-                <button type="button" class="btn btn-primary" onclick="guardarSeguimiento()">Guardar Seguimiento</button>
-            </div>
-        </form>
-    </div>
-    <div class="card shadow p-4">
-        <h5 class="fw-bold">Tabla de Seguimiento</h5>
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>Folio</th>
-                    <th>Descripción</th>
-                    <th>Status</th>
-                    <th>Fecha</th>
-                    <th>Archivos</th>
-                </tr>
-            </thead>
-            <tbody id="tablaSegBody"></tbody>
-        </table>
-    </div>
+
+<h3 class="fw-bold text-center mb-4">Seguimiento de Solicitudes</h3>
+
+<div class="card shadow p-4 mb-4">
+<form id="formSeg" class="row g-3">
+
+<h6 class="fw-bold text-primary">Detalles del Seguimiento</h6>
+
+<div class="col-md-3">
+<label>Folio</label>
+<input id="folio" class="form-control" readonly>
+</div>
+
+<div class="col-md-3">
+<label>Solicitó</label>
+<input id="solicito" class="form-control" readonly>
+</div>
+
+<div class="col-md-3">
+<label>Sucursal</label>
+<input id="sucursal" class="form-control" readonly>
+</div>
+
+<div class="col-md-3">
+<label>Archivo Solicitud</label>
+<button id="btnArchivo" type="button" class="btn btn-secondary w-100" disabled>Ver Archivo</button>
+</div>
+
+<hr>
+
+<h6 class="fw-bold text-primary">Seguimiento Depto. Sistemas</h6>
+
+<div class="col-md-3">
+<label>Fecha solicitud a compras</label>
+<input id="fechaCompras" class="form-control" readonly>
+</div>
+
+<div class="col-md-9">
+<label>Descripción del artículo</label>
+<input id="descripcion" class="form-control text-uppercase">
+</div>
+
+<hr>
+
+<h6 class="fw-bold text-primary">Seguimiento Compras</h6>
+
+<div class="col-md-3">
+<label>Fecha cotización</label>
+<input id="fechaCot" type="date" class="form-control">
+</div>
+
+<div class="col-md-3">
+<label>Folio cotización</label>
+<input id="folioCot" class="form-control text-uppercase">
+</div>
+
+<div class="col-md-6">
+<label>Archivo cotización</label>
+<input type="file" id="archivoCotizacion" class="form-control">
+</div>
+
+<hr>
+
+<h6 class="fw-bold text-primary">Seguimiento Entrega</h6>
+
+<div class="col-md-3">
+<label>Fecha entrega</label>
+<input id="fechaEntrega" type="date" class="form-control">
+</div>
+
+<div class="col-md-3">
+<label>Quién recibe</label>
+<input id="recibe" class="form-control text-uppercase">
+</div>
+
+<div class="col-md-6">
+<label>Archivo factura</label>
+<input type="file" id="archivoFactura" class="form-control">
+</div>
+
+<hr>
+
+<h6 class="fw-bold text-primary">Seguimiento Envío</h6>
+
+<div class="col-md-3">
+<label>Fecha envío</label>
+<input id="fechaEnvio" type="date" class="form-control">
+</div>
+
+<div class="col-md-3">
+<label>Quién envía</label>
+<input id="envia" class="form-control text-uppercase">
+</div>
+
+<div class="col-md-3">
+<label>A dónde se envía</label>
+<input id="destino" class="form-control text-uppercase">
+</div>
+
+<div class="col-md-3">
+<label>Status</label>
+<select id="status" class="form-select">
+<option>ENVIADO A COMPRAS</option>
+<option>ENVIADO A ZONA</option>
+<option>PENDIENTE POR AUTORIZAR</option>
+<option>EN SISTEMAS</option>
+</select>
+</div>
+
+<hr>
+
+<div class="col-12">
+<label>Comentarios</label>
+<textarea id="comentarios" class="form-control text-uppercase"></textarea>
+</div>
+
+<div class="col-12 mt-3">
+<button type="button" class="btn btn-primary" onclick="guardarSeguimiento()">Guardar Seguimiento</button>
+</div>
+
+</form>
+</div>
+
+<div class="card shadow p-4">
+<h5 class="fw-bold">Tabla de Seguimiento</h5>
+<table class="table table-bordered">
+<thead>
+<tr>
+<th>Folio</th>
+<th>Descripción</th>
+<th>Status</th>
+<th>Fecha</th>
+<th>Archivos</th>
+</tr>
+</thead>
+<tbody id="tablaSegBody"></tbody>
+</table>
+</div>
+
 </div>
 
 <script type="module">
-import { database, ref, get, push, onValue, query, orderByChild, equalTo } from "./firebase.js";
-import { storage } from "./firebase.js";
-import { ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+// Importamos solo las instancias base de tu archivo local
+import { database, storage } from "./firebase.js";
 
-// 1. Obtener el folio de la URL
+// Importamos funciones de Database directamente desde Google para evitar el error "SyntaxError: does not provide an export named equalTo"
+import { 
+    ref, 
+    get, 
+    push, 
+    onValue, 
+    query, 
+    orderByChild, 
+    equalTo 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+import { 
+    ref as sRef, 
+    uploadBytes, 
+    getDownloadURL 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+
+// 1. Obtener parámetros de la URL
 const params = new URLSearchParams(window.location.search);
 const folioURL = params.get("folio");
 
-// 2. Referencias a los elementos del formulario
+// 2. Referencias al DOM
 const folioInput = document.getElementById("folio");
 const solicitoInput = document.getElementById("solicito");
 const sucursalInput = document.getElementById("sucursal");
@@ -140,54 +196,56 @@ const tablaSegBody = document.getElementById("tablaSegBody");
 
 let archivoSolicitudData = null;
 
-// Referencias a Firebase
+// Referencias generales a Firebase
 const solicitudesRef = ref(database, "tecnologia");
 const seguimientoRef = ref(database, "seguimiento");
 
-// Fecha automática
+// Inicializar fecha
 fechaCompras.value = new Date().toLocaleString();
 
+// FUNCIÓN PRINCIPAL: Cargar los datos de la solicitud original
 async function cargarSolicitud() {
     if (!folioURL) {
-        console.error("No se detectó ningún folio en la URL. Asegúrate de que la URL sea: seguimiento.html?folio=VALOR");
+        console.error("No hay folio en la URL");
         return;
     }
 
-    console.log("Iniciando búsqueda del folio:", folioURL);
+    console.log("Buscando datos para el folio:", folioURL);
 
     try {
-        // Usamos una consulta filtrada (Query) para encontrar el folio exacto
+        // Realizamos la consulta filtrada
         const consulta = query(solicitudesRef, orderByChild("folio"), equalTo(folioURL));
         const snap = await get(consulta);
 
         if (snap.exists()) {
-            console.log("¡Folio encontrado en Firebase!");
-            
-            // Firebase devuelve un objeto con IDs únicos, extraemos el contenido
+            // Firebase devuelve un objeto; extraemos el primer resultado
             const datos = snap.val();
-            const idFirebase = Object.keys(datos)[0];
-            const s = datos[idFirebase];
+            const key = Object.keys(datos)[0];
+            const s = datos[key];
 
-            // ASIGNACIÓN DE DATOS A LOS INPUTS
-            folioInput.value = s.folio || "Sin Folio";
-            solicitoInput.value = s.soporte || "Sin Solicitante";
-            sucursalInput.value = s.sucursal || "Sin Sucursal";
+            // Llenamos los campos del formulario
+            folioInput.value = s.folio || "";
+            solicitoInput.value = s.soporte || ""; // Usamos 'soporte' que es como lo guardas en tu código de tecnología
+            sucursalInput.value = s.sucursal || "";
             archivoSolicitudData = s.archivoData || null;
 
+            // Habilitar botón de archivo si existe información
             if (archivoSolicitudData) {
                 btnArchivo.disabled = false;
-                btnArchivo.className = "btn btn-success w-100";
+                btnArchivo.classList.remove("btn-secondary");
+                btnArchivo.classList.add("btn-success");
             }
+            console.log("Datos cargados correctamente");
         } else {
-            console.warn("No existe ningún registro con el folio:", folioURL);
-            alert("No se encontró la solicitud original.");
+            console.warn("No se encontró el registro en la base de datos.");
+            alert("Atención: El folio solicitado no existe.");
         }
     } catch (error) {
-        console.error("Error crítico al cargar solicitud:", error);
+        console.error("Error al cargar solicitud:", error);
     }
 }
 
-// Evento para el botón de ver archivo
+// Abrir el archivo de solicitud en una nueva pestaña
 btnArchivo.onclick = () => {
     if (archivoSolicitudData) {
         const win = window.open();
@@ -195,29 +253,47 @@ btnArchivo.onclick = () => {
     }
 };
 
-// Guardar nuevo seguimiento
-window.guardarSeguimiento = async () => {
-    // ... (Tu lógica de guardar se mantiene igual)
-    const descripcion = document.getElementById("descripcion").value;
-    const status = document.getElementById("status").value;
+// Subir archivos a Storage
+async function subirArchivo(file, carpeta) {
+    const r = sRef(storage, `${carpeta}/${folioInput.value}_${Date.now()}_${file.name}`);
+    await uploadBytes(r, file);
+    return getDownloadURL(r);
+}
 
+// Guardar registro de seguimiento
+window.guardarSeguimiento = async () => {
     if (!folioInput.value) {
-        alert("Error: No hay un folio cargado para asociar el seguimiento.");
+        alert("No hay una solicitud cargada.");
         return;
     }
 
-    await push(seguimientoRef, {
-        folio: folioInput.value,
-        descripcion: descripcion,
-        status: status,
-        fecha: new Date().toLocaleString()
-    });
+    let cot = "", fac = "";
+    const archCot = document.getElementById("archivoCotizacion");
+    const archFac = document.getElementById("archivoFactura");
 
-    alert("Seguimiento guardado");
-    location.reload();
+    try {
+        if (archCot.files[0]) cot = await subirArchivo(archCot.files[0], "cotizaciones");
+        if (archFac.files[0]) fac = await subirArchivo(archFac.files[0], "facturas");
+
+        await push(seguimientoRef, {
+            folio: folioInput.value,
+            descripcion: document.getElementById("descripcion").value,
+            status: document.getElementById("status").value,
+            fecha: new Date().toLocaleString(),
+            archivoCotizacion: cot,
+            archivoFactura: fac,
+            comentarios: document.getElementById("comentarios").value
+        });
+
+        alert("Seguimiento guardado con éxito.");
+        location.reload();
+    } catch (error) {
+        console.error("Error al guardar:", error);
+        alert("Ocurrió un error al guardar.");
+    }
 };
 
-// Cargar la tabla de historial
+// Escuchar cambios en la tabla de seguimiento (Historial)
 onValue(seguimientoRef, snap => {
     tablaSegBody.innerHTML = "";
     snap.forEach(c => {
@@ -229,17 +305,19 @@ onValue(seguimientoRef, snap => {
                 <td>${s.descripcion}</td>
                 <td>${s.status}</td>
                 <td>${s.fecha}</td>
-                <td>-</td>
+                <td>
+                    ${s.archivoCotizacion ? `<a href="${s.archivoCotizacion}" target="_blank">📄</a>` : ""}
+                    ${s.archivoFactura ? `<a href="${s.archivoFactura}" target="_blank">🧾</a>` : ""}
+                </td>
             </tr>`;
         }
     });
 });
 
-// EJECUCIÓN INICIAL
+// Ejecución inicial
 cargarSolicitud();
-
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
-
