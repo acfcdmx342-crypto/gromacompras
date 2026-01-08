@@ -29,7 +29,6 @@ body { background:#eef1f5; }
 <a href="tecnologia.html" class="btn btn-dark">Ir a Tecnología</a>
 </div>
 
-<!-- ================= FORMULARIO ================= -->
 <div class="card shadow p-4 mb-4">
 <form id="formSeg" class="row g-3">
 
@@ -174,7 +173,6 @@ Guardar Seguimiento
 </form>
 </div>
 
-<!-- ================= TABLA ================= -->
 <div class="card shadow p-4">
 <h4 class="fw-bold mb-3">Tabla de Seguimiento</h4>
 
@@ -195,8 +193,6 @@ Guardar Seguimiento
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
 <script type="module">
 import { database, ref, get } from "./firebase.js";
 import { storage } from "./firebase.js";
@@ -209,7 +205,19 @@ let archivoActual = null;
 const solicitudesRef = ref(database, "tecnologia");
 const folioURL = new URLSearchParams(window.location.search).get("folio");
 
-fechaCompras.value = new Date().toLocaleString();
+document.addEventListener("DOMContentLoaded", async ()=>{
+
+  fechaCompras.value = new Date().toLocaleString();
+
+  await cargarFolios();
+
+  if(folioURL){
+    folio.value = folioURL;
+    await cargarDatosFolio(folioURL);
+  }
+
+  actualizarTabla();
+});
 
 /* ===== CARGAR FOLIOS ===== */
 async function cargarFolios(){
@@ -221,11 +229,6 @@ async function cargarFolios(){
     const s = c.val();
     folio.innerHTML += `<option value="${s.folio}">${s.folio}</option>`;
   });
-
-  if(folioURL){
-    folio.value = folioURL;
-    setTimeout(()=>cargarDatosFolio(folioURL),0);
-  }
 }
 
 /* ===== CARGAR DATOS AUTOMÁTICOS ===== */
@@ -245,8 +248,8 @@ async function cargarDatosFolio(f){
 }
 
 /* ===== EVENTOS ===== */
-folio.addEventListener("change",()=>{
-  cargarDatosFolio(folio.value);
+folio.addEventListener("change", async ()=>{
+  await cargarDatosFolio(folio.value);
 });
 
 btnArchivo.onclick = ()=>{
@@ -315,9 +318,6 @@ window.eliminar = i=>{
     actualizarTabla();
   }
 };
-
-cargarFolios();
-actualizarTabla();
 </script>
 </body>
 </html>
