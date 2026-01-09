@@ -24,7 +24,6 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.02);
         }
 
-        /* BOTONES ESTÉTICOS */
         .btn-modern {
             border-radius: 50px;
             padding: 12px 35px;
@@ -58,7 +57,6 @@
             transform: scale(1.05);
         }
 
-        /* Botones de tabla e iconos */
         .btn-action-table {
             border-radius: 8px;
             width: 35px;
@@ -69,17 +67,22 @@
             transition: 0.2s;
         }
 
-        /* Status colors */
         .status-compras { background:#e7f1ff !important; color:#0d6efd !important; border-radius: 20px; }
         .status-zona { background:#fff9e6 !important; color:#ffc107 !important; border-radius: 20px; }
         .status-pendiente { background:#fff2f4 !important; color:#dc3545 !important; border-radius: 20px; }
         .status-sistemas { background:#e6fcf5 !important; color:#198754 !important; border-radius: 20px; }
         
-        input[type="text"], textarea, .form-select { 
+        input[type="text"], input[type="date"], textarea, .form-select { 
             border-radius: 10px; 
             border: 1px solid #dee2e6;
             padding: 10px;
             text-transform: uppercase;
+        }
+
+        /* Estilo para campos bloqueados */
+        .field-locked {
+            background-color: #e9ecef !important;
+            cursor: not-allowed;
         }
 
         .header-container {
@@ -254,6 +257,41 @@
         reader.onerror = error => reject(error);
     });
 
+    // --- NUEVA FUNCIÓN: CARGAR Y BLOQUEAR CAMPOS ---
+    window.cargarParaContinuar = (dataString) => {
+        const data = JSON.parse(decodeURIComponent(dataString));
+        
+        // Lista de IDs de campos que queremos procesar
+        const campos = [
+            "folio", "fechaCompras", "descripcion", "fechaCot", "folioCot", 
+            "autoriza", "fechaAuto", "fechaEntrega", "recibe", "folioFactura", 
+            "fechaEnvio", "envia", "adonde", "status", "comentarios"
+        ];
+
+        campos.forEach(id => {
+            const el = document.getElementById(id);
+            if (el && data[id]) {
+                el.value = data[id];
+                // Bloquear si tiene contenido (excepto el folio que ya es select)
+                if (id !== "folio") {
+                    el.readOnly = true;
+                    el.classList.add("field-locked");
+                    if (el.tagName === "SELECT") el.disabled = true;
+                }
+            } else if (el) {
+                // Si está vacío, asegurar que sea editable por si acaso
+                el.readOnly = false;
+                el.disabled = false;
+                el.classList.remove("field-locked");
+            }
+        });
+
+        // Cargar datos del origen (Soporte/Sucursal)
+        cargarInfoPorFolio(data.folio);
+        // Hacer scroll hacia arriba para ver el formulario
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     onValue(ref(database, "tecnologia"), (snap) => {
         selectFolio.innerHTML = '<option value="">Seleccione un folio</option>';
         snap.forEach(child => {
@@ -299,26 +337,29 @@
         const fCot = document.getElementById("fileCot").files[0];
         const fFac = document.getElementById("fileFactura").files[0];
 
+        // Recolectar datos asegurando que tomamos el valor incluso si está disabled
+        const getVal = (id) => document.getElementById(id).value;
+
         const dataGuardar = {
-            folio: selectFolio.value,
+            folio: getVal("folio"),
             solicito: solInput.value,
             sucursal: sucInput.value,
-            fechaCompras: document.getElementById("fechaCompras").value,
-            descripcion: document.getElementById("descripcion").value.toUpperCase(),
-            fechaCot: document.getElementById("fechaCot").value,
-            folioCot: document.getElementById("folioCot").value.toUpperCase(),
+            fechaCompras: getVal("fechaCompras"),
+            descripcion: getVal("descripcion").toUpperCase(),
+            fechaCot: getVal("fechaCot"),
+            folioCot: getVal("folioCot").toUpperCase(),
             archivoCot: fCot ? await toBase64(fCot) : null,
-            autoriza: document.getElementById("autoriza").value.toUpperCase(),
-            fechaAuto: document.getElementById("fechaAuto").value,
-            fechaEntrega: document.getElementById("fechaEntrega").value,
-            recibe: document.getElementById("recibe").value.toUpperCase(),
-            folioFactura: document.getElementById("folioFactura").value.toUpperCase(),
+            autoriza: getVal("autoriza").toUpperCase(),
+            fechaAuto: getVal("fechaAuto"),
+            fechaEntrega: getVal("fechaEntrega"),
+            recibe: getVal("recibe").toUpperCase(),
+            folioFactura: getVal("folioFactura").toUpperCase(),
             archivoFac: fFac ? await toBase64(fFac) : null,
-            fechaEnvio: document.getElementById("fechaEnvio").value,
-            envia: document.getElementById("envia").value.toUpperCase(),
-            adonde: document.getElementById("adonde").value.toUpperCase(),
-            status: document.getElementById("status").value,
-            comentarios: document.getElementById("comentarios").value.toUpperCase(),
+            fechaEnvio: getVal("fechaEnvio"),
+            envia: getVal("envia").toUpperCase(),
+            adonde: getVal("adonde").toUpperCase(),
+            status: getVal("status"),
+            comentarios: getVal("comentarios").toUpperCase(),
             fechaRegistro: new Date().toLocaleString()
         };
 
@@ -336,6 +377,9 @@
                                s.status === "ENVIADO A ZONA" ? "status-zona" : 
                                s.status === "PENDIENTE POR AUTORIZAR" ? "status-pendiente" : "status-sistemas";
 
+            // Convertimos el objeto a string para pasarlo por el onclick
+            const dataString = encodeURIComponent(JSON.stringify(s));
+
             tbody.innerHTML += `
                 <tr>
                     <td class="fw-bold">${s.folio}</td>
@@ -348,7 +392,14 @@
                         </div>
                     </td>
                     <td>
-                         <button class="btn btn-sm btn-light btn-action-table text-danger" onclick="eliminarSeg('${child.key}')"><i class="fa-solid fa-trash-can"></i></button>
+                         <div class="d-flex gap-1">
+                            <button class="btn btn-sm btn-light btn-action-table text-primary" onclick="cargarParaContinuar('${dataString}')" title="Continuar Registro">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button class="btn btn-sm btn-light btn-action-table text-danger" onclick="eliminarSeg('${child.key}')" title="Eliminar">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                         </div>
                     </td>
                 </tr>`;
         });
