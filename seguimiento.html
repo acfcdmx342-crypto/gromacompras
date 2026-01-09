@@ -35,17 +35,17 @@
         <form id="formSeg" class="row g-3">
             <div class="col-md-3">
                 <label class="form-label fw-bold">Folio</label>
-                <input id="folio" class="form-control bg-light" readonly>
+                <select id="folio" class="form-select"></select>
             </div>
 
             <div class="col-md-3">
                 <label class="form-label fw-bold">Solicitó</label>
-                <input id="solicito" class="form-control bg-light" readonly>
+                <input id="solicito" class="form-control" readonly>
             </div>
 
             <div class="col-md-3">
                 <label class="form-label fw-bold">Sucursal</label>
-                <input id="sucursal" class="form-control bg-light" readonly>
+                <input id="sucursal" class="form-control" readonly>
             </div>
 
             <div class="col-md-3">
@@ -55,7 +55,7 @@
 
             <div class="col-md-3">
                 <label class="form-label fw-bold">Fecha Solicitud a Compras</label>
-                <input id="fechaCompras" class="form-control bg-light" readonly>
+                <input id="fechaCompras" class="form-control" readonly>
             </div>
 
             <div class="col-md-9">
@@ -80,7 +80,7 @@
     </div>
 
     <div class="card shadow p-4">
-        <h4 class="fw-bold mb-3">Historial de este Folio</h4>
+        <h4 class="fw-bold mb-3">Tabla de Seguimiento</h4>
         <table class="table table-bordered">
             <thead>
                 <tr>
@@ -100,13 +100,13 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script type="module">
-    import { database, ref, get, push, onValue, query, orderByChild, equalTo, remove } from "./firebase.js";
+    import { database, ref, get, push, onValue, query, orderByChild, equalTo } from "./firebase.js";
 
     // Variables de control
     const params = new URLSearchParams(window.location.search);
     const folioURL = params.get("folio");
     
-    const folioInput = document.getElementById("folio");
+    const selectFolio = document.getElementById("folio");
     const solInput = document.getElementById("solicito");
     const sucInput = document.getElementById("sucursal");
     const btnArc = document.getElementById("btnArchivo");
@@ -115,18 +115,29 @@
     let dataArchivoActual = null;
     fCompras.value = new Date().toLocaleString();
 
-    // 1. CARGAR INFORMACIÓN AUTOMÁTICAMENTE USANDO EL FOLIO DE LA URL
-    async function cargarDatosIniciales() {
-        if (!folioURL) {
-            folioInput.value = "Folio no recibido";
-            return;
+    // 1. CARGAR TODOS LOS FOLIOS EN EL SELECTOR
+    onValue(ref(database, "tecnologia"), (snap) => {
+        selectFolio.innerHTML = '<option value="">Seleccione un folio</option>';
+        snap.forEach(child => {
+            const d = child.val();
+            const option = document.createElement("option");
+            option.value = d.folio;
+            option.textContent = d.folio;
+            selectFolio.appendChild(option);
+        });
+
+        // Si venimos de tecnologia.html con un folio, seleccionarlo automáticamente
+        if (folioURL) {
+            selectFolio.value = folioURL;
+            cargarInfoPorFolio(folioURL);
         }
+    });
 
-        // Asignamos el folio al input fijo
-        folioInput.value = folioURL;
-
-        // Buscamos en 'tecnologia' para jalar el resto de los datos
-        const q = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(folioURL));
+    // 2. FUNCIÓN PARA BUSCAR INFO EN FIREBASE SEGÚN EL FOLIO SELECCIONADO
+    async function cargarInfoPorFolio(fol) {
+        if (!fol) return;
+        
+        const q = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(fol));
         const snap = await get(q);
 
         if (snap.exists()) {
@@ -134,8 +145,8 @@
             const key = Object.keys(data)[0];
             const item = data[key];
 
-            // Rellenamos los campos automáticamente
-            solInput.value = item.soporte || ""; // Soporte es quien solicitó
+            // Llenar campos
+            solInput.value = item.soporte || "";
             sucInput.value = item.sucursal || "";
             dataArchivoActual = item.archivoData || null;
 
@@ -146,6 +157,11 @@
         }
     }
 
+    // Evento al cambiar el selector manualmente
+    selectFolio.addEventListener("change", (e) => {
+        cargarInfoPorFolio(e.target.value);
+    });
+
     // Ver archivo original
     btnArc.onclick = () => {
         if (dataArchivoActual) {
@@ -154,12 +170,12 @@
         }
     };
 
-    // 2. GUARDAR SEGUIMIENTO EN FIREBASE
+    // 3. GUARDAR SEGUIMIENTO EN FIREBASE
     document.getElementById("btnGuardar").onclick = async () => {
-        if (!folioInput.value) return alert("No hay un folio válido");
+        if (!selectFolio.value) return alert("Seleccione un folio");
 
         await push(ref(database, "seguimiento"), {
-            folio: folioInput.value,
+            folio: selectFolio.value,
             solicito: solInput.value,
             sucursal: sucInput.value,
             descripcion: document.getElementById("descripcion").value.toUpperCase(),
@@ -168,174 +184,33 @@
             fechaRegistro: new Date().toLocaleString()
         });
 
-        alert("Seguimiento guardado correctamente");
-        document.getElementById("descripcion").value = ""; 
-    };
-
-    // 3. MOSTRAR TABLA FILTRADA POR ESTE FOLIO
-    onValue(ref(database, "seguimiento"), (snap) => {
-        const tbody = document.getElementById("tablaSegBody");
-        tbody.innerHTML = "";
-        snap.forEach(child => {
-            const s = child.val();
-            
-            // Solo mostramos los registros que pertenecen a este folio específico
-            if(s.folio === folioURL) {
-                const color = s.status === "ENVIADO A COMPRAS" ? "status-compras" : 
-                              s.status === "ENVIADO A ZONA" ? "status-zona" : 
-                              s.status === "PENDIENTE POR AUTORIZAR" ? "status-pendiente" : "status-sistemas";
-
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${s.folio}</td>
-                        <td>${s.solicito}</td>
-                        <td>${s.descripcion}</td>
-                        <td class="${color} fw-bold">${s.status}</td>
-                        <td>${s.fechaCompras}</td>
-                        <td>
-                             <span class="action-btn text-danger" onclick="eliminarSeg('${child.key}')">🗑️</span>
-                        </td>
-                    </tr>`;
-            }
-        });
-    });
-
-    // Función para borrar
-    window.eliminarSeg = async (key) => {
-        if(confirm("¿Eliminar registro?")){
-            await remove(ref(database, "seguimiento/" + key));
-        }
-    }
-
-    // Ejecutar al cargar la página
-    cargarDatosIniciales();
-</script>
-<script type="module">
-    import { database, ref, get, push, onValue, query, orderByChild, equalTo, remove } from "./firebase.js";
-
-    // 1. Obtener el folio de la URL
-    const params = new URLSearchParams(window.location.search);
-    const folioURL = params.get("folio");
-    
-    // Elementos del formulario
-    const fInput = document.getElementById("folio");
-    const sInput = document.getElementById("solicito");
-    const sucInput = document.getElementById("sucursal");
-    const btnArc = document.getElementById("btnArchivo");
-    const fCompras = document.getElementById("fechaCompras");
-
-    let urlArchivoOriginal = null;
-
-    // 2. FUNCIÓN DE CARGA AUTOMÁTICA
-    async function inicializarSeguimiento() {
-        if (!folioURL) {
-            alert("No se recibió ningún folio para seguimiento.");
-            return;
-        }
-
-        // Mostrar folio inmediatamente y fecha actual
-        fInput.value = folioURL;
-        fCompras.value = new Date().toLocaleString();
-
-        try {
-            // Buscamos en el nodo 'tecnologia' los datos de origen
-            const tecnologiaRef = ref(database, "tecnologia");
-            const consulta = query(tecnologiaRef, orderByChild("folio"), equalTo(folioURL));
-            const snapshot = await get(consulta);
-
-            if (snapshot.exists()) {
-                // Firebase devuelve un objeto, obtenemos el primer resultado
-                const data = snapshot.val();
-                const key = Object.keys(data)[0];
-                const registro = data[key];
-
-                // LLENAR LOS CAMPOS QUE FALTABAN
-                // En tu tabla tecnología guardas 'soporte' como el solicitante
-                sInput.value = registro.soporte || ""; 
-                sucInput.value = registro.sucursal || "";
-                
-                // Manejo del archivo
-                urlArchivoOriginal = registro.archivoData || null;
-                if (urlArchivoOriginal) {
-                    btnArc.disabled = false;
-                    btnArc.classList.replace("btn-secondary", "btn-success");
-                    btnArc.textContent = "Ver Archivo Solicitud";
-                }
-            } else {
-                console.error("No se encontró información para el folio: " + folioURL);
-            }
-        } catch (error) {
-            console.error("Error al obtener datos de Firebase:", error);
-        }
-    }
-
-    // Acción para el botón de archivo
-    btnArc.onclick = () => {
-        if (urlArchivoOriginal) {
-            window.open(urlArchivoOriginal, "_blank");
-        }
-    };
-
-    // 3. GUARDAR EL SEGUIMIENTO
-    window.guardarSeguimiento = async () => {
-        const descripcion = document.getElementById("descripcion").value;
-        if (!descripcion) {
-            alert("Por favor ingrese la descripción del artículo.");
-            return;
-        }
-
-        const nuevoSeg = {
-            folio: fInput.value,
-            solicito: sInput.value,
-            sucursal: sucInput.value,
-            descripcion: descripcion.toUpperCase(),
-            status: document.getElementById("status").value,
-            fechaCompras: fCompras.value,
-            fechaRegistro: new Date().toLocaleString()
-        };
-
-        await push(ref(database, "seguimiento"), nuevoSeg);
         alert("Seguimiento guardado");
-        document.getElementById("descripcion").value = ""; // Limpiar solo el campo de escritura
+        location.reload();
     };
 
-    // 4. HISTORIAL DE ESTE FOLIO
+    // 4. MOSTRAR TABLA (HISTORIAL)
     onValue(ref(database, "seguimiento"), (snap) => {
         const tbody = document.getElementById("tablaSegBody");
         tbody.innerHTML = "";
-        
         snap.forEach(child => {
             const s = child.val();
-            // Mostrar solo si coincide el folio
-            if (s.folio === folioURL) {
-                const color = s.status === "ENVIADO A COMPRAS" ? "status-compras" : 
-                              s.status === "ENVIADO A ZONA" ? "status-zona" : 
-                              s.status === "PENDIENTE POR AUTORIZAR" ? "status-pendiente" : "status-sistemas";
+            const color = s.status === "ENVIADO A COMPRAS" ? "status-compras" : 
+                          s.status === "ENVIADO A ZONA" ? "status-zona" : 
+                          s.status === "PENDIENTE POR AUTORIZAR" ? "status-pendiente" : "status-sistemas";
 
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${s.folio}</td>
-                        <td>${s.solicito}</td>
-                        <td>${s.descripcion}</td>
-                        <td class="${color} fw-bold">${s.status}</td>
-                        <td>${s.fechaCompras}</td>
-                        <td>
-                            <span class="action-btn text-danger" onclick="eliminarFila('${child.key}')">🗑️</span>
-                        </td>
-                    </tr>`;
-            }
+            tbody.innerHTML += `
+                <tr>
+                    <td>${s.folio}</td>
+                    <td>${s.solicito}</td>
+                    <td>${s.descripcion}</td>
+                    <td class="${color} fw-bold">${s.status}</td>
+                    <td>${s.fechaCompras}</td>
+                    <td>
+                         <span class="action-btn text-danger" onclick="eliminarSeg('${child.key}')">🗑️</span>
+                    </td>
+                </tr>`;
         });
     });
-
-    window.eliminarFila = async (key) => {
-        if(confirm("¿Eliminar este registro?")) {
-            await remove(ref(database, "seguimiento/" + key));
-        }
-    };
-
-    // Iniciar el proceso
-    inicializarSeguimiento();
 </script>
 </body>
 </html>
-
