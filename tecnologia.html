@@ -13,24 +13,40 @@
     .action-disabled { color:#adb5bd; cursor:not-allowed; opacity: 0.5; filter: grayscale(1); }
     .table thead { background:#0d6efd; color:white; }
     .btn-rounded { border-radius:50px; }
-    #btnRegresar { cursor:pointer; font-size:40px; position:fixed; top:20px; left:20px; color:#0d6efd; z-index: 1000; }
+    
+    /* Estilos de navegación y usuario */
+    #btnRegresar { cursor:pointer; font-size:40px; color:#0d6efd; transition: 0.3s; }
+    #btnRegresar:hover { color: #0056b3; transform: scale(1.1); }
+    
+    .user-info-box {
+        background: white;
+        padding: 10px 20px;
+        border-radius: 15px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        display: inline-block;
+    }
+
     .acciones { display:flex; justify-content:center; gap:10px; }
+    
     /* Colores dinámicos vinculados */
     .st-compras { background-color: #0d6efd !important; color: white; } 
     .st-zona { background-color: #ffc107 !important; color: black; }    
     .st-pendiente { background-color: #dc3545 !important; color: white; } 
     .st-sistemas { background-color: #198754 !important; color: white; }  
     .st-default { background-color: #6c757d !important; color: white; }   
+    
     .tiempo-badge { font-size: 0.75rem; font-weight: bold; color: #555; }
 </style>
 </head>
 <body class="p-4">
+
 <script>
     const sesion = JSON.parse(localStorage.getItem("usuarioLogueado"));
     if (!sesion) { alert("Sesión no válida"); location.href = "index.html"; }
     const usuarioSesion = sesion.usuario;
     const nombreSesion = sesion.nombre;
     const puestoSesion = sesion.puesto;
+
     const puestosPrivilegiados = [
         "GERENTE DE SISTEMAS", 
         "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", 
@@ -38,14 +54,29 @@
         "SOPORTE TECNICO", 
         "BECARIO"
     ];
+
     const esSoporteJR = puestoSesion === "SOPORTE TECNICO JR";
 </script>
-<span id="btnRegresar" onclick="cerrarSesion()">🔙</span>
+
 <div class="container">
-    <div class="text-end mb-3 fw-bold text-primary">👤 Usuario: <span id="usuarioActivo"></span></div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <span id="btnRegresar" onclick="cerrarSesion()" title="Regresar">🔙</span>
+        
+        <div class="d-flex align-items-center gap-3">
+            <div class="user-info-box border-start border-primary border-4">
+                <div class="fw-bold text-primary" style="font-size: 0.9rem;">👤 <span id="usuarioActivo"></span></div>
+                <div class="text-muted small" style="font-size: 0.8rem;">Puesto: <span id="puestoActivo"></span></div>
+            </div>
+            <button class="btn btn-outline-danger btn-rounded fw-bold" onclick="cerrarSesion()">
+                🚪 Cerrar Sesión
+            </button>
+        </div>
+    </div>
+
     <h2 class="text-center mb-4 fw-bold">Solicitud de Tecnología</h2>
+
     <div class="card shadow p-4 mb-4">
-        <h5 class="fw-bold mb-3">Registrar Solicitud</h5>
+        <h5 class="fw-bold mb-3 border-bottom pb-2 text-secondary">Registrar Solicitud</h5>
         <form id="formTec" class="row g-3">
             <div class="col-md-3"><label class="fw-bold">Folio</label><input id="folio" class="form-control" readonly placeholder="Auto-generado"></div>
             <div class="col-md-3"><label class="fw-bold">Empresa</label><input id="empresa" class="form-control text-uppercase"></div>
@@ -53,11 +84,16 @@
             <div class="col-md-3"><label class="fw-bold">Soporte Zona</label><input id="soporte" class="form-control text-uppercase" readonly></div>
             <div class="col-md-3"><label class="fw-bold">Sucursal</label><input id="sucursal" class="form-control text-uppercase"></div>
             <div class="col-md-6"><label class="fw-bold">Requisición (PDF/Imagen)</label><input id="archivo" type="file" class="form-control"></div>
-            <div class="col-12"><button type="button" class="btn btn-primary btn-rounded" onclick="guardarSolicitud()">Guardar Solicitud</button></div>
+            <div class="col-12 text-start mt-4">
+                <button type="button" class="btn btn-primary btn-rounded px-4" onclick="guardarSolicitud()">
+                    💾 Guardar Solicitud
+                </button>
+            </div>
         </form>
     </div>
+
     <div class="card shadow p-4">
-        <h5 class="fw-bold mb-3">Registros de Solicitudes</h5>
+        <h5 class="fw-bold mb-3 border-bottom pb-2 text-secondary">Registros de Solicitudes</h5>
         <div class="table-responsive">
             <table class="table table-bordered table-striped align-middle text-center">
                 <thead>
@@ -69,7 +105,8 @@
                         <th>Sucursal</th>
                         <th>Archivo</th>
                         <th>Status Actual</th>
-                        <th>Transcurrido</th> <th>Fecha Registro</th>
+                        <th>Transcurrido</th> 
+                        <th>Fecha Registro</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -78,6 +115,7 @@
         </div>
     </div>
 </div>
+
 <div class="modal fade" id="modalHistorial" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -94,14 +132,20 @@
         </div>
     </div>
 </div>
+
 <script type="module">
 import { database, ref, push, set, get, onValue, remove } from "./firebase.js";
-usuarioActivo.textContent = `${nombreSesion} (${puestoSesion})`;
+
+// Llenado de información del usuario
+usuarioActivo.textContent = nombreSesion;
+puestoActivo.textContent = puestoSesion;
 soporte.value = nombreSesion;
+
 const solicitudesRef = ref(database,"tecnologia");
 const seguimientoRef = ref(database,"seguimiento");
+
 let globalSeguimientos = [];
-// Función para calcular tiempo transcurrido
+
 function calcularTranscurrido(fechaInicio) {
     const inicio = new Date(fechaInicio);
     if (isNaN(inicio)) return "N/A";
@@ -113,6 +157,7 @@ function calcularTranscurrido(fechaInicio) {
     if (horas > 0) return `${horas}h`;
     return "Menos de 1h";
 }
+
 onValue(seguimientoRef, snap => {
     globalSeguimientos = [];
     snap.forEach(c => { 
@@ -120,6 +165,7 @@ onValue(seguimientoRef, snap => {
     });
     renderTable(); 
 });
+
 function renderTable() {
     onValue(solicitudesRef, snap => {
         tablaTecBody.innerHTML = "";
@@ -127,12 +173,13 @@ function renderTable() {
             const s = c.val();
             const puedeVerTodo = puestosPrivilegiados.includes(puestoSesion);
             const esDuenoDelRegistro = s.usuario === usuarioSesion;
+
             if(puedeVerTodo || esDuenoDelRegistro) {
-               const segsDelFolio = globalSeguimientos.filter(x => x.folio === s.folio);
-               let statusMostrar = s.status || "PENDIENTE";
+                const segsDelFolio = globalSeguimientos.filter(x => x.folio === s.folio);
+                let statusMostrar = s.status || "PENDIENTE";
                 let claseColor = "st-default";
+
                 if(segsDelFolio.length > 0) {
-                    // Ordenamos por fecha ISO para obtener el último estatus real
                     segsDelFolio.sort((a, b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
                     statusMostrar = segsDelFolio[0].status;
                     switch(statusMostrar) {
@@ -143,8 +190,9 @@ function renderTable() {
                         default: claseColor = "st-default";
                     }
                 }
-                // Calcular tiempo desde fechaEnvio (que se guarda al crear la solicitud)
+
                 const tiempo = calcularTranscurrido(s.fechaISO || s.fechaEnvio);
+
                 tablaTecBody.innerHTML += `
                 <tr>
                     <td><small class="fw-bold">${s.folio}</small></td>
@@ -161,9 +209,11 @@ function renderTable() {
                             <span class="action-btn ${esSoporteJR ? 'action-disabled' : ''}" 
                                   onclick="irSeguimiento('${s.folio}')" 
                                   title="${esSoporteJR ? 'Sin permisos para editar' : 'Nuevo Seguimiento'}">📋</span>
-                           <span class="action-btn ${segsDelFolio.length > 0 ? '' : 'action-disabled'}" 
+                            
+                            <span class="action-btn ${segsDelFolio.length > 0 ? '' : 'action-disabled'}" 
                                   onclick="${segsDelFolio.length > 0 ? `verHistorial('${s.folio}')` : ''}" title="Ver Historial">📜</span>
-                        ${puedeVerTodo ? `<span class="action-btn" onclick="eliminar('${c.key}')">🗑️</span>` : ``}
+                            
+                            ${puedeVerTodo ? `<span class="action-btn" onclick="eliminar('${c.key}')">🗑️</span>` : ``}
                         </div>
                     </td>
                 </tr>`;
@@ -171,6 +221,7 @@ function renderTable() {
         });
     });
 }
+
 async function generarFolio(emp, zon){
     const key = `TEC_${emp}_${zon}`.toUpperCase();
     const r = ref(database,"folios/"+key);
@@ -179,6 +230,7 @@ async function generarFolio(emp, zon){
     await set(r,n);
     return `TEC-${emp}-${zon}-${n.toString().padStart(4,"0")}`;
 }
+
 window.guardarSolicitud = async ()=>{
     if(!empresa.value||!zona.value||!sucursal.value||!archivo.files[0]){
         alert("Todos los campos son obligatorios, incluyendo el archivo."); return;
@@ -193,7 +245,7 @@ window.guardarSolicitud = async ()=>{
             archivoData: reader.result, archivoNombre: archivo.files[0].name,
             status:"PENDIENTE", 
             fechaEnvio: ahora.toLocaleString(), 
-            fechaISO: ahora.toISOString(), // Agregamos ISO para cálculos precisos de tiempo
+            fechaISO: ahora.toISOString(),
             usuario:usuarioSesion
         });
         alert("Solicitud guardada correctamente.");
@@ -202,12 +254,14 @@ window.guardarSolicitud = async ()=>{
     };
     reader.readAsDataURL(archivo.files[0]);
 };
+
 window.verHistorial = (fol) => {
     document.getElementById("histFolio").textContent = fol;
     const histBody = document.getElementById("histBody");
     histBody.innerHTML = "";
     const filtrados = globalSeguimientos.filter(x => x.folio === fol);
     filtrados.sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
+    
     filtrados.forEach(h => {
         histBody.innerHTML += `
             <tr>
@@ -219,6 +273,7 @@ window.verHistorial = (fol) => {
     });
     new bootstrap.Modal(document.getElementById('modalHistorial')).show();
 };
+
 window.irSeguimiento = f => { 
     if(esSoporteJR) {
         alert("Acceso denegado: El puesto Soporte Técnico JR solo puede visualizar.");
@@ -226,10 +281,10 @@ window.irSeguimiento = f => {
     }
     location.href = "seguimiento.html?folio=" + encodeURIComponent(f); 
 };
+
 window.eliminar = id => confirm("¿Eliminar solicitud?") && remove(ref(database,"tecnologia/"+id));
 window.cerrarSesion = ()=>{localStorage.clear();location.href="index.html";}
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
