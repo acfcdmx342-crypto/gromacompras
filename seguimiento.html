@@ -18,8 +18,8 @@
     .status-pendiente { background:#dc3545 !important; color:white !important; }
     .status-sistemas { background:#198754 !important; color:white !important; }
 </style>
-</head>
 
+</head>
 <body class="p-4">
 
 <div class="container">
@@ -33,6 +33,7 @@
         <h4 class="fw-bold mb-3">Registrar Seguimiento</h4>
 
         <form id="formSeg" class="row g-3">
+
             <div class="col-md-3">
                 <label class="form-label fw-bold">Folio</label>
                 <input id="folio" class="form-control bg-light" readonly>
@@ -40,27 +41,72 @@
 
             <div class="col-md-3">
                 <label class="form-label fw-bold">Solicitó</label>
-                <input id="solicito" class="form-control" readonly>
+                <input id="solicito" class="form-control bg-light" readonly>
             </div>
 
             <div class="col-md-3">
                 <label class="form-label fw-bold">Sucursal</label>
-                <input id="sucursal" class="form-control" readonly>
+                <input id="sucursal" class="form-control bg-light" readonly>
             </div>
 
             <div class="col-md-3">
                 <label class="form-label fw-bold">Archivo</label>
-                <button type="button" class="btn btn-secondary w-100" id="btnArchivo" disabled>Ver Archivo Original</button>
+                <button type="button" class="btn btn-secondary w-100" onclick="verArchivo()" id="btnArchivo" disabled>Ver Archivo Original</button>
             </div>
 
             <div class="col-md-3">
                 <label class="form-label fw-bold">Fecha Solicitud a Compras</label>
-                <input id="fechaCompras" class="form-control" readonly>
+                <input id="fechaCompras" class="form-control bg-light" readonly>
             </div>
 
             <div class="col-md-9">
                 <label class="form-label fw-bold">Descripción del Artículo</label>
                 <input id="descripcion" class="form-control text-uppercase">
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Folio de Cotización</label>
+                <input id="folioCot" class="form-control text-uppercase">
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Fecha de Cotización</label>
+                <input id="fechaCot" type="date" class="form-control">
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Quien Autoriza</label>
+                <input id="autoriza" class="form-control text-uppercase">
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Fecha Autorización</label>
+                <input id="fechaAuto" type="date" class="form-control">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Quien Recibe</label>
+                <input id="recibe" class="form-control text-uppercase">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Fecha de Entrega</label>
+                <input id="fechaEntrega" type="date" class="form-control">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Quien Envía</label>
+                <input id="envia" class="form-control text-uppercase">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Fecha Envío</label>
+                <input id="fechaEnvio" type="date" class="form-control">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Folio Factura</label>
+                <input id="folioFactura" class="form-control text-uppercase">
             </div>
 
             <div class="col-md-4">
@@ -73,9 +119,15 @@
                 </select>
             </div>
 
-            <div class="col-12 mt-3">
-                <button id="btnGuardar" type="button" class="btn btn-primary btn-lg">Guardar Seguimiento</button>
+            <div class="col-12">
+                <label class="form-label fw-bold">Comentarios</label>
+                <textarea id="comentarios" class="form-control text-uppercase"></textarea>
             </div>
+
+            <div class="col-12 mt-3">
+                <button type="button" class="btn btn-primary btn-lg" onclick="guardarSeguimiento()">Guardar Seguimiento</button>
+            </div>
+
         </form>
     </div>
 
@@ -87,6 +139,7 @@
                     <th>Folio</th>
                     <th>Solicitó</th>
                     <th>Descripción</th>
+                    <th>Folio Cot.</th>
                     <th>Status</th>
                     <th>Fecha Compras</th>
                     <th>Acciones</th>
@@ -97,104 +150,144 @@
     </div>
 </div>
 
+<div class="modal fade" id="modalComent">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Agregar Comentarios</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <textarea id="extraComentario" class="form-control text-uppercase" rows="4"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button class="btn btn-primary" onclick="guardarComentarioExtra()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<script type="module">
-    import { database, ref, get, push, onValue, query, orderByChild, equalTo, remove } from "./firebase.js";
+<script>
+// 1. Cargar bases de datos locales
+let solicitudesTec = JSON.parse(localStorage.getItem("tecnologiaLS") || "[]");
+let seguimiento = JSON.parse(localStorage.getItem("seguimientoLS") || "[]");
+let archivoActual = null;
 
-    const params = new URLSearchParams(window.location.search);
-    const folioURL = params.get("folio");
-    
-    const folioInput = document.getElementById("folio");
-    const solInput = document.getElementById("solicito");
-    const sucInput = document.getElementById("sucursal");
-    const btnArc = document.getElementById("btnArchivo");
-    const fCompras = document.getElementById("fechaCompras");
+// 2. Obtener el folio de la URL (enviado desde tecnologia.html)
+const urlParams = new URLSearchParams(window.location.search);
+const folioRecibido = urlParams.get('folio');
 
-    let dataArchivoActual = null;
-    fCompras.value = new Date().toLocaleString();
-
-    // 1. CARGA DE DATOS (Se ejecuta al abrir la página)
-    async function cargarInformacion() {
-        if (folioURL) {
-            folioInput.value = folioURL; // Se asigna el folio al input estático
+// 3. Función para auto-llenar campos al cargar la página
+function cargarDatosIniciales() {
+    if (folioRecibido) {
+        // Buscar la solicitud en la base de Tecnología
+        let data = solicitudesTec.find(s => s.folio === folioRecibido);
+        
+        if (data) {
+            document.getElementById("folio").value = data.folio;
+            document.getElementById("solicito").value = data.soporte;
+            document.getElementById("sucursal").value = data.sucursal;
+            archivoActual = data.archivoData || data.archivo || null;
             
-            // Buscamos los datos en la tabla tecnología
-            const q = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(folioURL));
-            const snap = await get(q);
-
-            if (snap.exists()) {
-                const data = snap.val();
-                const key = Object.keys(data)[0];
-                const item = data[key];
-
-                solInput.value = item.soporte || "";
-                sucInput.value = item.sucursal || "";
-                dataArchivoActual = item.archivoData || null;
-
-                if (dataArchivoActual) {
-                    btnArc.disabled = false;
-                    btnArc.className = "btn btn-success w-100";
-                }
+            // Habilitar botón de archivo si existe
+            if(archivoActual) {
+                document.getElementById("btnArchivo").disabled = false;
+                document.getElementById("btnArchivo").className = "btn btn-success w-100";
             }
         }
     }
+    // Establecer fecha de hoy para el registro de compras
+    document.getElementById("fechaCompras").value = new Date().toLocaleString();
+}
 
-    btnArc.onclick = () => {
-        if (dataArchivoActual) {
-            const win = window.open("");
-            win.document.write(`<iframe src="${dataArchivoActual}" frameborder="0" style="width:100%; height:100%;"></iframe>`);
-        }
+// Ejecutar al cargar
+cargarDatosIniciales();
+
+function verArchivo(){
+    if(!archivoActual){ alert("No hay archivo registrado."); return; }
+    window.open(archivoActual, "_blank");
+}
+
+function guardarSeguimiento(){
+    let fol = document.getElementById("folio").value;
+    if(!fol){ alert("No hay folio cargado."); return; }
+
+    let seg = {
+        folio: fol,
+        solicito: solicito.value,
+        sucursal: sucursal.value,
+        archivo: archivoActual,
+        fechaCompras: fechaCompras.value,
+        descripcion: descripcion.value.toUpperCase(),
+        folioCot: folioCot.value.toUpperCase(),
+        fechaCot: fechaCot.value,
+        autoriza: autoriza.value.toUpperCase(),
+        fechaAuto: fechaAuto.value,
+        recibe: recibe.value.toUpperCase(),
+        fechaEntrega: fechaEntrega.value,
+        envia: envia.value.toUpperCase(),
+        fechaEnvio: fechaEnvio.value,
+        folioFactura: folioFactura.value.toUpperCase(),
+        status: document.getElementById("status").value,
+        comentarios: comentarios.value.toUpperCase(),
+        extra: ""
     };
 
-    // 2. GUARDAR (Mismo código que tenías)
-    document.getElementById("btnGuardar").onclick = async () => {
-        if (!folioInput.value) return alert("Folio no válido");
+    seguimiento.push(seg);
+    localStorage.setItem("seguimientoLS", JSON.stringify(seguimiento));
 
-        await push(ref(database, "seguimiento"), {
-            folio: folioInput.value,
-            solicito: solInput.value,
-            sucursal: sucInput.value,
-            descripcion: document.getElementById("descripcion").value.toUpperCase(),
-            status: document.getElementById("status").value,
-            fechaCompras: fCompras.value,
-            fechaRegistro: new Date().toLocaleString()
-        });
+    actualizarTabla();
+    alert("Seguimiento guardado correctamente.");
+    // Opcional: Redirigir de vuelta o limpiar campos editables
+    // location.href = "tecnologia.html"; 
+}
 
-        alert("Seguimiento guardado");
-        document.getElementById("descripcion").value = "";
+function aplicarColorStatus(texto){
+    const colores = {
+        "ENVIADO A COMPRAS": "status-compras",
+        "ENVIADO A ZONA": "status-zona",
+        "PENDIENTE POR AUTORIZAR": "status-pendiente",
+        "EN SISTEMAS": "status-sistemas"
     };
+    return colores[texto] || "";
+}
 
-    // 3. TABLA GENERAL (Sin filtros, muestra todo como antes)
-    onValue(ref(database, "seguimiento"), (snap) => {
-        const tbody = document.getElementById("tablaSegBody");
-        tbody.innerHTML = "";
-        snap.forEach(child => {
-            const s = child.val();
-            const color = s.status === "ENVIADO A COMPRAS" ? "status-compras" : 
-                          s.status === "ENVIADO A ZONA" ? "status-zona" : 
-                          s.status === "PENDIENTE POR AUTORIZAR" ? "status-pendiente" : "status-sistemas";
+function actualizarTabla(){
+    let t = document.getElementById("tablaSegBody");
+    t.innerHTML = "";
 
-            tbody.innerHTML += `
-                <tr>
-                    <td>${s.folio}</td>
-                    <td>${s.solicito}</td>
-                    <td>${s.descripcion}</td>
-                    <td class="${color} fw-bold">${s.status}</td>
-                    <td>${s.fechaCompras}</td>
-                    <td>
-                         <span class="action-btn text-danger" onclick="eliminarSeg('${child.key}')">🗑️</span>
-                    </td>
-                </tr>`;
-        });
+    seguimiento.forEach((s, i) => {
+        let claseStatus = aplicarColorStatus(s.status);
+        t.innerHTML += `
+        <tr>
+            <td>${s.folio}</td>
+            <td>${s.solicito}</td>
+            <td>${s.descripcion}</td>
+            <td>${s.folioCot}</td>
+            <td class="${claseStatus} fw-bold">${s.status}</td>
+            <td>${s.fechaCompras}</td>
+            <td>
+                <span class="action-btn text-primary" onclick="abrirComentario(${i})">📝</span>
+                <span class="action-btn text-danger" onclick="eliminarSeguimiento(${i})">🗑️</span>
+            </td>
+        </tr>`;
     });
+}
 
-    window.eliminarSeg = async (key) => {
-        if(confirm("¿Eliminar?")) await remove(ref(database, "seguimiento/" + key));
-    };
+function eliminarSeguimiento(i){
+    if(confirm("¿Desea eliminar este seguimiento?")){
+        seguimiento.splice(i, 1);
+        localStorage.setItem("seguimientoLS", JSON.stringify(seguimiento));
+        actualizarTabla();
+    }
+}
 
-    // Lanzar carga inicial
-    cargarInformacion();
+// Iniciar tabla
+actualizarTabla();
 </script>
+
 </body>
 </html>
