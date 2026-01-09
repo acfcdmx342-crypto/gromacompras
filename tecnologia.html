@@ -8,18 +8,20 @@
 <style>
     body { background:#f2f4f7; }
     .card { border-radius:20px; }
-    .action-btn { cursor:pointer; font-size:22px; transition: 0.2s; }
+    .action-btn { cursor:pointer; font-size:22px; transition: 0.2s; display: inline-block; }
     .action-btn:hover { transform: scale(1.2); }
     .action-disabled { color:#adb5bd; cursor:not-allowed; opacity: 0.5; filter: grayscale(1); }
     .table thead { background:#0d6efd; color:white; }
     .btn-rounded { border-radius:50px; }
     #btnRegresar { cursor:pointer; font-size:40px; position:fixed; top:20px; left:20px; color:#0d6efd; z-index: 1000; }
     .acciones { display:flex; justify-content:center; gap:10px; }
-    /* Colores dinámicos para estatus */
-    .st-compras { background-color: #0d6efd !important; color: white; }
-    .st-zona { background-color: #ffc107 !important; color: black; }
-    .st-pendiente { background-color: #dc3545 !important; color: white; }
-    .st-sistemas { background-color: #198754 !important; color: white; }
+    
+    /* Colores dinámicos para estatus vinculados a la página de seguimiento */
+    .st-compras { background-color: #0d6efd !important; color: white; } /* Azul */
+    .st-zona { background-color: #ffc107 !important; color: black; }    /* Amarillo */
+    .st-pendiente { background-color: #dc3545 !important; color: white; } /* Rojo */
+    .st-sistemas { background-color: #198754 !important; color: white; }  /* Verde */
+    .st-default { background-color: #6c757d !important; color: white; }   /* Gris (Pendiente inicial) */
 </style>
 </head>
 <body class="p-4">
@@ -31,7 +33,6 @@
     const nombreSesion = sesion.nombre;
     const puestoSesion = sesion.puesto;
 
-    // Puestos que pueden ver TODO y pueden gestionar seguimiento
     const puestosPrivilegiados = [
         "GERENTE DE SISTEMAS", 
         "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", 
@@ -40,7 +41,6 @@
         "BECARIO"
     ];
 
-    // Identificar si es JR
     const esSoporteJR = puestoSesion === "SOPORTE TECNICO JR";
 </script>
 
@@ -53,26 +53,28 @@
     <div class="card shadow p-4 mb-4">
         <h5 class="fw-bold mb-3">Registrar Solicitud</h5>
         <form id="formTec" class="row g-3">
-            <div class="col-md-3"><label class="fw-bold">Folio</label><input id="folio" class="form-control" readonly></div>
+            <div class="col-md-3"><label class="fw-bold">Folio</label><input id="folio" class="form-control" readonly placeholder="Auto-generado"></div>
             <div class="col-md-3"><label class="fw-bold">Empresa</label><input id="empresa" class="form-control text-uppercase"></div>
             <div class="col-md-3"><label class="fw-bold">Zona</label><input id="zona" class="form-control text-uppercase"></div>
             <div class="col-md-3"><label class="fw-bold">Soporte Zona</label><input id="soporte" class="form-control text-uppercase" readonly></div>
             <div class="col-md-3"><label class="fw-bold">Sucursal</label><input id="sucursal" class="form-control text-uppercase"></div>
-            <div class="col-md-6"><label class="fw-bold">Requisición</label><input id="archivo" type="file" class="form-control"></div>
+            <div class="col-md-6"><label class="fw-bold">Requisición (PDF/Imagen)</label><input id="archivo" type="file" class="form-control"></div>
             <div class="col-12"><button type="button" class="btn btn-primary btn-rounded" onclick="guardarSolicitud()">Guardar Solicitud</button></div>
         </form>
     </div>
 
     <div class="card shadow p-4">
         <h5 class="fw-bold mb-3">Registros de Solicitudes</h5>
-        <table class="table table-bordered table-striped align-middle text-center">
-            <thead>
-                <tr>
-                    <th>Folio</th><th>Empresa</th><th>Zona</th><th>Soporte</th><th>Sucursal</th><th>Archivo</th><th>Status Actual</th><th>Fecha</th><th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody id="tablaTecBody"></tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped align-middle text-center">
+                <thead>
+                    <tr>
+                        <th>Folio</th><th>Empresa</th><th>Zona</th><th>Soporte</th><th>Sucursal</th><th>Archivo</th><th>Status Actual</th><th>Fecha Registro</th><th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaTecBody"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -104,12 +106,79 @@ const seguimientoRef = ref(database,"seguimiento");
 
 let globalSeguimientos = [];
 
+// 1. Escuchar seguimientos GLOBALMENTE para tener datos frescos
 onValue(seguimientoRef, snap => {
     globalSeguimientos = [];
-    snap.forEach(c => { globalSeguimientos.push(c.val()); });
-    renderTable(); 
+    snap.forEach(c => { 
+        globalSeguimientos.push({ ...c.val(), id: c.key }); 
+    });
+    renderTable(); // Re-renderizar cuando cambie un seguimiento
 });
 
+// 2. Escuchar solicitudes y renderizar
+function renderTable() {
+    onValue(solicitudesRef, snap => {
+        tablaTecBody.innerHTML = "";
+        snap.forEach(c => {
+            const s = c.val();
+            const puedeVerTodo = puestosPrivilegiados.includes(puestoSesion);
+            const esDuenoDelRegistro = s.usuario === usuarioSesion;
+
+            if(puedeVerTodo || esDuenoDelRegistro) {
+                
+                // --- LÓGICA DE ACTUALIZACIÓN DE STATUS ---
+                // Filtramos seguimientos que pertenezcan a este folio
+                const segsDelFolio = globalSeguimientos.filter(x => x.folio === s.folio);
+                
+                let statusMostrar = s.status || "PENDIENTE";
+                let claseColor = "st-default";
+
+                if(segsDelFolio.length > 0) {
+                    // Ordenar por fecha para obtener el más reciente (el último registrado)
+                    // Asumimos que fechaRegistro viene en formato que JS puede comparar o es string ordenable
+                    segsDelFolio.sort((a, b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
+                    
+                    statusMostrar = segsDelFolio[0].status;
+
+                    // Asignación de colores según el nuevo status
+                    switch(statusMostrar) {
+                        case "ENVIADO A COMPRAS": claseColor = "st-compras"; break;
+                        case "ENVIADO A ZONA": claseColor = "st-zona"; break;
+                        case "PENDIENTE POR AUTORIZAR": claseColor = "st-pendiente"; break;
+                        case "EN SISTEMAS": claseColor = "st-sistemas"; break;
+                        default: claseColor = "st-default";
+                    }
+                }
+
+                tablaTecBody.innerHTML += `
+                <tr>
+                    <td><small class="fw-bold">${s.folio}</small></td>
+                    <td>${s.empresa}</td>
+                    <td>${s.zona}</td>
+                    <td>${s.soporte}</td>
+                    <td>${s.sucursal}</td>
+                    <td><a class="btn btn-success btn-sm" download="${s.archivoNombre}" href="${s.archivoData}">📥</a></td>
+                    <td><span class="badge ${claseColor} p-2 w-100" style="font-size:10px;">${statusMostrar}</span></td>
+                    <td><small>${s.fechaEnvio}</small></td>
+                    <td>
+                        <div class="acciones">
+                            <span class="action-btn ${esSoporteJR ? 'action-disabled' : ''}" 
+                                  onclick="irSeguimiento('${s.folio}')" 
+                                  title="${esSoporteJR ? 'Sin permisos para editar' : 'Nuevo Seguimiento'}">📋</span>
+                            
+                            <span class="action-btn ${segsDelFolio.length > 0 ? '' : 'action-disabled'}" 
+                                  onclick="${segsDelFolio.length > 0 ? `verHistorial('${s.folio}')` : ''}" title="Ver Historial">📜</span>
+                            
+                            ${puedeVerTodo ? `<span class="action-btn" onclick="eliminar('${c.key}')">🗑️</span>` : ``}
+                        </div>
+                    </td>
+                </tr>`;
+            }
+        });
+    });
+}
+
+// Generar Folio
 async function generarFolio(emp, zon){
     const key = `TEC_${emp}_${zon}`.toUpperCase();
     const r = ref(database,"folios/"+key);
@@ -119,9 +188,10 @@ async function generarFolio(emp, zon){
     return `TEC-${emp}-${zon}-${n.toString().padStart(4,"0")}`;
 }
 
+// Guardar Solicitud
 window.guardarSolicitud = async ()=>{
     if(!empresa.value||!zona.value||!sucursal.value||!archivo.files[0]){
-        alert("Campos obligatorios"); return;
+        alert("Todos los campos son obligatorios, incluyendo el archivo."); return;
     }
     const fol = await generarFolio(empresa.value,zona.value);
     const reader = new FileReader();
@@ -132,63 +202,12 @@ window.guardarSolicitud = async ()=>{
             archivoData: reader.result, archivoNombre: archivo.files[0].name,
             status:"PENDIENTE", fechaEnvio:new Date().toLocaleString(), usuario:usuarioSesion
         });
-        formTec.reset(); soporte.value = nombreSesion;
+        alert("Solicitud guardada correctamente.");
+        document.getElementById("formTec").reset(); 
+        soporte.value = nombreSesion;
     };
     reader.readAsDataURL(archivo.files[0]);
 };
-
-function renderTable() {
-    onValue(solicitudesRef, snap => {
-        tablaTecBody.innerHTML="";
-        snap.forEach(c => {
-            const s = c.val();
-            
-            // LÓGICA DE VISIBILIDAD: 
-            // Si el puesto está en la lista de privilegiados, ve TODO.
-            // Si no (JR u otros), ve solo lo que coincida con su usuarioSesion.
-            const puedeVerTodo = puestosPrivilegiados.includes(puestoSesion);
-            const esDuenoDelRegistro = s.usuario === usuarioSesion;
-
-            if(puedeVerTodo || esDuenoDelRegistro) {
-                const segsDelFolio = globalSeguimientos.filter(x => x.folio === s.folio);
-                const tieneSeg = segsDelFolio.length > 0;
-                
-                let statusMostrar = s.status;
-                let claseColor = "bg-secondary";
-
-                if(tieneSeg) {
-                    segsDelFolio.sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
-                    statusMostrar = segsDelFolio[0].status;
-                    
-                    if(statusMostrar === "ENVIADO A COMPRAS") claseColor = "st-compras";
-                    else if(statusMostrar === "ENVIADO A ZONA") claseColor = "st-zona";
-                    else if(statusMostrar === "PENDIENTE POR AUTORIZAR") claseColor = "st-pendiente";
-                    else if(statusMostrar === "EN SISTEMAS") claseColor = "st-sistemas";
-                }
-
-                tablaTecBody.innerHTML+=`
-                <tr>
-                    <td>${s.folio}</td><td>${s.empresa}</td><td>${s.zona}</td><td>${s.soporte}</td><td>${s.sucursal}</td>
-                    <td><a class="btn btn-success btn-sm" download="${s.archivoNombre}" href="${s.archivoData}">📥</a></td>
-                    <td><span class="badge ${claseColor} p-2 w-100">${statusMostrar}</span></td>
-                    <td>${s.fechaEnvio}</td>
-                    <td>
-                        <div class="acciones">
-                            <span class="action-btn ${esSoporteJR ? 'action-disabled' : ''}" 
-                                  onclick="irSeguimiento('${s.folio}')" 
-                                  title="${esSoporteJR ? 'Sin permisos para editar' : 'Nuevo Seguimiento'}">📋</span>
-                            
-                            <span class="action-btn ${tieneSeg ? '' : 'action-disabled'}" 
-                                  onclick="${tieneSeg ? `verHistorial('${s.folio}')` : ''}" title="Ver Historial">📜</span>
-                            
-                            ${puedeVerTodo ? `<span class="action-btn" onclick="eliminar('${c.key}')">🗑️</span>` : ``}
-                        </div>
-                    </td>
-                </tr>`;
-            }
-        });
-    }, { onlyOnce: true });
-}
 
 window.verHistorial = (fol) => {
     document.getElementById("histFolio").textContent = fol;
@@ -210,9 +229,8 @@ window.verHistorial = (fol) => {
 };
 
 window.irSeguimiento = f => { 
-    // BLOQUEO PARA JR
     if(esSoporteJR) {
-        alert("Acceso denegado: El puesto Soporte Técnico JR solo puede visualizar el estatus y el historial (📜).");
+        alert("Acceso denegado: El puesto Soporte Técnico JR solo puede visualizar.");
         return;
     }
     location.href = "seguimiento.html?folio=" + encodeURIComponent(f); 
