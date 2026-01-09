@@ -83,6 +83,7 @@
         .field-locked {
             background-color: #e9ecef !important;
             cursor: not-allowed;
+            pointer-events: none; /* Evita interacción en archivos */
         }
 
         .header-container {
@@ -257,11 +258,10 @@
         reader.onerror = error => reject(error);
     });
 
-    // --- NUEVA FUNCIÓN: CARGAR Y BLOQUEAR CAMPOS ---
+    // --- FUNCIÓN: CARGAR PARA CONTINUAR Y BLOQUEAR ---
     window.cargarParaContinuar = (dataString) => {
         const data = JSON.parse(decodeURIComponent(dataString));
         
-        // Lista de IDs de campos que queremos procesar
         const campos = [
             "folio", "fechaCompras", "descripcion", "fechaCot", "folioCot", 
             "autoriza", "fechaAuto", "fechaEntrega", "recibe", "folioFactura", 
@@ -270,25 +270,33 @@
 
         campos.forEach(id => {
             const el = document.getElementById(id);
-            if (el && data[id]) {
-                el.value = data[id];
-                // Bloquear si tiene contenido (excepto el folio que ya es select)
-                if (id !== "folio") {
-                    el.readOnly = true;
+            if (el) {
+                // Rellenar valor
+                el.value = data[id] || "";
+                
+                // Lógica de bloqueo: 
+                // Bloquear si tiene contenido Y no es el campo "status"
+                if (data[id] && id !== "status") {
+                    if (el.tagName === "SELECT" || el.type === "file") {
+                        el.disabled = true;
+                    } else {
+                        el.readOnly = true;
+                    }
                     el.classList.add("field-locked");
-                    if (el.tagName === "SELECT") el.disabled = true;
+                } else {
+                    // Si está vacío o es el status, asegurar que sea editable
+                    el.readOnly = false;
+                    el.disabled = false;
+                    el.classList.remove("field-locked");
                 }
-            } else if (el) {
-                // Si está vacío, asegurar que sea editable por si acaso
-                el.readOnly = false;
-                el.disabled = false;
-                el.classList.remove("field-locked");
             }
         });
 
-        // Cargar datos del origen (Soporte/Sucursal)
+        // Manejo especial para archivos ya subidos (bloquear inputs file)
+        if (data.archivoCot) document.getElementById("fileCot").disabled = true;
+        if (data.archivoFac) document.getElementById("fileFactura").disabled = true;
+
         cargarInfoPorFolio(data.folio);
-        // Hacer scroll hacia arriba para ver el formulario
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -337,7 +345,7 @@
         const fCot = document.getElementById("fileCot").files[0];
         const fFac = document.getElementById("fileFactura").files[0];
 
-        // Recolectar datos asegurando que tomamos el valor incluso si está disabled
+        // Función para leer valores incluso si están bloqueados
         const getVal = (id) => document.getElementById(id).value;
 
         const dataGuardar = {
@@ -377,7 +385,6 @@
                                s.status === "ENVIADO A ZONA" ? "status-zona" : 
                                s.status === "PENDIENTE POR AUTORIZAR" ? "status-pendiente" : "status-sistemas";
 
-            // Convertimos el objeto a string para pasarlo por el onclick
             const dataString = encodeURIComponent(JSON.stringify(s));
 
             tbody.innerHTML += `
