@@ -6,5 +6,6 @@ Sistema completo con:
 - Base
 - Tecnología
 - Seguimiento
+- Historial
 
 Usa Firebase Realtime Database y funciona en GitHub Pages.
