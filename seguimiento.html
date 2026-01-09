@@ -64,12 +64,12 @@
 
         .field-locked { background-color: #e9ecef !important; cursor: not-allowed; pointer-events: none; }
         
-        /* Estilos para Agrupamiento */
-        .row-master { cursor: pointer; background-color: #f8f9fa !important; border-left: 4px solid #0d6efd !important; }
-        .row-master:hover { background-color: #f1f3f5 !important; }
-        .row-child { background-color: #ffffff; border-left: 4px solid #dee2e6 !important; }
-        .collapse-indicator { transition: transform 0.3s; }
-        .row-master.collapsed .collapse-indicator { transform: rotate(-90deg); }
+        /* Estilo para agrupar filas del mismo folio */
+        .group-header { background-color: #f8f9fa !important; font-weight: bold; border-top: 2px solid #dee2e6; }
+        
+        /* Estilo para registros bloqueados */
+        .row-locked { opacity: 0.6; background-color: #fafafa; }
+        .badge-history { font-size: 0.7rem; vertical-align: middle; }
     </style>
 </head>
 <body class="p-4">
@@ -212,12 +212,13 @@
     </div>
 
     <div class="card shadow p-4">
-        <h4 class="fw-bold mb-4 text-secondary"><i class="fa-solid fa-layer-group me-2"></i>Historial Agrupado por Folio</h4>
+        <h4 class="fw-bold mb-4 text-secondary"><i class="fa-solid fa-list-ul me-2"></i>Historial de Seguimientos</h4>
+        <p class="text-muted small"><i class="fa-solid fa-circle-info me-1"></i>Solo el último registro de cada folio permite continuar el seguimiento.</p>
         <div class="table-responsive">
-            <table class="table align-middle">
+            <table class="table table-hover align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>Folio / Detalle</th>
+                        <th>Folio</th>
                         <th>Descripción</th>
                         <th>Status</th>
                         <th>Docs</th>
@@ -273,11 +274,13 @@
         campos.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
-            el.value = data[id] || "";
-            if (id !== "folio" && id !== "status" && id !== "comentarios" && data[id]) {
-                el.readOnly = true;
-                el.classList.add("field-locked");
-                if (el.tagName === "SELECT") el.disabled = true;
+            if (data[id]) {
+                el.value = data[id];
+                if (id !== "folio" && id !== "status" && id !== "comentarios") {
+                    el.readOnly = true;
+                    el.classList.add("field-locked");
+                    if (el.tagName === "SELECT") el.disabled = true;
+                }
             } else {
                 el.readOnly = false;
                 el.disabled = false;
@@ -374,7 +377,6 @@
         }
     };
 
-    // LOGICA DE RENDERIZADO AGRUPADO
     onValue(ref(database, "seguimiento"), (snap) => {
         const tbody = document.getElementById("tablaSegBody");
         tbody.innerHTML = "";
@@ -382,64 +384,59 @@
         let registros = [];
         snap.forEach(child => { registros.push({ key: child.key, ...child.val() }); });
         
-        // Agrupar registros por Folio
-        const grupos = registros.reduce((acc, reg) => {
-            if (!acc[reg.folio]) acc[reg.folio] = [];
-            acc[reg.folio].push(reg);
-            return acc;
-        }, {});
+        // 1. Ordenar por fecha de registro (más reciente primero)
+        registros.sort((a, b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
 
-        // Iterar sobre los grupos
-        Object.keys(grupos).forEach((folio, index) => {
-            const items = grupos[folio];
-            const targetId = `coll-${index}`;
+        // 2. Diccionario para identificar el último registro por cada folio único
+        const foliosProcesados = new Set();
+
+        registros.forEach(s => {
+            const colorClass = s.status === "ENVIADO A COMPRAS" ? "status-compras" : 
+                               s.status === "ENVIADO A ZONA" ? "status-zona" : 
+                               s.status === "PENDIENTE POR AUTORIZAR" ? "status-pendiente" : "status-sistemas";
+
+            const dataString = encodeURIComponent(JSON.stringify(s));
             
-            // Fila Principal del Folio (Maestra)
+            // Determinar si es el registro más reciente de este folio
+            const esUltimo = !foliosProcesados.has(s.folio);
+            foliosProcesados.add(s.folio);
+
             tbody.innerHTML += `
-                <tr class="row-master collapsed" data-bs-toggle="collapse" data-bs-target=".${targetId}">
+                <tr class="${!esUltimo ? 'row-locked' : ''}">
                     <td class="fw-bold text-primary">
-                        <i class="fa-solid fa-chevron-down me-2 collapse-indicator"></i>FOLIO: ${folio}
+                        ${s.folio}
+                        ${!esUltimo ? '<br><span class="badge bg-secondary badge-history">HISTORIAL</span>' : '<br><span class="badge bg-success badge-history">ACTUAL</span>'}
                     </td>
-                    <td colspan="2"><span class="badge bg-primary rounded-pill">${items.length} Movimientos</span></td>
-                    <td class="small text-muted italic">Click para ver historial</td>
-                    <td></td>
-                </tr>`;
-
-            // Filas de Detalle (Hijas)
-            items.forEach(s => {
-                const colorClass = s.status === "ENVIADO A COMPRAS" ? "status-compras" : 
-                                   s.status === "ENVIADO A ZONA" ? "status-zona" : 
-                                   s.status === "PENDIENTE POR AUTORIZAR" ? "status-pendiente" : "status-sistemas";
-                const dataString = encodeURIComponent(JSON.stringify(s));
-
-                tbody.innerHTML += `
-                    <tr class="collapse ${targetId} row-child">
-                        <td class="ps-5 small text-muted font-monospace">↳ Registro: ${new Date(s.fechaRegistro).toLocaleDateString()}</td>
-                        <td class="small text-muted">${s.descripcion}</td>
-                        <td><span class="px-3 py-1 fw-bold small ${colorClass}">${s.status}</span></td>
-                        <td>
-                            <div class="d-flex gap-1">
-                                ${s.archivoCot ? `<button class="btn btn-sm btn-light text-primary" onclick="window.open('${s.archivoCot}')" title="Ver Cotización"><i class="fa-solid fa-file-invoice"></i></button>` : ''}
-                                ${s.archivoFac ? `<button class="btn btn-sm btn-light text-danger" onclick="window.open('${s.archivoFac}')" title="Ver Factura"><i class="fa-solid fa-file-signature"></i></button>` : ''}
-                            </div>
-                        </td>
-                        <td>
-                             <div class="d-flex gap-1">
-                                <button class="btn btn-sm btn-light text-primary" onclick="cargarParaContinuar('${dataString}')">
+                    <td class="small text-muted">${s.descripcion}</td>
+                    <td><span class="px-3 py-1 fw-bold small ${colorClass}">${s.status}</span></td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            ${s.archivoCot ? `<button class="btn btn-sm btn-light text-primary" onclick="window.open('${s.archivoCot}')"><i class="fa-solid fa-file-invoice"></i></button>` : ''}
+                            ${s.archivoFac ? `<button class="btn btn-sm btn-light text-danger" onclick="window.open('${s.archivoFac}')"><i class="fa-solid fa-file-signature"></i></button>` : ''}
+                        </div>
+                    </td>
+                    <td>
+                         <div class="d-flex gap-1">
+                            ${esUltimo ? `
+                                <button class="btn btn-sm btn-primary" title="Continuar Seguimiento" onclick="cargarParaContinuar('${dataString}')">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
-                                <button class="btn btn-sm btn-light text-danger" onclick="eliminarSeg('${s.key}')">
-                                    <i class="fa-solid fa-trash-can"></i>
+                            ` : `
+                                <button class="btn btn-sm btn-outline-secondary" disabled title="Solo se puede editar el registro más reciente">
+                                    <i class="fa-solid fa-lock"></i>
                                 </button>
-                             </div>
-                        </td>
-                    </tr>`;
-            });
+                            `}
+                            <button class="btn btn-sm btn-light text-danger" onclick="eliminarSeg('${s.key}')">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                         </div>
+                    </td>
+                </tr>`;
         });
     });
 
     window.eliminarSeg = async (key) => {
-        if(confirm("¿Desea eliminar permanentemente este registro del historial?")) await remove(ref(database, "seguimiento/" + key));
+        if(confirm("¿Desea eliminar permanentemente este registro?")) await remove(ref(database, "seguimiento/" + key));
     };
 </script>
 </body>
