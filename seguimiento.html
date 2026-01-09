@@ -35,17 +35,17 @@
         <form id="formSeg" class="row g-3">
             <div class="col-md-3">
                 <label class="form-label fw-bold">Folio</label>
-                <select id="folio" class="form-select"></select>
+                <input id="folio" class="form-control bg-light" readonly>
             </div>
 
             <div class="col-md-3">
                 <label class="form-label fw-bold">Solicitó</label>
-                <input id="solicito" class="form-control" readonly>
+                <input id="solicito" class="form-control bg-light" readonly>
             </div>
 
             <div class="col-md-3">
                 <label class="form-label fw-bold">Sucursal</label>
-                <input id="sucursal" class="form-control" readonly>
+                <input id="sucursal" class="form-control bg-light" readonly>
             </div>
 
             <div class="col-md-3">
@@ -55,7 +55,7 @@
 
             <div class="col-md-3">
                 <label class="form-label fw-bold">Fecha Solicitud a Compras</label>
-                <input id="fechaCompras" class="form-control" readonly>
+                <input id="fechaCompras" class="form-control bg-light" readonly>
             </div>
 
             <div class="col-md-9">
@@ -100,13 +100,13 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script type="module">
-    import { database, ref, get, push, onValue, query, orderByChild, equalTo } from "./firebase.js";
+    import { database, ref, get, push, onValue, query, orderByChild, equalTo, remove } from "./firebase.js";
 
     // Variables de control
     const params = new URLSearchParams(window.location.search);
     const folioURL = params.get("folio");
     
-    const selectFolio = document.getElementById("folio");
+    const folioInput = document.getElementById("folio");
     const solInput = document.getElementById("solicito");
     const sucInput = document.getElementById("sucursal");
     const btnArc = document.getElementById("btnArchivo");
@@ -115,29 +115,13 @@
     let dataArchivoActual = null;
     fCompras.value = new Date().toLocaleString();
 
-    // 1. CARGAR TODOS LOS FOLIOS EN EL SELECTOR
-    onValue(ref(database, "tecnologia"), (snap) => {
-        selectFolio.innerHTML = '<option value="">Seleccione un folio</option>';
-        snap.forEach(child => {
-            const d = child.val();
-            const option = document.createElement("option");
-            option.value = d.folio;
-            option.textContent = d.folio;
-            selectFolio.appendChild(option);
-        });
-
-        // Si venimos de tecnologia.html con un folio, seleccionarlo automáticamente
-        if (folioURL) {
-            selectFolio.value = folioURL;
-            cargarInfoPorFolio(folioURL);
-        }
-    });
-
-    // 2. FUNCIÓN PARA BUSCAR INFO EN FIREBASE SEGÚN EL FOLIO SELECCIONADO
-    async function cargarInfoPorFolio(fol) {
-        if (!fol) return;
+    // 1. FUNCIÓN PARA BUSCAR INFO EN FIREBASE SEGÚN EL FOLIO DE LA URL
+    async function cargarInfoPorFolio() {
+        if (!folioURL) return;
         
-        const q = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(fol));
+        folioInput.value = folioURL; // Ponemos el folio en el cuadro estático
+        
+        const q = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(folioURL));
         const snap = await get(q);
 
         if (snap.exists()) {
@@ -145,7 +129,7 @@
             const key = Object.keys(data)[0];
             const item = data[key];
 
-            // Llenar campos
+            // Rellenar campos automáticamente
             solInput.value = item.soporte || "";
             sucInput.value = item.sucursal || "";
             dataArchivoActual = item.archivoData || null;
@@ -157,11 +141,6 @@
         }
     }
 
-    // Evento al cambiar el selector manualmente
-    selectFolio.addEventListener("change", (e) => {
-        cargarInfoPorFolio(e.target.value);
-    });
-
     // Ver archivo original
     btnArc.onclick = () => {
         if (dataArchivoActual) {
@@ -170,12 +149,12 @@
         }
     };
 
-    // 3. GUARDAR SEGUIMIENTO EN FIREBASE
+    // 2. GUARDAR SEGUIMIENTO EN FIREBASE
     document.getElementById("btnGuardar").onclick = async () => {
-        if (!selectFolio.value) return alert("Seleccione un folio");
+        if (!folioInput.value) return alert("Folio no válido");
 
         await push(ref(database, "seguimiento"), {
-            folio: selectFolio.value,
+            folio: folioInput.value,
             solicito: solInput.value,
             sucursal: sucInput.value,
             descripcion: document.getElementById("descripcion").value.toUpperCase(),
@@ -185,32 +164,42 @@
         });
 
         alert("Seguimiento guardado");
-        location.reload();
+        document.getElementById("descripcion").value = "";
     };
 
-    // 4. MOSTRAR TABLA (HISTORIAL)
+    // 3. MOSTRAR TABLA (HISTORIAL)
     onValue(ref(database, "seguimiento"), (snap) => {
         const tbody = document.getElementById("tablaSegBody");
         tbody.innerHTML = "";
         snap.forEach(child => {
             const s = child.val();
-            const color = s.status === "ENVIADO A COMPRAS" ? "status-compras" : 
-                          s.status === "ENVIADO A ZONA" ? "status-zona" : 
-                          s.status === "PENDIENTE POR AUTORIZAR" ? "status-pendiente" : "status-sistemas";
+            // Opcional: Solo mostrar registros de este folio
+            if(s.folio === folioURL){
+                const color = s.status === "ENVIADO A COMPRAS" ? "status-compras" : 
+                              s.status === "ENVIADO A ZONA" ? "status-zona" : 
+                              s.status === "PENDIENTE POR AUTORIZAR" ? "status-pendiente" : "status-sistemas";
 
-            tbody.innerHTML += `
-                <tr>
-                    <td>${s.folio}</td>
-                    <td>${s.solicito}</td>
-                    <td>${s.descripcion}</td>
-                    <td class="${color} fw-bold">${s.status}</td>
-                    <td>${s.fechaCompras}</td>
-                    <td>
-                         <span class="action-btn text-danger" onclick="eliminarSeg('${child.key}')">🗑️</span>
-                    </td>
-                </tr>`;
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${s.folio}</td>
+                        <td>${s.solicito}</td>
+                        <td>${s.descripcion}</td>
+                        <td class="${color} fw-bold">${s.status}</td>
+                        <td>${s.fechaCompras}</td>
+                        <td>
+                             <span class="action-btn text-danger" onclick="eliminarSeg('${child.key}')">🗑️</span>
+                        </td>
+                    </tr>`;
+            }
         });
     });
+
+    window.eliminarSeg = async (key) => {
+        if(confirm("¿Eliminar?")) await remove(ref(database, "seguimiento/" + key));
+    };
+
+    // Ejecutar la carga al abrir
+    cargarInfoPorFolio();
 </script>
 </body>
 </html>
