@@ -15,7 +15,7 @@
     .btn-rounded { border-radius:50px; }
     
     /* Estilos de navegación y usuario */
-    #btnRegresar { cursor:pointer; font-size:40px; color:#0d6efd; transition: 0.3s; }
+    #btnRegresar { cursor:pointer; font-size:40px; color:#0d6efd; transition: 0.3s; vertical-align: middle; }
     #btnRegresar:hover { color: #0056b3; transform: scale(1.1); }
     
     .user-info-box {
@@ -59,37 +59,40 @@
 </script>
 
 <div class="container">
-            <div class="d-flex align-items-center gap-4">
-            <div class="user-info-box border-start border-primary border-3">
-                <div class="fw-bold text-primary" style="font-size: 0.9rem;">👤 <span id="usuarioActivo"></span></div>
-                <div class="text-muted small" style="font-size: 0.8rem;">Puesto: <span id="puestoActivo"></span></div>
-            </div>
-            <button class="btn btn-outline-danger btn-rounded fw-bold" onclick="cerrarSesion()">
-                🚪 Cerrar Sesión
-            </button>
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div class="user-info-box border-start border-primary border-4">
+            <div class="fw-bold text-primary" style="font-size: 0.9rem;">👤 <span id="usuarioActivo"></span></div>
+            <div class="text-muted small" style="font-size: 0.8rem;">Puesto: <span id="puestoActivo"></span></div>
         </div>
+
+        <button class="btn btn-outline-danger btn-rounded fw-bold px-4 shadow-sm" onclick="cerrarSesion()">
+            🚪 Cerrar Sesión
+        </button>
     </div>
 
-    <h2 class="text-center mb-4 fw-bold">Solicitud de Tecnología</h2>
+    <div class="text-center mb-4">
+        <span id="btnRegresar" onclick="cerrarSesion()" class="me-3" title="Regresar">🔙</span>
+        <h2 class="d-inline-block fw-bold align-middle m-0">Solicitud de Tecnología</h2>
+    </div>
 
-    <div class="card shadow p-4 mb-4">
+    <div class="card shadow p-4 mb-4 border-0">
         <h5 class="fw-bold mb-3 border-bottom pb-2 text-secondary">Registrar Solicitud</h5>
         <form id="formTec" class="row g-3">
-            <div class="col-md-3"><label class="fw-bold">Folio</label><input id="folio" class="form-control" readonly placeholder="Auto-generado"></div>
-            <div class="col-md-3"><label class="fw-bold">Empresa</label><input id="empresa" class="form-control text-uppercase"></div>
-            <div class="col-md-3"><label class="fw-bold">Zona</label><input id="zona" class="form-control text-uppercase"></div>
-            <div class="col-md-3"><label class="fw-bold">Soporte Zona</label><input id="soporte" class="form-control text-uppercase" readonly></div>
-            <div class="col-md-3"><label class="fw-bold">Sucursal</label><input id="sucursal" class="form-control text-uppercase"></div>
-            <div class="col-md-6"><label class="fw-bold">Requisición (PDF/Imagen)</label><input id="archivo" type="file" class="form-control"></div>
+            <div class="col-md-3"><label class="fw-bold small">Folio</label><input id="folio" class="form-control" readonly placeholder="Auto-generado"></div>
+            <div class="col-md-3"><label class="fw-bold small">Empresa</label><input id="empresa" class="form-control text-uppercase"></div>
+            <div class="col-md-3"><label class="fw-bold small">Zona</label><input id="zona" class="form-control text-uppercase"></div>
+            <div class="col-md-3"><label class="fw-bold small">Soporte Zona</label><input id="soporte" class="form-control text-uppercase" readonly></div>
+            <div class="col-md-3"><label class="fw-bold small">Sucursal</label><input id="sucursal" class="form-control text-uppercase"></div>
+            <div class="col-md-6"><label class="fw-bold small">Requisición (PDF/Imagen)</label><input id="archivo" type="file" class="form-control"></div>
             <div class="col-12 text-start mt-4">
-                <button type="button" class="btn btn-primary btn-rounded px-4" onclick="guardarSolicitud()">
+                <button type="button" class="btn btn-primary btn-rounded px-5 shadow" onclick="guardarSolicitud()">
                     💾 Guardar Solicitud
                 </button>
             </div>
         </form>
     </div>
 
-    <div class="card shadow p-4">
+    <div class="card shadow p-4 border-0">
         <h5 class="fw-bold mb-3 border-bottom pb-2 text-secondary">Registros de Solicitudes</h5>
         <div class="table-responsive">
             <table class="table table-bordered table-striped align-middle text-center">
@@ -115,7 +118,7 @@
 
 <div class="modal fade" id="modalHistorial" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
+        <div class="modal-content border-0 shadow">
             <div class="modal-header bg-dark text-white">
                 <h5 class="modal-title">Historial de Seguimiento: <span id="histFolio"></span></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -197,8 +200,8 @@ function renderTable() {
                     <td>${s.zona}</td>
                     <td>${s.soporte}</td>
                     <td>${s.sucursal}</td>
-                    <td><a class="btn btn-success btn-sm" download="${s.archivoNombre}" href="${s.archivoData}">📥</a></td>
-                    <td><span class="badge ${claseColor} p-2 w-100" style="font-size:10px;">${statusMostrar}</span></td>
+                    <td><a class="btn btn-success btn-sm shadow-sm" download="${s.archivoNombre}" href="${s.archivoData}">📥</a></td>
+                    <td><span class="badge ${claseColor} p-2 w-100 shadow-sm" style="font-size:10px;">${statusMostrar}</span></td>
                     <td class="tiempo-badge">${tiempo}</td>
                     <td><small>${s.fechaEnvio}</small></td>
                     <td>
@@ -285,5 +288,3 @@ window.cerrarSesion = ()=>{localStorage.clear();location.href="index.html";}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
-
