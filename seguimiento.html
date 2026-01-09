@@ -7,18 +7,18 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background: #eef1f5; font-family: sans-serif; }
-        .card { border-radius: 15px; border: none; }
+        .card { border-radius: 15px; border: none; margin-bottom: 20px; }
         .section-title { 
-            background: #0d6efd; color: white; padding: 8px 15px; 
+            background: #0d6efd; color: white; padding: 10px 15px; 
             border-radius: 8px; margin-bottom: 15px; font-weight: bold;
         }
-        .form-label { font-weight: bold; font-size: 0.9rem; margin-bottom: 2px; }
+        .form-label { font-weight: bold; font-size: 0.85rem; color: #444; }
+        .bg-locked { background-color: #f8f9fa !important; color: #6c757d; font-weight: bold; }
+        input[type="text"], textarea { text-transform: uppercase; }
         .status-compras { background:#0d6efd !important; color:white; }
         .status-zona { background:#ffc107 !important; color:black; }
         .status-pendiente { background:#dc3545 !important; color:white; }
         .status-sistemas { background:#198754 !important; color:white; }
-        .bg-locked { background-color: #e9ecef !important; }
-        input[type="text"], textarea { text-transform: uppercase; }
     </style>
 </head>
 <body class="p-4">
@@ -31,8 +31,8 @@
     </div>
 
     <form id="formSeg">
-        <div class="card shadow p-4 mb-3">
-            <div class="section-title">Detalles del Seguimiento (Origen)</div>
+        <div class="card shadow p-4">
+            <div class="section-title">Detalles del Seguimiento (Datos Registrados)</div>
             <div class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label">Folio</label>
@@ -48,12 +48,12 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Archivo Origen</label>
-                    <button type="button" id="btnArchivoOrigen" class="btn btn-secondary w-100" disabled>Ver PDF Original</button>
+                    <button type="button" id="btnArchivoOrigen" class="btn btn-secondary w-100" disabled>Ver Solicitud Original</button>
                 </div>
             </div>
         </div>
 
-        <div class="card shadow p-4 mb-3">
+        <div class="card shadow p-4">
             <div class="section-title">Seguimiento Depto. Sistemas</div>
             <div class="row g-3">
                 <div class="col-md-4">
@@ -62,12 +62,12 @@
                 </div>
                 <div class="col-md-8">
                     <label class="form-label">Descripción del Artículo</label>
-                    <input id="descripcion" type="text" class="form-control" placeholder="TEXTO, NÚMEROS Y SÍMBOLOS">
+                    <input id="descripcion" type="text" class="form-control" placeholder="INGRESE TEXTO, NÚMEROS O SÍMBOLOS">
                 </div>
             </div>
         </div>
 
-        <div class="card shadow p-4 mb-3">
+        <div class="card shadow p-4">
             <div class="section-title">Seguimiento Compras</div>
             <div class="row g-3">
                 <div class="col-md-3">
@@ -85,7 +85,7 @@
             </div>
         </div>
 
-        <div class="card shadow p-4 mb-3">
+        <div class="card shadow p-4">
             <div class="section-title">Seguimiento de Autorización</div>
             <div class="row g-3">
                 <div class="col-md-6">
@@ -99,7 +99,7 @@
             </div>
         </div>
 
-        <div class="card shadow p-4 mb-3">
+        <div class="card shadow p-4">
             <div class="section-title">Seguimiento de Entrega</div>
             <div class="row g-3">
                 <div class="col-md-3">
@@ -121,8 +121,8 @@
             </div>
         </div>
 
-        <div class="card shadow p-4 mb-4">
-            <div class="section-title">Seguimiento de Envío y Status</div>
+        <div class="card shadow p-4">
+            <div class="section-title">Seguimiento de Envío</div>
             <div class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label">Fecha de Envío</label>
@@ -133,7 +133,7 @@
                     <input id="envia" type="text" class="form-control">
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">A dónde se envía (Maps/Dirección)</label>
+                    <label class="form-label">A donde se envía (Maps)</label>
                     <input id="adonde" type="text" class="form-control">
                 </div>
                 <div class="col-md-3">
@@ -151,60 +151,56 @@
                 </div>
             </div>
             <div class="mt-4">
-                <button type="button" class="btn btn-primary btn-lg w-100" onclick="guardarTodo()">Guardar Seguimiento Completo</button>
+                <button type="button" class="btn btn-primary btn-lg w-100" onclick="guardarSeguimiento()">Guardar Todo el Seguimiento</button>
             </div>
         </div>
     </form>
-
-    <div class="card shadow p-4">
-        <h4 class="fw-bold mb-3">Historial de Seguimientos</h4>
-        <div class="table-responsive">
-            <table class="table table-bordered align-middle text-center">
-                <thead class="table-primary">
-                    <tr>
-                        <th>Folio</th>
-                        <th>Sucursal</th>
-                        <th>Descripción</th>
-                        <th>Status</th>
-                        <th>Docs</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="tablaSegBody"></tbody>
-            </table>
-        </div>
-    </div>
 </div>
 
 <script type="module">
-    import { database, ref, get, push, onValue, query, orderByChild, equalTo, remove } from "./firebase.js";
+    import { database, ref, get, push, onValue, query, orderByChild, equalTo } from "./firebase.js";
 
     const params = new URLSearchParams(window.location.search);
     const folioURL = params.get("folio");
-    let urlArchivoOrigen = null;
+    
+    // Referencias HTML
+    const fInput = document.getElementById("folio");
+    const sInput = document.getElementById("solicito");
+    const sucInput = document.getElementById("sucursal");
+    const btnOri = document.getElementById("btnArchivoOrigen");
 
-    // Cargar datos del folio al iniciar
-    async function init() {
-        if (!folioURL) return;
-        document.getElementById("folio").value = folioURL;
+    let urlOriginal = null;
 
+    // === 1. CARGAR DATOS AUTOMÁTICAMENTE AL ENTRAR ===
+    async function cargarDatosBase() {
+        if (!folioURL) {
+            alert("No se encontró un folio válido.");
+            return;
+        }
+
+        fInput.value = folioURL;
+
+        // Buscar en el nodo 'tecnologia' de Firebase
         const q = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(folioURL));
         const snap = await get(q);
+
         if (snap.exists()) {
             const data = Object.values(snap.val())[0];
-            document.getElementById("solicito").value = data.soporte;
-            document.getElementById("sucursal").value = data.sucursal;
-            urlArchivoOrigen = data.archivoData;
-            if(urlArchivoOrigen) {
-                const btn = document.getElementById("btnArchivoOrigen");
-                btn.disabled = false;
-                btn.classList.replace("btn-secondary", "btn-success");
-                btn.onclick = () => window.open(urlArchivoOrigen, "_blank");
+            sInput.value = data.soporte || "N/A";
+            sucInput.value = data.sucursal || "N/A";
+            urlOriginal = data.archivoData || null;
+
+            if (urlOriginal) {
+                btnOri.disabled = false;
+                btnOri.classList.replace("btn-secondary", "btn-success");
+                btnOri.onclick = () => window.open(urlOriginal, "_blank");
             }
+        } else {
+            console.error("No se encontró el folio en la base de datos.");
         }
     }
 
-    // Helper para convertir archivos a Base64
+    // Convertidor de archivos
     const toBase64 = file => new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -212,16 +208,15 @@
         reader.onerror = error => reject(error);
     });
 
-    window.guardarTodo = async () => {
-        if(!folioURL) return alert("No hay folio cargado");
-
+    // === 2. GUARDAR SEGUIMIENTO ===
+    window.guardarSeguimiento = async () => {
         const fileCot = document.getElementById("fileCot").files[0];
         const fileFac = document.getElementById("fileFactura").files[0];
 
-        const data = {
-            folio: folioURL,
-            solicito: document.getElementById("solicito").value,
-            sucursal: document.getElementById("sucursal").value,
+        const nuevoSeg = {
+            folio: fInput.value,
+            solicito: sInput.value,
+            sucursal: sucInput.value,
             fechaCompras: document.getElementById("fechaCompras").value,
             descripcion: document.getElementById("descripcion").value.toUpperCase(),
             fechaCot: document.getElementById("fechaCot").value,
@@ -241,43 +236,13 @@
             fechaRegistro: new Date().toLocaleString()
         };
 
-        await push(ref(database, "seguimiento"), data);
-        alert("Seguimiento guardado exitosamente");
-        document.getElementById("formSeg").reset();
-        init(); // Recargar datos base
+        await push(ref(database, "seguimiento"), nuevoSeg);
+        alert("Seguimiento guardado correctamente.");
+        window.location.href = "tecnologia.html";
     };
 
-    onValue(ref(database, "seguimiento"), (snap) => {
-        const tbody = document.getElementById("tablaSegBody");
-        tbody.innerHTML = "";
-        snap.forEach(child => {
-            const s = child.val();
-            const color = s.status === "ENVIADO A COMPRAS" ? "status-compras" : 
-                          s.status === "ENVIADO A ZONA" ? "status-zona" : 
-                          s.status === "PENDIENTE POR AUTORIZAR" ? "status-pendiente" : "status-sistemas";
-
-            tbody.innerHTML += `
-                <tr>
-                    <td>${s.folio}</td>
-                    <td>${s.sucursal}</td>
-                    <td>${s.descripcion || '---'}</td>
-                    <td class="${color} fw-bold">${s.status}</td>
-                    <td>
-                        ${s.cotizacionData ? `<button class="btn btn-sm btn-outline-primary" onclick="window.open('${s.cotizacionData}')">Cot</button>` : ''}
-                        ${s.facturaData ? `<button class="btn btn-sm btn-outline-danger" onclick="window.open('${s.facturaData}')">Fac</button>` : ''}
-                    </td>
-                    <td>
-                        <button class="btn btn-danger btn-sm" onclick="eliminarSeg('${child.key}')">🗑️</button>
-                    </td>
-                </tr>`;
-        });
-    });
-
-    window.eliminarSeg = async (key) => {
-        if(confirm("¿Eliminar registro?")) await remove(ref(database, "seguimiento/" + key));
-    };
-
-    init();
+    // Iniciar carga
+    cargarDatosBase();
 </script>
 </body>
 </html>
