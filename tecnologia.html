@@ -15,9 +15,9 @@
     .table thead { background:#0d6efd; color:white; }
     .btn-rounded { border-radius:50px; }
     
-    #btnRegresar { cursor:pointer; font-size:40px; color:#0d6efd; transition: 0.3s; vertical-align: middle; }
-    #btnRegresar:hover { color: #0056b3; transform: scale(1.1); }
-    
+    .fila-eliminada { background-color: #f8d7da !important; color: #721c24; }
+    .st-eliminado { background-color: #721c24 !important; color: white; }
+
     .user-info-box {
         background: white;
         padding: 10px 20px;
@@ -25,15 +25,12 @@
         box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         display: inline-block;
     }
-
     .acciones { display:flex; justify-content:center; gap:10px; }
-    
     .st-compras { background-color: #0d6efd !important; color: white; } 
     .st-zona { background-color: #ffc107 !important; color: black; }    
     .st-pendiente { background-color: #dc3545 !important; color: white; } 
     .st-sistemas { background-color: #198754 !important; color: white; }  
     .st-default { background-color: #6c757d !important; color: white; }   
-    
     .tiempo-badge { font-size: 0.75rem; font-weight: bold; color: #555; }
 </style>
 </head>
@@ -63,10 +60,7 @@
             <div class="fw-bold text-primary" style="font-size: 0.9rem;">👤 <span id="usuarioActivo"></span></div>
             <div class="text-muted small" style="font-size: 0.8rem;">Puesto: <span id="puestoActivo"></span></div>
         </div>
-
-        <button class="btn btn-outline-danger btn-rounded fw-bold px-4 shadow-sm" onclick="cerrarSesion()">
-            🚪 Cerrar Sesión
-        </button>
+        <button class="btn btn-outline-danger btn-rounded fw-bold px-4 shadow-sm" onclick="cerrarSesion()">🚪 Cerrar Sesión</button>
     </div>
 
     <div class="text-center mb-4">
@@ -83,9 +77,7 @@
             <div class="col-md-3"><label class="fw-bold small">Sucursal</label><input id="sucursal" class="form-control text-uppercase"></div>
             <div class="col-md-6"><label class="fw-bold small">Requisición (PDF/Imagen)</label><input id="archivo" type="file" class="form-control"></div>
             <div class="col-12 text-start mt-4">
-                <button type="button" class="btn btn-primary btn-rounded px-5 shadow" onclick="guardarSolicitud()">
-                    💾 Guardar Solicitud
-                </button>
+                <button type="button" class="btn btn-primary btn-rounded px-5 shadow" onclick="guardarSolicitud()">💾 Guardar Solicitud</button>
             </div>
         </form>
     </div>
@@ -96,16 +88,7 @@
             <table class="table table-bordered table-striped align-middle text-center">
                 <thead>
                     <tr>
-                        <th>Folio</th>
-                        <th>Empresa</th>
-                        <th>Zona</th>
-                        <th>Soporte</th>
-                        <th>Sucursal</th>
-                        <th>Archivo</th>
-                        <th>Status Actual</th>
-                        <th>Transcurrido</th> 
-                        <th>Fecha Registro</th>
-                        <th>Acciones</th>
+                        <th>Folio</th><th>Empresa</th><th>Zona</th><th>Soporte</th><th>Sucursal</th><th>Archivo</th><th>Status Actual</th><th>Transcurrido</th><th>Fecha Registro</th><th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tablaTecBody"></tbody>
@@ -132,7 +115,7 @@
 </div>
 
 <script type="module">
-import { database, ref, push, set, get, onValue, remove } from "./firebase.js";
+import { database, ref, push, set, get, onValue, update } from "./firebase.js";
 
 usuarioActivo.textContent = nombreSesion;
 puestoActivo.textContent = puestoSesion;
@@ -142,7 +125,6 @@ const solicitudesRef = ref(database,"tecnologia");
 const seguimientoRef = ref(database,"seguimiento");
 
 let globalSeguimientos = [];
-// --- NUEVO: Objeto para rastrear estados anteriores y evitar alertas en carga inicial ---
 let estadosAnteriores = {}; 
 let cargaInicialFinalizada = false;
 
@@ -153,55 +135,29 @@ function calcularTranscurrido(fechaInicio) {
     const dif = ahora - inicio;
     const dias = Math.floor(dif / (1000 * 60 * 60 * 24));
     const horas = Math.floor((dif / (1000 * 60 * 60)) % 24);
-    if (dias > 0) return `${dias}d ${horas}h`;
-    if (horas > 0) return `${horas}h`;
-    return "Menos de 1h";
+    return dias > 0 ? `${dias}d ${horas}h` : (horas > 0 ? `${horas}h` : "Menos de 1h");
 }
 
-// Escuchador de seguimientos (donde vienen los cambios de status)
 onValue(seguimientoRef, snap => {
     globalSeguimientos = [];
     let cambiosDetectados = [];
+    snap.forEach(c => globalSeguimientos.push({ ...c.val(), id: c.key }));
 
-    snap.forEach(c => { 
-        const data = c.val();
-        globalSeguimientos.push({ ...data, id: c.key }); 
-    });
-
-    // Lógica para detectar cambio de estatus por folio
     const foliosUnicos = [...new Set(globalSeguimientos.map(s => s.folio))];
-    
     foliosUnicos.forEach(f => {
-        const segs = globalSeguimientos.filter(x => x.folio === f)
-                     .sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
+        const segs = globalSeguimientos.filter(x => x.folio === f).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
         const statusActual = segs[0].status;
-
-        // Si ya teníamos este folio y el status cambió
         if (cargaInicialFinalizada && estadosAnteriores[f] && estadosAnteriores[f] !== statusActual) {
             cambiosDetectados.push({ folio: f, nuevoStatus: statusActual });
         }
-        // Actualizamos el registro histórico
         estadosAnteriores[f] = statusActual;
     });
 
-    // Si hay cambios, mostrar alerta distintiva
     if (cambiosDetectados.length > 0) {
         cambiosDetectados.forEach(cambio => {
-            Swal.fire({
-                title: '¡Estatus Actualizado!',
-                html: `El folio <b>${cambio.folio}</b> ha cambiado a:<br><span class="badge bg-primary mt-2">${cambio.nuevoStatus}</span>`,
-                icon: 'info',
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 5000,
-                timerProgressBar: true,
-                background: '#fff',
-                color: '#000'
-            });
+            Swal.fire({ title: '¡Estatus Actualizado!', html: `El folio <b>${cambio.folio}</b> ha cambiado a:<br><span class="badge bg-primary mt-2">${cambio.nuevoStatus}</span>`, icon: 'info', toast: true, position: 'top-end', showConfirmButton: false, timer: 5000, timerProgressBar: true });
         });
     }
-
     cargaInicialFinalizada = true;
     renderTable(); 
 });
@@ -211,6 +167,7 @@ function renderTable() {
         tablaTecBody.innerHTML = "";
         snap.forEach(c => {
             const s = c.val();
+            const idKey = c.key;
             const puedeVerTodo = puestosPrivilegiados.includes(puestoSesion);
             const esDuenoDelRegistro = s.usuario === usuarioSesion;
 
@@ -218,42 +175,39 @@ function renderTable() {
                 const segsDelFolio = globalSeguimientos.filter(x => x.folio === s.folio);
                 let statusMostrar = s.status || "PENDIENTE";
                 let claseColor = "st-default";
+                let claseFila = s.eliminado ? "fila-eliminada" : "";
 
-                if(segsDelFolio.length > 0) {
+                if(s.eliminado) {
+                    statusMostrar = "ELIMINADO";
+                    claseColor = "st-eliminado";
+                } else if(segsDelFolio.length > 0) {
                     segsDelFolio.sort((a, b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
                     statusMostrar = segsDelFolio[0].status;
-                    switch(statusMostrar) {
-                        case "ENVIADO A COMPRAS": claseColor = "st-compras"; break;
-                        case "ENVIADO A ZONA": claseColor = "st-zona"; break;
-                        case "PENDIENTE POR AUTORIZAR": claseColor = "st-pendiente"; break;
-                        case "EN SISTEMAS": claseColor = "st-sistemas"; break;
-                        default: claseColor = "st-default";
-                    }
+                    const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas"};
+                    claseColor = colores[statusMostrar] || "st-default";
                 }
 
-                const tiempo = calcularTranscurrido(s.fechaISO || s.fechaEnvio);
+                const tooltipSeguimiento = (esSoporteJR && s.eliminado) ? `Motivo: ${s.motivoEliminacion}` : (esSoporteJR ? 'Sin permisos para editar' : 'Nuevo Seguimiento');
 
                 tablaTecBody.innerHTML += `
-                <tr>
+                <tr class="${claseFila}">
                     <td><small class="fw-bold">${s.folio}</small></td>
                     <td>${s.empresa}</td>
                     <td>${s.zona}</td>
                     <td>${s.soporte}</td>
                     <td>${s.sucursal}</td>
-                    <td><a class="btn btn-success btn-sm shadow-sm" download="${s.archivoNombre}" href="${s.archivoData}">📥</a></td>
-                    <td><span class="badge ${claseColor} p-2 w-100 shadow-sm" style="font-size:10px;">${statusMostrar}</span></td>
-                    <td class="tiempo-badge">${tiempo}</td>
+                    <td><a class="btn btn-success btn-sm" download="${s.archivoNombre}" href="${s.archivoData}">📥</a></td>
+                    <td><span class="badge ${claseColor} p-2 w-100">${statusMostrar}</span></td>
+                    <td class="tiempo-badge">${calcularTranscurrido(s.fechaISO || s.fechaEnvio)}</td>
                     <td><small>${s.fechaEnvio}</small></td>
                     <td>
                         <div class="acciones">
-                            <span class="action-btn ${esSoporteJR ? 'action-disabled' : ''}" 
-                                  onclick="irSeguimiento('${s.folio}')" 
-                                  title="${esSoporteJR ? 'Sin permisos para editar' : 'Nuevo Seguimiento'}">📋</span>
-                            
+                            <span class="action-btn ${esSoporteJR && !s.eliminado ? 'action-disabled' : ''}" 
+                                  onclick="${s.eliminado ? '' : `irSeguimiento('${s.folio}')`}" 
+                                  title="${tooltipSeguimiento}">📋</span>
                             <span class="action-btn ${segsDelFolio.length > 0 ? '' : 'action-disabled'}" 
                                   onclick="${segsDelFolio.length > 0 ? `verHistorial('${s.folio}')` : ''}" title="Ver Historial">📜</span>
-                            
-                            ${puedeVerTodo ? `<span class="action-btn" onclick="eliminar('${c.key}')">🗑️</span>` : ``}
+                            ${puedeVerTodo && !s.eliminado ? `<span class="action-btn" onclick="eliminarSolicitud('${idKey}')">🗑️</span>` : ``}
                         </div>
                     </td>
                 </tr>`;
@@ -262,7 +216,32 @@ function renderTable() {
     });
 }
 
-// El resto de funciones (generarFolio, guardarSolicitud, etc.) se mantienen igual
+window.eliminarSolicitud = async (id) => {
+    const { value: motivo } = await Swal.fire({
+        title: '¿Eliminar solicitud?',
+        text: "Indique el motivo de la eliminación:",
+        input: 'textarea',
+        inputPlaceholder: 'Escriba el motivo aquí...',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        confirmButtonText: 'Sí, eliminar (Inhabilitar)',
+        cancelButtonText: 'Cancelar',
+        inputValidator: (value) => {
+            if (!value) return '¡El motivo es obligatorio para eliminar!';
+        }
+    });
+
+    if (motivo) {
+        await update(ref(database, `tecnologia/${id}`), {
+            eliminado: true,
+            motivoEliminacion: motivo,
+            fechaEliminacion: new Date().toLocaleString()
+        });
+        Swal.fire('Inhabilitado', 'El registro se ha marcado como eliminado.', 'success');
+    }
+};
+
+// Funciones base mantenidas
 async function generarFolio(emp, zon){
     const key = `TEC_${emp}_${zon}`.toUpperCase();
     const r = ref(database,"folios/"+key);
@@ -274,7 +253,7 @@ async function generarFolio(emp, zon){
 
 window.guardarSolicitud = async ()=>{
     if(!empresa.value||!zona.value||!sucursal.value||!archivo.files[0]){
-        alert("Todos los campos son obligatorios, incluyendo el archivo."); return;
+        alert("Campos obligatorios faltantes."); return;
     }
     const fol = await generarFolio(empresa.value,zona.value);
     const reader = new FileReader();
@@ -284,46 +263,30 @@ window.guardarSolicitud = async ()=>{
             folio: fol, empresa: empresa.value.toUpperCase(), zona: zona.value.toUpperCase(),
             soporte: nombreSesion, sucursal: sucursal.value.toUpperCase(),
             archivoData: reader.result, archivoNombre: archivo.files[0].name,
-            status:"PENDIENTE", 
-            fechaEnvio: ahora.toLocaleString(), 
-            fechaISO: ahora.toISOString(),
-            usuario:usuarioSesion
+            status:"PENDIENTE", fechaEnvio: ahora.toLocaleString(), fechaISO: ahora.toISOString(),
+            usuario:usuarioSesion, eliminado: false
         });
-        alert("Solicitud guardada correctamente.");
-        document.getElementById("formTec").reset(); 
+        Swal.fire('Guardado', 'Solicitud registrada.', 'success');
+        formTec.reset(); 
         soporte.value = nombreSesion;
     };
     reader.readAsDataURL(archivo.files[0]);
 };
 
 window.verHistorial = (fol) => {
-    document.getElementById("histFolio").textContent = fol;
-    const histBody = document.getElementById("histBody");
+    histFolio.textContent = fol;
     histBody.innerHTML = "";
-    const filtrados = globalSeguimientos.filter(x => x.folio === fol);
-    filtrados.sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
-    
+    const filtrados = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
     filtrados.forEach(h => {
-        histBody.innerHTML += `
-            <tr>
-                <td><small>${h.fechaRegistro}</small></td>
-                <td><span class="badge bg-light text-dark border">${h.status}</span></td>
-                <td>${h.descripcion || '-'}</td>
-                <td><small>${h.comentarios || '-'}</small></td>
-            </tr>`;
+        histBody.innerHTML += `<tr><td><small>${h.fechaRegistro}</small></td><td><span class="badge bg-light text-dark border">${h.status}</span></td><td>${h.descripcion || '-'}</td><td><small>${h.comentarios || '-'}</small></td></tr>`;
     });
     new bootstrap.Modal(document.getElementById('modalHistorial')).show();
 };
 
 window.irSeguimiento = f => { 
-    if(esSoporteJR) {
-        alert("Acceso denegado: El puesto Soporte Técnico JR solo puede visualizar.");
-        return;
-    }
+    if(esSoporteJR) return;
     location.href = "seguimiento.html?folio=" + encodeURIComponent(f); 
 };
-
-window.eliminar = id => confirm("¿Eliminar solicitud?") && remove(ref(database,"tecnologia/"+id));
 window.cerrarSesion = ()=>{localStorage.clear();location.href="index.html";}
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
