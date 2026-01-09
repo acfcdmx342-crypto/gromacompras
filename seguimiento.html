@@ -1,27 +1,31 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Seguimiento de Solicitudes</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
-<style>
-    body { background: #eef1f5; }
-    .card { border-radius: 20px; }
-    .table thead { background:#0d6efd; color:white; }
-    .action-btn { cursor:pointer; font-size:22px; margin-right:10px; }
-
-    /* COLORES AUTOMÁTICOS */
-    .status-compras { background:#0d6efd !important; color:white !important; }
-    .status-zona { background:#ffc107 !important; color:#000 !important; }
-    .status-pendiente { background:#dc3545 !important; color:white !important; }
-    .status-sistemas { background:#198754 !important; color:white !important; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seguimiento de Solicitudes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #eef1f5; }
+        .card { border-radius: 20px; border: none; }
+        .section-header { 
+            background: #f8f9fa; 
+            padding: 10px; 
+            border-left: 5px solid #0d6efd; 
+            font-weight: bold; 
+            margin-bottom: 15px;
+            color: #0d6efd;
+        }
+        .table thead { background:#0d6efd; color:white; }
+        .action-btn { cursor:pointer; font-size:22px; margin-right:10px; }
+        .status-compras { background:#0d6efd !important; color:white !important; }
+        .status-zona { background:#ffc107 !important; color:#000 !important; }
+        .status-pendiente { background:#dc3545 !important; color:white !important; }
+        .status-sistemas { background:#198754 !important; color:white !important; }
+        input[type="text"], textarea { text-transform: uppercase; }
+    </style>
 </head>
-
 <body class="p-4">
-
 <div class="container">
     <h2 class="fw-bold text-center mb-4">Seguimiento de Solicitudes</h2>
 
@@ -33,36 +37,91 @@
         <h4 class="fw-bold mb-3">Registrar Seguimiento</h4>
 
         <form id="formSeg" class="row g-3">
+            <div class="section-header">Detalles del seguimiento (Origen)</div>
             <div class="col-md-3">
                 <label class="form-label fw-bold">Folio</label>
                 <select id="folio" class="form-select"></select>
             </div>
-
             <div class="col-md-3">
                 <label class="form-label fw-bold">Solicitó</label>
                 <input id="solicito" class="form-control" readonly>
             </div>
-
             <div class="col-md-3">
                 <label class="form-label fw-bold">Sucursal</label>
                 <input id="sucursal" class="form-control" readonly>
             </div>
-
             <div class="col-md-3">
                 <label class="form-label fw-bold">Archivo</label>
                 <button type="button" class="btn btn-secondary w-100" id="btnArchivo" disabled>Ver Archivo Original</button>
             </div>
 
-            <div class="col-md-3">
-                <label class="form-label fw-bold">Fecha Solicitud a Compras</label>
-                <input id="fechaCompras" class="form-control" readonly>
+            <div class="section-header">Seguimiento Depto. de Sistemas</div>
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Fecha de solicitud a compras</label>
+                <input id="fechaCompras" type="date" class="form-control">
             </div>
-
-            <div class="col-md-9">
+            <div class="col-md-8">
                 <label class="form-label fw-bold">Descripción del Artículo</label>
-                <input id="descripcion" class="form-control text-uppercase">
+                <input id="descripcion" type="text" class="form-control">
             </div>
 
+            <div class="section-header">Seguimiento Compras</div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Fecha de cotización</label>
+                <input id="fechaCot" type="date" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Folio de la cotización</label>
+                <input id="folioCot" type="text" class="form-control">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Adjuntar archivo de cotización</label>
+                <input id="fileCot" type="file" class="form-control">
+            </div>
+
+            <div class="section-header">Seguimiento de Autorización</div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Quien autoriza</label>
+                <input id="autoriza" type="text" class="form-control">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">Fecha de autorización</label>
+                <input id="fechaAuto" type="date" class="form-control">
+            </div>
+
+            <div class="section-header">Seguimiento de Entrega</div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Fecha de entrega</label>
+                <input id="fechaEntrega" type="date" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Quien recibe</label>
+                <input id="recibe" type="text" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Folio de la factura</label>
+                <input id="folioFactura" type="text" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Adjuntar archivo de factura</label>
+                <input id="fileFactura" type="file" class="form-control">
+            </div>
+
+            <div class="section-header">Seguimiento de Envío</div>
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Fecha de envío</label>
+                <input id="fechaEnvio" type="date" class="form-control">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Quien envía</label>
+                <input id="envia" type="text" class="form-control">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Adonde se envía (Dirección/Maps)</label>
+                <input id="adonde" type="text" class="form-control">
+            </div>
+
+            <div class="section-header">Finalización</div>
             <div class="col-md-4">
                 <label class="form-label fw-bold">Status</label>
                 <select id="status" class="form-select">
@@ -72,37 +131,42 @@
                     <option>EN SISTEMAS</option>
                 </select>
             </div>
+            <div class="col-md-8">
+                <label class="form-label fw-bold">Comentarios</label>
+                <textarea id="comentarios" class="form-control" rows="2"></textarea>
+            </div>
 
-            <div class="col-12 mt-3">
-                <button id="btnGuardar" type="button" class="btn btn-primary btn-lg">Guardar Seguimiento</button>
+            <div class="col-12 mt-4">
+                <button id="btnGuardar" type="button" class="btn btn-primary btn-lg w-100">Guardar Seguimiento Completo</button>
             </div>
         </form>
     </div>
 
     <div class="card shadow p-4">
         <h4 class="fw-bold mb-3">Tabla de Seguimiento</h4>
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>Folio</th>
-                    <th>Solicitó</th>
-                    <th>Descripción</th>
-                    <th>Status</th>
-                    <th>Fecha Compras</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody id="tablaSegBody"></tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table table-bordered text-center align-middle">
+                <thead>
+                    <tr>
+                        <th>Folio</th>
+                        <th>Descripción</th>
+                        <th>Status</th>
+                        <th>Cotización</th>
+                        <th>Factura</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaSegBody"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script type="module">
-    import { database, ref, get, push, onValue, query, orderByChild, equalTo } from "./firebase.js";
+    import { database, ref, get, push, onValue, query, orderByChild, equalTo, remove } from "./firebase.js";
 
-    // Variables de control
     const params = new URLSearchParams(window.location.search);
     const folioURL = params.get("folio");
     
@@ -110,12 +174,18 @@
     const solInput = document.getElementById("solicito");
     const sucInput = document.getElementById("sucursal");
     const btnArc = document.getElementById("btnArchivo");
-    const fCompras = document.getElementById("fechaCompras");
 
     let dataArchivoActual = null;
-    fCompras.value = new Date().toLocaleString();
 
-    // 1. CARGAR TODOS LOS FOLIOS EN EL SELECTOR
+    // Función para convertir archivos a Base64
+    const toBase64 = file => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
+
+    // 1. CARGAR FOLIOS
     onValue(ref(database, "tecnologia"), (snap) => {
         selectFolio.innerHTML = '<option value="">Seleccione un folio</option>';
         snap.forEach(child => {
@@ -125,44 +195,29 @@
             option.textContent = d.folio;
             selectFolio.appendChild(option);
         });
-
-        // Si venimos de tecnologia.html con un folio, seleccionarlo automáticamente
         if (folioURL) {
             selectFolio.value = folioURL;
             cargarInfoPorFolio(folioURL);
         }
     });
 
-    // 2. FUNCIÓN PARA BUSCAR INFO EN FIREBASE SEGÚN EL FOLIO SELECCIONADO
     async function cargarInfoPorFolio(fol) {
         if (!fol) return;
-        
         const q = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(fol));
         const snap = await get(q);
-
         if (snap.exists()) {
             const data = snap.val();
-            const key = Object.keys(data)[0];
-            const item = data[key];
-
-            // Llenar campos
+            const item = Object.values(data)[0];
             solInput.value = item.soporte || "";
             sucInput.value = item.sucursal || "";
             dataArchivoActual = item.archivoData || null;
-
-            if (dataArchivoActual) {
-                btnArc.disabled = false;
-                btnArc.className = "btn btn-success w-100";
-            }
+            btnArc.disabled = !dataArchivoActual;
+            btnArc.className = dataArchivoActual ? "btn btn-success w-100" : "btn btn-secondary w-100";
         }
     }
 
-    // Evento al cambiar el selector manualmente
-    selectFolio.addEventListener("change", (e) => {
-        cargarInfoPorFolio(e.target.value);
-    });
+    selectFolio.addEventListener("change", (e) => cargarInfoPorFolio(e.target.value));
 
-    // Ver archivo original
     btnArc.onclick = () => {
         if (dataArchivoActual) {
             const win = window.open("");
@@ -170,25 +225,42 @@
         }
     };
 
-    // 3. GUARDAR SEGUIMIENTO EN FIREBASE
+    // 2. GUARDAR
     document.getElementById("btnGuardar").onclick = async () => {
         if (!selectFolio.value) return alert("Seleccione un folio");
 
-        await push(ref(database, "seguimiento"), {
+        const fCot = document.getElementById("fileCot").files[0];
+        const fFac = document.getElementById("fileFactura").files[0];
+
+        const dataGuardar = {
             folio: selectFolio.value,
             solicito: solInput.value,
             sucursal: sucInput.value,
+            fechaCompras: document.getElementById("fechaCompras").value,
             descripcion: document.getElementById("descripcion").value.toUpperCase(),
+            fechaCot: document.getElementById("fechaCot").value,
+            folioCot: document.getElementById("folioCot").value.toUpperCase(),
+            archivoCot: fCot ? await toBase64(fCot) : null,
+            autoriza: document.getElementById("autoriza").value.toUpperCase(),
+            fechaAuto: document.getElementById("fechaAuto").value,
+            fechaEntrega: document.getElementById("fechaEntrega").value,
+            recibe: document.getElementById("recibe").value.toUpperCase(),
+            folioFactura: document.getElementById("folioFactura").value.toUpperCase(),
+            archivoFac: fFac ? await toBase64(fFac) : null,
+            fechaEnvio: document.getElementById("fechaEnvio").value,
+            envia: document.getElementById("envia").value.toUpperCase(),
+            adonde: document.getElementById("adonde").value.toUpperCase(),
             status: document.getElementById("status").value,
-            fechaCompras: fCompras.value,
+            comentarios: document.getElementById("comentarios").value.toUpperCase(),
             fechaRegistro: new Date().toLocaleString()
-        });
+        };
 
-        alert("Seguimiento guardado");
+        await push(ref(database, "seguimiento"), dataGuardar);
+        alert("Seguimiento guardado exitosamente");
         location.reload();
     };
 
-    // 4. MOSTRAR TABLA (HISTORIAL)
+    // 3. MOSTRAR TABLA
     onValue(ref(database, "seguimiento"), (snap) => {
         const tbody = document.getElementById("tablaSegBody");
         tbody.innerHTML = "";
@@ -201,16 +273,20 @@
             tbody.innerHTML += `
                 <tr>
                     <td>${s.folio}</td>
-                    <td>${s.solicito}</td>
                     <td>${s.descripcion}</td>
                     <td class="${color} fw-bold">${s.status}</td>
-                    <td>${s.fechaCompras}</td>
+                    <td>${s.archivoCot ? `<button class="btn btn-sm btn-outline-primary" onclick="window.open('${s.archivoCot}')">📂</button>` : '---'}</td>
+                    <td>${s.archivoFac ? `<button class="btn btn-sm btn-outline-danger" onclick="window.open('${s.archivoFac}')">🧾</button>` : '---'}</td>
                     <td>
                          <span class="action-btn text-danger" onclick="eliminarSeg('${child.key}')">🗑️</span>
                     </td>
                 </tr>`;
         });
     });
+
+    window.eliminarSeg = async (key) => {
+        if(confirm("¿Eliminar este registro?")) await remove(ref(database, "seguimiento/" + key));
+    };
 </script>
 </body>
 </html>
