@@ -10,11 +10,12 @@
     .card { border-radius:20px; }
     .action-btn { cursor:pointer; font-size:22px; transition: 0.2s; }
     .action-btn:hover { transform: scale(1.2); }
-    .action-disabled { color:#adb5bd; cursor:not-allowed !important; opacity: 0.5; filter: grayscale(1); }
+    .action-disabled { color:#adb5bd; cursor:not-allowed; opacity: 0.5; filter: grayscale(1); }
     .table thead { background:#0d6efd; color:white; }
     .btn-rounded { border-radius:50px; }
     #btnRegresar { cursor:pointer; font-size:40px; position:fixed; top:20px; left:20px; color:#0d6efd; z-index: 1000; }
     .acciones { display:flex; justify-content:center; gap:10px; }
+    /* Colores dinámicos para estatus */
     .st-compras { background-color: #0d6efd !important; color: white; }
     .st-zona { background-color: #ffc107 !important; color: black; }
     .st-pendiente { background-color: #dc3545 !important; color: white; }
@@ -29,9 +30,17 @@
     const usuarioSesion = sesion.usuario;
     const nombreSesion = sesion.nombre;
     const puestoSesion = sesion.puesto;
-    const puestosPermitidos = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO", "BECARIO"];
-    
-    // Nueva constante para identificar al JR
+
+    // Puestos que pueden ver TODO y pueden gestionar seguimiento
+    const puestosPrivilegiados = [
+        "GERENTE DE SISTEMAS", 
+        "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", 
+        "COORDINADOR DE SOPORTE TECNICO", 
+        "SOPORTE TECNICO", 
+        "BECARIO"
+    ];
+
+    // Identificar si es JR
     const esSoporteJR = puestoSesion === "SOPORTE TECNICO JR";
 </script>
 
@@ -133,22 +142,30 @@ function renderTable() {
         tablaTecBody.innerHTML="";
         snap.forEach(c => {
             const s = c.val();
-            const segsDelFolio = globalSeguimientos.filter(x => x.folio === s.folio);
-            const tieneSeg = segsDelFolio.length > 0;
             
-            let statusMostrar = s.status;
-            let claseColor = "bg-secondary";
+            // LÓGICA DE VISIBILIDAD: 
+            // Si el puesto está en la lista de privilegiados, ve TODO.
+            // Si no (JR u otros), ve solo lo que coincida con su usuarioSesion.
+            const puedeVerTodo = puestosPrivilegiados.includes(puestoSesion);
+            const esDuenoDelRegistro = s.usuario === usuarioSesion;
 
-            if(tieneSeg) {
-                segsDelFolio.sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
-                statusMostrar = segsDelFolio[0].status;
-                if(statusMostrar === "ENVIADO A COMPRAS") claseColor = "st-compras";
-                else if(statusMostrar === "ENVIADO A ZONA") claseColor = "st-zona";
-                else if(statusMostrar === "PENDIENTE POR AUTORIZAR") claseColor = "st-pendiente";
-                else if(statusMostrar === "EN SISTEMAS") claseColor = "st-sistemas";
-            }
+            if(puedeVerTodo || esDuenoDelRegistro) {
+                const segsDelFolio = globalSeguimientos.filter(x => x.folio === s.folio);
+                const tieneSeg = segsDelFolio.length > 0;
+                
+                let statusMostrar = s.status;
+                let claseColor = "bg-secondary";
 
-            if(puestosPermitidos.includes(puestoSesion) || esSoporteJR || s.usuario===usuarioSesion){
+                if(tieneSeg) {
+                    segsDelFolio.sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
+                    statusMostrar = segsDelFolio[0].status;
+                    
+                    if(statusMostrar === "ENVIADO A COMPRAS") claseColor = "st-compras";
+                    else if(statusMostrar === "ENVIADO A ZONA") claseColor = "st-zona";
+                    else if(statusMostrar === "PENDIENTE POR AUTORIZAR") claseColor = "st-pendiente";
+                    else if(statusMostrar === "EN SISTEMAS") claseColor = "st-sistemas";
+                }
+
                 tablaTecBody.innerHTML+=`
                 <tr>
                     <td>${s.folio}</td><td>${s.empresa}</td><td>${s.zona}</td><td>${s.soporte}</td><td>${s.sucursal}</td>
@@ -162,10 +179,9 @@ function renderTable() {
                                   title="${esSoporteJR ? 'Sin permisos para editar' : 'Nuevo Seguimiento'}">📋</span>
                             
                             <span class="action-btn ${tieneSeg ? '' : 'action-disabled'}" 
-                                  onclick="${tieneSeg ? `verHistorial('${s.folio}')` : ''}" 
-                                  title="Ver Historial">📜</span>
+                                  onclick="${tieneSeg ? `verHistorial('${s.folio}')` : ''}" title="Ver Historial">📜</span>
                             
-                            ${puestosPermitidos.includes(puestoSesion) ? `<span class="action-btn" onclick="eliminar('${c.key}')">🗑️</span>` : ``}
+                            ${puedeVerTodo ? `<span class="action-btn" onclick="eliminar('${c.key}')">🗑️</span>` : ``}
                         </div>
                     </td>
                 </tr>`;
@@ -180,6 +196,7 @@ window.verHistorial = (fol) => {
     histBody.innerHTML = "";
     const filtrados = globalSeguimientos.filter(x => x.folio === fol);
     filtrados.sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
+    
     filtrados.forEach(h => {
         histBody.innerHTML += `
             <tr>
@@ -192,10 +209,10 @@ window.verHistorial = (fol) => {
     new bootstrap.Modal(document.getElementById('modalHistorial')).show();
 };
 
-// Modificado para validar el puesto antes de redirigir
 window.irSeguimiento = f => { 
+    // BLOQUEO PARA JR
     if(esSoporteJR) {
-        alert("Tu nivel de usuario (Soporte Técnico JR) solo permite visualizar el historial (📜). No tienes permisos para registrar seguimientos.");
+        alert("Acceso denegado: El puesto Soporte Técnico JR solo puede visualizar el estatus y el historial (📜).");
         return;
     }
     location.href = "seguimiento.html?folio=" + encodeURIComponent(f); 
