@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Solicitud de Tecnología</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <style>
     body { background:#f2f4f7; }
     .card { border-radius:20px; }
@@ -14,7 +15,6 @@
     .table thead { background:#0d6efd; color:white; }
     .btn-rounded { border-radius:50px; }
     
-    /* Estilos de navegación y usuario */
     #btnRegresar { cursor:pointer; font-size:40px; color:#0d6efd; transition: 0.3s; vertical-align: middle; }
     #btnRegresar:hover { color: #0056b3; transform: scale(1.1); }
     
@@ -28,7 +28,6 @@
 
     .acciones { display:flex; justify-content:center; gap:10px; }
     
-    /* Colores dinámicos vinculados */
     .st-compras { background-color: #0d6efd !important; color: white; } 
     .st-zona { background-color: #ffc107 !important; color: black; }    
     .st-pendiente { background-color: #dc3545 !important; color: white; } 
@@ -71,7 +70,6 @@
     </div>
 
     <div class="text-center mb-4">
-       
         <h2 class="d-inline-block fw-bold align-middle m-0">Solicitud de Tecnología</h2>
     </div>
 
@@ -136,7 +134,6 @@
 <script type="module">
 import { database, ref, push, set, get, onValue, remove } from "./firebase.js";
 
-// Llenado de información del usuario
 usuarioActivo.textContent = nombreSesion;
 puestoActivo.textContent = puestoSesion;
 soporte.value = nombreSesion;
@@ -145,6 +142,9 @@ const solicitudesRef = ref(database,"tecnologia");
 const seguimientoRef = ref(database,"seguimiento");
 
 let globalSeguimientos = [];
+// --- NUEVO: Objeto para rastrear estados anteriores y evitar alertas en carga inicial ---
+let estadosAnteriores = {}; 
+let cargaInicialFinalizada = false;
 
 function calcularTranscurrido(fechaInicio) {
     const inicio = new Date(fechaInicio);
@@ -158,11 +158,51 @@ function calcularTranscurrido(fechaInicio) {
     return "Menos de 1h";
 }
 
+// Escuchador de seguimientos (donde vienen los cambios de status)
 onValue(seguimientoRef, snap => {
     globalSeguimientos = [];
+    let cambiosDetectados = [];
+
     snap.forEach(c => { 
-        globalSeguimientos.push({ ...c.val(), id: c.key }); 
+        const data = c.val();
+        globalSeguimientos.push({ ...data, id: c.key }); 
     });
+
+    // Lógica para detectar cambio de estatus por folio
+    const foliosUnicos = [...new Set(globalSeguimientos.map(s => s.folio))];
+    
+    foliosUnicos.forEach(f => {
+        const segs = globalSeguimientos.filter(x => x.folio === f)
+                     .sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
+        const statusActual = segs[0].status;
+
+        // Si ya teníamos este folio y el status cambió
+        if (cargaInicialFinalizada && estadosAnteriores[f] && estadosAnteriores[f] !== statusActual) {
+            cambiosDetectados.push({ folio: f, nuevoStatus: statusActual });
+        }
+        // Actualizamos el registro histórico
+        estadosAnteriores[f] = statusActual;
+    });
+
+    // Si hay cambios, mostrar alerta distintiva
+    if (cambiosDetectados.length > 0) {
+        cambiosDetectados.forEach(cambio => {
+            Swal.fire({
+                title: '¡Estatus Actualizado!',
+                html: `El folio <b>${cambio.folio}</b> ha cambiado a:<br><span class="badge bg-primary mt-2">${cambio.nuevoStatus}</span>`,
+                icon: 'info',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 5000,
+                timerProgressBar: true,
+                background: '#fff',
+                color: '#000'
+            });
+        });
+    }
+
+    cargaInicialFinalizada = true;
     renderTable(); 
 });
 
@@ -222,6 +262,7 @@ function renderTable() {
     });
 }
 
+// El resto de funciones (generarFolio, guardarSolicitud, etc.) se mantienen igual
 async function generarFolio(emp, zon){
     const key = `TEC_${emp}_${zon}`.toUpperCase();
     const r = ref(database,"folios/"+key);
@@ -288,4 +329,3 @@ window.cerrarSesion = ()=>{localStorage.clear();location.href="index.html";}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
