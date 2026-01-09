@@ -79,7 +79,6 @@
             text-transform: uppercase;
         }
 
-        /* Estilo para campos bloqueados */
         .field-locked {
             background-color: #e9ecef !important;
             cursor: not-allowed;
@@ -258,7 +257,6 @@
         reader.onerror = error => reject(error);
     });
 
-    // --- FUNCIÓN PARA CARGAR Y BLOQUEAR CAMPOS SEGÚN REGLAS ---
     window.cargarParaContinuar = (dataString) => {
         const data = JSON.parse(decodeURIComponent(dataString));
         
@@ -272,29 +270,20 @@
             const el = document.getElementById(id);
             if (!el) return;
 
-            // 1. Llenamos el valor si existe en el registro
             if (data[id]) {
                 el.value = data[id];
-                
-                // 2. Aplicamos bloqueo si:
-                // - El campo tiene datos
-                // - NO es el folio (select principal)
-                // - NO es el status ni comentarios (siempre editables)
                 if (id !== "folio" && id !== "status" && id !== "comentarios") {
                     el.readOnly = true;
                     el.classList.add("field-locked");
-                    // Para los input de tipo archivo o selects que no deben tocarse
                     if (el.tagName === "SELECT") el.disabled = true;
                 }
             } else {
-                // Si el campo está vacío en el registro, lo habilitamos para completar
                 el.readOnly = false;
                 el.disabled = false;
                 el.classList.remove("field-locked");
             }
         });
 
-        // Caso especial: El status y comentarios siempre deben ser editables para "continuar"
         document.getElementById("status").disabled = false;
         document.getElementById("status").classList.remove("field-locked");
         document.getElementById("comentarios").readOnly = false;
@@ -348,9 +337,9 @@
 
         const fCot = document.getElementById("fileCot").files[0];
         const fFac = document.getElementById("fileFactura").files[0];
-
         const getVal = (id) => document.getElementById(id).value;
 
+        // MEJORA: Obtenemos el registro base si existe para no perder archivos previos al actualizar
         const dataGuardar = {
             folio: getVal("folio"),
             solicito: solInput.value,
@@ -359,31 +348,38 @@
             descripcion: getVal("descripcion").toUpperCase(),
             fechaCot: getVal("fechaCot"),
             folioCot: getVal("folioCot").toUpperCase(),
-            archivoCot: fCot ? await toBase64(fCot) : null,
+            archivoCot: fCot ? await toBase64(fCot) : (document.getElementById("fileCot").dataset.oldFile || null),
             autoriza: getVal("autoriza").toUpperCase(),
             fechaAuto: getVal("fechaAuto"),
             fechaEntrega: getVal("fechaEntrega"),
             recibe: getVal("recibe").toUpperCase(),
             folioFactura: getVal("folioFactura").toUpperCase(),
-            archivoFac: fFac ? await toBase64(fFac) : null,
+            archivoFac: fFac ? await toBase64(fFac) : (document.getElementById("fileFactura").dataset.oldFile || null),
             fechaEnvio: getVal("fechaEnvio"),
             envia: getVal("envia").toUpperCase(),
             adonde: getVal("adonde").toUpperCase(),
             status: getVal("status"),
             comentarios: getVal("comentarios").toUpperCase(),
-            fechaRegistro: new Date().toLocaleString()
+            // MEJORA TÉCNICA: Usamos ISOString para que el ordenamiento sea perfecto en tecnologia.html
+            fechaRegistro: new Date().toISOString()
         };
 
         await push(ref(database, "seguimiento"), dataGuardar);
-        alert("Seguimiento actualizado/guardado exitosamente");
+        alert("Seguimiento actualizado exitosamente");
         location.reload();
     };
 
     onValue(ref(database, "seguimiento"), (snap) => {
         const tbody = document.getElementById("tablaSegBody");
         tbody.innerHTML = "";
+        
+        // Convertimos a array para mostrar el historial del más reciente al más antiguo en la tabla
+        const registros = [];
         snap.forEach(child => {
-            const s = child.val();
+            registros.push({ key: child.key, ...child.val() });
+        });
+        
+        registros.reverse().forEach(s => {
             const colorClass = s.status === "ENVIADO A COMPRAS" ? "status-compras" : 
                                s.status === "ENVIADO A ZONA" ? "status-zona" : 
                                s.status === "PENDIENTE POR AUTORIZAR" ? "status-pendiente" : "status-sistemas";
@@ -406,7 +402,7 @@
                             <button class="btn btn-sm btn-light btn-action-table text-primary" onclick="cargarParaContinuar('${dataString}')" title="Continuar Registro">
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </button>
-                            <button class="btn btn-sm btn-light btn-action-table text-danger" onclick="eliminarSeg('${child.key}')" title="Eliminar">
+                            <button class="btn btn-sm btn-light btn-action-table text-danger" onclick="eliminarSeg('${s.key}')" title="Eliminar">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                          </div>
