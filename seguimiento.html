@@ -260,6 +260,10 @@
     window.cargarParaContinuar = (dataString) => {
         const data = JSON.parse(decodeURIComponent(dataString));
         
+        // Guardamos los archivos existentes en el dataset para no perderlos si no se suben nuevos
+        document.getElementById("fileCot").dataset.oldFile = data.archivoCot || "";
+        document.getElementById("fileFactura").dataset.oldFile = data.archivoFac || "";
+
         const campos = [
             "folio", "fechaCompras", "descripcion", "fechaCot", "folioCot", 
             "autoriza", "fechaAuto", "fechaEntrega", "recibe", "folioFactura", 
@@ -335,45 +339,56 @@
     document.getElementById("btnGuardar").onclick = async () => {
         if (!selectFolio.value) return alert("Seleccione un folio");
 
+        const btn = document.getElementById("btnGuardar");
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>GUARDANDO...';
+
         const fCot = document.getElementById("fileCot").files[0];
         const fFac = document.getElementById("fileFactura").files[0];
         const getVal = (id) => document.getElementById(id).value;
 
-        // MEJORA: Obtenemos el registro base si existe para no perder archivos previos al actualizar
-        const dataGuardar = {
-            folio: getVal("folio"),
-            solicito: solInput.value,
-            sucursal: sucInput.value,
-            fechaCompras: getVal("fechaCompras"),
-            descripcion: getVal("descripcion").toUpperCase(),
-            fechaCot: getVal("fechaCot"),
-            folioCot: getVal("folioCot").toUpperCase(),
-            archivoCot: fCot ? await toBase64(fCot) : (document.getElementById("fileCot").dataset.oldFile || null),
-            autoriza: getVal("autoriza").toUpperCase(),
-            fechaAuto: getVal("fechaAuto"),
-            fechaEntrega: getVal("fechaEntrega"),
-            recibe: getVal("recibe").toUpperCase(),
-            folioFactura: getVal("folioFactura").toUpperCase(),
-            archivoFac: fFac ? await toBase64(fFac) : (document.getElementById("fileFactura").dataset.oldFile || null),
-            fechaEnvio: getVal("fechaEnvio"),
-            envia: getVal("envia").toUpperCase(),
-            adonde: getVal("adonde").toUpperCase(),
-            status: getVal("status"),
-            comentarios: getVal("comentarios").toUpperCase(),
-            // MEJORA TÉCNICA: Usamos ISOString para que el ordenamiento sea perfecto en tecnologia.html
-            fechaRegistro: new Date().toISOString()
-        };
+        try {
+            const dataGuardar = {
+                folio: getVal("folio"),
+                solicito: solInput.value,
+                sucursal: sucInput.value,
+                fechaCompras: getVal("fechaCompras"),
+                descripcion: getVal("descripcion").toUpperCase(),
+                fechaCot: getVal("fechaCot"),
+                folioCot: getVal("folioCot").toUpperCase(),
+                // Lógica para mantener archivo viejo si no se sube uno nuevo
+                archivoCot: fCot ? await toBase64(fCot) : (document.getElementById("fileCot").dataset.oldFile || null),
+                autoriza: getVal("autoriza").toUpperCase(),
+                fechaAuto: getVal("fechaAuto"),
+                fechaEntrega: getVal("fechaEntrega"),
+                recibe: getVal("recibe").toUpperCase(),
+                folioFactura: getVal("folioFactura").toUpperCase(),
+                // Lógica para mantener archivo viejo si no se sube uno nuevo
+                archivoFac: fFac ? await toBase64(fFac) : (document.getElementById("fileFactura").dataset.oldFile || null),
+                fechaEnvio: getVal("fechaEnvio"),
+                envia: getVal("envia").toUpperCase(),
+                adonde: getVal("adonde").toUpperCase(),
+                status: getVal("status"),
+                comentarios: getVal("comentarios").toUpperCase(),
+                // ISOString es vital para que tecnologia.html ordene correctamente
+                fechaRegistro: new Date().toISOString()
+            };
 
-        await push(ref(database, "seguimiento"), dataGuardar);
-        alert("Seguimiento actualizado exitosamente");
-        location.reload();
+            await push(ref(database, "seguimiento"), dataGuardar);
+            alert("Seguimiento actualizado exitosamente");
+            location.reload();
+        } catch (error) {
+            console.error(error);
+            alert("Error al guardar");
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up me-2"></i>GUARDAR SEGUIMIENTO COMPLETO';
+        }
     };
 
     onValue(ref(database, "seguimiento"), (snap) => {
         const tbody = document.getElementById("tablaSegBody");
         tbody.innerHTML = "";
         
-        // Convertimos a array para mostrar el historial del más reciente al más antiguo en la tabla
         const registros = [];
         snap.forEach(child => {
             registros.push({ key: child.key, ...child.val() });
