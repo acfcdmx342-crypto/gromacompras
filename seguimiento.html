@@ -83,7 +83,7 @@
         .field-locked {
             background-color: #e9ecef !important;
             cursor: not-allowed;
-            pointer-events: none; /* Evita interacción en archivos */
+            pointer-events: none;
         }
 
         .header-container {
@@ -258,7 +258,7 @@
         reader.onerror = error => reject(error);
     });
 
-    // --- FUNCIÓN: CARGAR PARA CONTINUAR Y BLOQUEAR ---
+    // --- FUNCIÓN PARA CARGAR Y BLOQUEAR CAMPOS SEGÚN REGLAS ---
     window.cargarParaContinuar = (dataString) => {
         const data = JSON.parse(decodeURIComponent(dataString));
         
@@ -270,31 +270,35 @@
 
         campos.forEach(id => {
             const el = document.getElementById(id);
-            if (el) {
-                // Rellenar valor
-                el.value = data[id] || "";
+            if (!el) return;
+
+            // 1. Llenamos el valor si existe en el registro
+            if (data[id]) {
+                el.value = data[id];
                 
-                // Lógica de bloqueo: 
-                // Bloquear si tiene contenido Y no es el campo "status"
-                if (data[id] && id !== "status") {
-                    if (el.tagName === "SELECT" || el.type === "file") {
-                        el.disabled = true;
-                    } else {
-                        el.readOnly = true;
-                    }
+                // 2. Aplicamos bloqueo si:
+                // - El campo tiene datos
+                // - NO es el folio (select principal)
+                // - NO es el status ni comentarios (siempre editables)
+                if (id !== "folio" && id !== "status" && id !== "comentarios") {
+                    el.readOnly = true;
                     el.classList.add("field-locked");
-                } else {
-                    // Si está vacío o es el status, asegurar que sea editable
-                    el.readOnly = false;
-                    el.disabled = false;
-                    el.classList.remove("field-locked");
+                    // Para los input de tipo archivo o selects que no deben tocarse
+                    if (el.tagName === "SELECT") el.disabled = true;
                 }
+            } else {
+                // Si el campo está vacío en el registro, lo habilitamos para completar
+                el.readOnly = false;
+                el.disabled = false;
+                el.classList.remove("field-locked");
             }
         });
 
-        // Manejo especial para archivos ya subidos (bloquear inputs file)
-        if (data.archivoCot) document.getElementById("fileCot").disabled = true;
-        if (data.archivoFac) document.getElementById("fileFactura").disabled = true;
+        // Caso especial: El status y comentarios siempre deben ser editables para "continuar"
+        document.getElementById("status").disabled = false;
+        document.getElementById("status").classList.remove("field-locked");
+        document.getElementById("comentarios").readOnly = false;
+        document.getElementById("comentarios").classList.remove("field-locked");
 
         cargarInfoPorFolio(data.folio);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -345,7 +349,6 @@
         const fCot = document.getElementById("fileCot").files[0];
         const fFac = document.getElementById("fileFactura").files[0];
 
-        // Función para leer valores incluso si están bloqueados
         const getVal = (id) => document.getElementById(id).value;
 
         const dataGuardar = {
@@ -372,7 +375,7 @@
         };
 
         await push(ref(database, "seguimiento"), dataGuardar);
-        alert("Seguimiento guardado exitosamente");
+        alert("Seguimiento actualizado/guardado exitosamente");
         location.reload();
     };
 
