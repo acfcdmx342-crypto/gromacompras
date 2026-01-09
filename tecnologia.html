@@ -10,12 +10,11 @@
     .card { border-radius:20px; }
     .action-btn { cursor:pointer; font-size:22px; transition: 0.2s; }
     .action-btn:hover { transform: scale(1.2); }
-    .action-disabled { color:#adb5bd; cursor:not-allowed; opacity: 0.5; }
+    .action-disabled { color:#adb5bd; cursor:not-allowed !important; opacity: 0.5; filter: grayscale(1); }
     .table thead { background:#0d6efd; color:white; }
     .btn-rounded { border-radius:50px; }
     #btnRegresar { cursor:pointer; font-size:40px; position:fixed; top:20px; left:20px; color:#0d6efd; z-index: 1000; }
     .acciones { display:flex; justify-content:center; gap:10px; }
-    /* Colores dinámicos para estatus */
     .st-compras { background-color: #0d6efd !important; color: white; }
     .st-zona { background-color: #ffc107 !important; color: black; }
     .st-pendiente { background-color: #dc3545 !important; color: white; }
@@ -31,6 +30,9 @@
     const nombreSesion = sesion.nombre;
     const puestoSesion = sesion.puesto;
     const puestosPermitidos = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO", "BECARIO"];
+    
+    // Nueva constante para identificar al JR
+    const esSoporteJR = puestoSesion === "SOPORTE TECNICO JR";
 </script>
 
 <span id="btnRegresar" onclick="cerrarSesion()">🔙</span>
@@ -93,11 +95,10 @@ const seguimientoRef = ref(database,"seguimiento");
 
 let globalSeguimientos = [];
 
-// Escuchar cambios en seguimientos para tener data fresca
 onValue(seguimientoRef, snap => {
     globalSeguimientos = [];
     snap.forEach(c => { globalSeguimientos.push(c.val()); });
-    renderTable(); // Re-renderizar tabla principal cuando hay nuevos seguimientos
+    renderTable(); 
 });
 
 async function generarFolio(emp, zon){
@@ -132,26 +133,22 @@ function renderTable() {
         tablaTecBody.innerHTML="";
         snap.forEach(c => {
             const s = c.val();
-            // Buscar seguimientos de este folio
             const segsDelFolio = globalSeguimientos.filter(x => x.folio === s.folio);
             const tieneSeg = segsDelFolio.length > 0;
             
-            // Determinar último estatus
             let statusMostrar = s.status;
             let claseColor = "bg-secondary";
 
             if(tieneSeg) {
-                // Ordenar por fecha de registro (asumiendo formato local)
                 segsDelFolio.sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
                 statusMostrar = segsDelFolio[0].status;
-                
                 if(statusMostrar === "ENVIADO A COMPRAS") claseColor = "st-compras";
                 else if(statusMostrar === "ENVIADO A ZONA") claseColor = "st-zona";
                 else if(statusMostrar === "PENDIENTE POR AUTORIZAR") claseColor = "st-pendiente";
                 else if(statusMostrar === "EN SISTEMAS") claseColor = "st-sistemas";
             }
 
-            if(puestosPermitidos.includes(puestoSesion)||s.usuario===usuarioSesion){
+            if(puestosPermitidos.includes(puestoSesion) || esSoporteJR || s.usuario===usuarioSesion){
                 tablaTecBody.innerHTML+=`
                 <tr>
                     <td>${s.folio}</td><td>${s.empresa}</td><td>${s.zona}</td><td>${s.soporte}</td><td>${s.sucursal}</td>
@@ -160,9 +157,14 @@ function renderTable() {
                     <td>${s.fechaEnvio}</td>
                     <td>
                         <div class="acciones">
-                            <span class="action-btn" onclick="irSeguimiento('${s.folio}')" title="Nuevo Seguimiento">📋</span>
+                            <span class="action-btn ${esSoporteJR ? 'action-disabled' : ''}" 
+                                  onclick="irSeguimiento('${s.folio}')" 
+                                  title="${esSoporteJR ? 'Sin permisos para editar' : 'Nuevo Seguimiento'}">📋</span>
+                            
                             <span class="action-btn ${tieneSeg ? '' : 'action-disabled'}" 
-                                  onclick="${tieneSeg ? `verHistorial('${s.folio}')` : ''}" title="Ver Historial">📜</span>
+                                  onclick="${tieneSeg ? `verHistorial('${s.folio}')` : ''}" 
+                                  title="Ver Historial">📜</span>
+                            
                             ${puestosPermitidos.includes(puestoSesion) ? `<span class="action-btn" onclick="eliminar('${c.key}')">🗑️</span>` : ``}
                         </div>
                     </td>
@@ -176,10 +178,8 @@ window.verHistorial = (fol) => {
     document.getElementById("histFolio").textContent = fol;
     const histBody = document.getElementById("histBody");
     histBody.innerHTML = "";
-    
     const filtrados = globalSeguimientos.filter(x => x.folio === fol);
     filtrados.sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
-    
     filtrados.forEach(h => {
         histBody.innerHTML += `
             <tr>
@@ -192,7 +192,15 @@ window.verHistorial = (fol) => {
     new bootstrap.Modal(document.getElementById('modalHistorial')).show();
 };
 
-window.irSeguimiento = f => { location.href = "seguimiento.html?folio=" + encodeURIComponent(f); };
+// Modificado para validar el puesto antes de redirigir
+window.irSeguimiento = f => { 
+    if(esSoporteJR) {
+        alert("Tu nivel de usuario (Soporte Técnico JR) solo permite visualizar el historial (📜). No tienes permisos para registrar seguimientos.");
+        return;
+    }
+    location.href = "seguimiento.html?folio=" + encodeURIComponent(f); 
+};
+
 window.eliminar = id => confirm("¿Eliminar solicitud?") && remove(ref(database,"tecnologia/"+id));
 window.cerrarSesion = ()=>{localStorage.clear();location.href="index.html";}
 </script>
