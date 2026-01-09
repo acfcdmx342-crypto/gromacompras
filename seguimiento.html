@@ -11,6 +11,10 @@
         body { background: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .card { border-radius: 15px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         
+        /* Estilos de navegación y usuario */
+        .navbar-custom { background: white; padding: 10px 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 25px; border-radius: 15px; }
+        .user-dropdown .dropdown-toggle { border-radius: 50px; padding: 8px 20px; background: #f8f9fa; border: 1px solid #dee2e6; color: #333; font-weight: 600; }
+        
         .section-header { 
             background: #ffffff; 
             padding: 12px; 
@@ -45,28 +49,7 @@
             color: white;
         }
 
-        .btn-nav {
-            border: 2px solid #343a40;
-            background: transparent;
-            color: #343a40;
-        }
-
-        .btn-nav:hover {
-            background: #343a40;
-            color: white;
-            transform: scale(1.05);
-        }
-
-        .btn-action-table {
-            border-radius: 8px;
-            width: 35px;
-            height: 35px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: 0.2s;
-        }
-
+        /* Colores de Status */
         .status-compras { background:#e7f1ff !important; color:#0d6efd !important; border-radius: 20px; }
         .status-zona { background:#fff9e6 !important; color:#ffc107 !important; border-radius: 20px; }
         .status-pendiente { background:#fff2f4 !important; color:#dc3545 !important; border-radius: 20px; }
@@ -79,33 +62,42 @@
             text-transform: uppercase;
         }
 
-        .field-locked {
-            background-color: #e9ecef !important;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-
-        .header-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
+        .field-locked { background-color: #e9ecef !important; cursor: not-allowed; pointer-events: none; }
+        
+        /* Estilo para agrupar filas del mismo folio */
+        .group-header { background-color: #f8f9fa !important; font-weight: bold; border-top: 2px solid #dee2e6; }
     </style>
 </head>
 <body class="p-4">
+
+<script>
+    // Validación de sesión antes de cargar el resto
+    const sesion = JSON.parse(localStorage.getItem("usuarioLogueado"));
+    if (!sesion) { location.href = "index.html"; }
+</script>
+
 <div class="container">
     
-    <div class="header-container">
-        <h2 class="fw-bold m-0 text-dark"><i class="fa-solid fa-clipboard-check me-2 text-primary"></i>Seguimiento</h2>
-        <a href="tecnologia.html" class="btn btn-modern btn-nav">
-            <i class="fa-solid fa-arrow-left me-2"></i>Ir a Tecnología
-        </a>
+    <div class="navbar-custom d-flex justify-content-between align-items-center">
+        <h2 class="fw-bold m-0 text-dark" style="font-size: 1.5rem;">
+            <i class="fa-solid fa-clipboard-check me-2 text-primary"></i>Seguimiento
+        </h2>
+        
+        <div class="dropdown user-dropdown">
+            <button class="btn dropdown-toggle d-flex align-items-center shadow-sm" type="button" data-bs-toggle="dropdown">
+                <i class="fa-solid fa-circle-user fs-4 me-2 text-primary"></i>
+                <span id="nombreUsuarioMenu">Cargando...</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                <li><a class="dropdown-item py-2" href="tecnologia.html"><i class="fa-solid fa-laptop me-2"></i>Ir a Tecnología</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><button class="dropdown-item py-2 text-danger" onclick="cerrarSesion()"><i class="fa-solid fa-right-from-bracket me-2"></i>Cerrar Sesión</button></li>
+            </ul>
+        </div>
     </div>
 
     <div class="card shadow p-4 mb-5">
         <h4 class="fw-bold mb-4 text-secondary">Registrar Nuevo Seguimiento</h4>
-
         <form id="formSeg" class="row g-3">
             <div class="section-header"><i class="fa-solid fa-info-circle me-2"></i>Origen de la Solicitud</div>
             <div class="col-md-3">
@@ -217,7 +209,7 @@
     </div>
 
     <div class="card shadow p-4">
-        <h4 class="fw-bold mb-4 text-secondary"><i class="fa-solid fa-list-ul me-2"></i>Historial de Movimientos</h4>
+        <h4 class="fw-bold mb-4 text-secondary"><i class="fa-solid fa-list-ul me-2"></i>Historial Agrupado por Folio</h4>
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead class="table-light">
@@ -240,6 +232,14 @@
 <script type="module">
     import { database, ref, get, push, onValue, query, orderByChild, equalTo, remove } from "./firebase.js";
 
+    // Cargar nombre de usuario
+    document.getElementById("nombreUsuarioMenu").textContent = sesion.nombre;
+
+    window.cerrarSesion = () => {
+        localStorage.clear();
+        location.href = "index.html";
+    };
+
     const params = new URLSearchParams(window.location.search);
     const folioURL = params.get("folio");
     
@@ -259,8 +259,6 @@
 
     window.cargarParaContinuar = (dataString) => {
         const data = JSON.parse(decodeURIComponent(dataString));
-        
-        // Guardamos los archivos existentes en el dataset para no perderlos si no se suben nuevos
         document.getElementById("fileCot").dataset.oldFile = data.archivoCot || "";
         document.getElementById("fileFactura").dataset.oldFile = data.archivoFac || "";
 
@@ -273,7 +271,6 @@
         campos.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
-
             if (data[id]) {
                 el.value = data[id];
                 if (id !== "folio" && id !== "status" && id !== "comentarios") {
@@ -289,10 +286,7 @@
         });
 
         document.getElementById("status").disabled = false;
-        document.getElementById("status").classList.remove("field-locked");
         document.getElementById("comentarios").readOnly = false;
-        document.getElementById("comentarios").classList.remove("field-locked");
-
         cargarInfoPorFolio(data.folio);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -338,7 +332,6 @@
 
     document.getElementById("btnGuardar").onclick = async () => {
         if (!selectFolio.value) return alert("Seleccione un folio");
-
         const btn = document.getElementById("btnGuardar");
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>GUARDANDO...';
@@ -356,21 +349,18 @@
                 descripcion: getVal("descripcion").toUpperCase(),
                 fechaCot: getVal("fechaCot"),
                 folioCot: getVal("folioCot").toUpperCase(),
-                // Lógica para mantener archivo viejo si no se sube uno nuevo
                 archivoCot: fCot ? await toBase64(fCot) : (document.getElementById("fileCot").dataset.oldFile || null),
                 autoriza: getVal("autoriza").toUpperCase(),
                 fechaAuto: getVal("fechaAuto"),
                 fechaEntrega: getVal("fechaEntrega"),
                 recibe: getVal("recibe").toUpperCase(),
                 folioFactura: getVal("folioFactura").toUpperCase(),
-                // Lógica para mantener archivo viejo si no se sube uno nuevo
                 archivoFac: fFac ? await toBase64(fFac) : (document.getElementById("fileFactura").dataset.oldFile || null),
                 fechaEnvio: getVal("fechaEnvio"),
                 envia: getVal("envia").toUpperCase(),
                 adonde: getVal("adonde").toUpperCase(),
                 status: getVal("status"),
                 comentarios: getVal("comentarios").toUpperCase(),
-                // ISOString es vital para que tecnologia.html ordene correctamente
                 fechaRegistro: new Date().toISOString()
             };
 
@@ -381,7 +371,6 @@
             console.error(error);
             alert("Error al guardar");
             btn.disabled = false;
-            btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up me-2"></i>GUARDAR SEGUIMIENTO COMPLETO';
         }
     };
 
@@ -389,35 +378,42 @@
         const tbody = document.getElementById("tablaSegBody");
         tbody.innerHTML = "";
         
-        const registros = [];
-        snap.forEach(child => {
-            registros.push({ key: child.key, ...child.val() });
-        });
+        let registros = [];
+        snap.forEach(child => { registros.push({ key: child.key, ...child.val() }); });
         
-        registros.reverse().forEach(s => {
+        // ORDENAR POR FOLIO PARA AGRUPARLOS
+        registros.sort((a, b) => a.folio.localeCompare(b.folio));
+
+        let currentFolio = null;
+
+        registros.forEach(s => {
             const colorClass = s.status === "ENVIADO A COMPRAS" ? "status-compras" : 
                                s.status === "ENVIADO A ZONA" ? "status-zona" : 
                                s.status === "PENDIENTE POR AUTORIZAR" ? "status-pendiente" : "status-sistemas";
 
             const dataString = encodeURIComponent(JSON.stringify(s));
 
+            // Si el folio cambia, podemos añadir una fila sutil de separación o un estilo
+            const rowClass = (currentFolio && currentFolio !== s.folio) ? "border-top border-primary border-2" : "";
+            currentFolio = s.folio;
+
             tbody.innerHTML += `
-                <tr>
-                    <td class="fw-bold">${s.folio}</td>
+                <tr class="${rowClass}">
+                    <td class="fw-bold text-primary">${s.folio}</td>
                     <td class="small text-muted">${s.descripcion}</td>
                     <td><span class="px-3 py-1 fw-bold small ${colorClass}">${s.status}</span></td>
                     <td>
-                        <div class="d-flex gap-1 justify-content-center">
-                            ${s.archivoCot ? `<button class="btn btn-sm btn-light btn-action-table text-primary" onclick="window.open('${s.archivoCot}')" title="Ver Cotización"><i class="fa-solid fa-file-invoice"></i></button>` : ''}
-                            ${s.archivoFac ? `<button class="btn btn-sm btn-light btn-action-table text-danger" onclick="window.open('${s.archivoFac}')" title="Ver Factura"><i class="fa-solid fa-file-signature"></i></button>` : ''}
+                        <div class="d-flex gap-1">
+                            ${s.archivoCot ? `<button class="btn btn-sm btn-light text-primary" onclick="window.open('${s.archivoCot}')"><i class="fa-solid fa-file-invoice"></i></button>` : ''}
+                            ${s.archivoFac ? `<button class="btn btn-sm btn-light text-danger" onclick="window.open('${s.archivoFac}')"><i class="fa-solid fa-file-signature"></i></button>` : ''}
                         </div>
                     </td>
                     <td>
                          <div class="d-flex gap-1">
-                            <button class="btn btn-sm btn-light btn-action-table text-primary" onclick="cargarParaContinuar('${dataString}')" title="Continuar Registro">
+                            <button class="btn btn-sm btn-light text-primary" onclick="cargarParaContinuar('${dataString}')">
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </button>
-                            <button class="btn btn-sm btn-light btn-action-table text-danger" onclick="eliminarSeg('${s.key}')" title="Eliminar">
+                            <button class="btn btn-sm btn-light text-danger" onclick="eliminarSeg('${s.key}')">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                          </div>
@@ -427,7 +423,7 @@
     });
 
     window.eliminarSeg = async (key) => {
-        if(confirm("¿Desea eliminar permanentemente este registro de seguimiento?")) await remove(ref(database, "seguimiento/" + key));
+        if(confirm("¿Desea eliminar permanentemente este registro?")) await remove(ref(database, "seguimiento/" + key));
     };
 </script>
 </body>
