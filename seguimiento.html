@@ -210,5 +210,132 @@
     // Ejecutar al cargar la página
     cargarDatosIniciales();
 </script>
+<script type="module">
+    import { database, ref, get, push, onValue, query, orderByChild, equalTo, remove } from "./firebase.js";
+
+    // 1. Obtener el folio de la URL
+    const params = new URLSearchParams(window.location.search);
+    const folioURL = params.get("folio");
+    
+    // Elementos del formulario
+    const fInput = document.getElementById("folio");
+    const sInput = document.getElementById("solicito");
+    const sucInput = document.getElementById("sucursal");
+    const btnArc = document.getElementById("btnArchivo");
+    const fCompras = document.getElementById("fechaCompras");
+
+    let urlArchivoOriginal = null;
+
+    // 2. FUNCIÓN DE CARGA AUTOMÁTICA
+    async function inicializarSeguimiento() {
+        if (!folioURL) {
+            alert("No se recibió ningún folio para seguimiento.");
+            return;
+        }
+
+        // Mostrar folio inmediatamente y fecha actual
+        fInput.value = folioURL;
+        fCompras.value = new Date().toLocaleString();
+
+        try {
+            // Buscamos en el nodo 'tecnologia' los datos de origen
+            const tecnologiaRef = ref(database, "tecnologia");
+            const consulta = query(tecnologiaRef, orderByChild("folio"), equalTo(folioURL));
+            const snapshot = await get(consulta);
+
+            if (snapshot.exists()) {
+                // Firebase devuelve un objeto, obtenemos el primer resultado
+                const data = snapshot.val();
+                const key = Object.keys(data)[0];
+                const registro = data[key];
+
+                // LLENAR LOS CAMPOS QUE FALTABAN
+                // En tu tabla tecnología guardas 'soporte' como el solicitante
+                sInput.value = registro.soporte || ""; 
+                sucInput.value = registro.sucursal || "";
+                
+                // Manejo del archivo
+                urlArchivoOriginal = registro.archivoData || null;
+                if (urlArchivoOriginal) {
+                    btnArc.disabled = false;
+                    btnArc.classList.replace("btn-secondary", "btn-success");
+                    btnArc.textContent = "Ver Archivo Solicitud";
+                }
+            } else {
+                console.error("No se encontró información para el folio: " + folioURL);
+            }
+        } catch (error) {
+            console.error("Error al obtener datos de Firebase:", error);
+        }
+    }
+
+    // Acción para el botón de archivo
+    btnArc.onclick = () => {
+        if (urlArchivoOriginal) {
+            window.open(urlArchivoOriginal, "_blank");
+        }
+    };
+
+    // 3. GUARDAR EL SEGUIMIENTO
+    window.guardarSeguimiento = async () => {
+        const descripcion = document.getElementById("descripcion").value;
+        if (!descripcion) {
+            alert("Por favor ingrese la descripción del artículo.");
+            return;
+        }
+
+        const nuevoSeg = {
+            folio: fInput.value,
+            solicito: sInput.value,
+            sucursal: sucInput.value,
+            descripcion: descripcion.toUpperCase(),
+            status: document.getElementById("status").value,
+            fechaCompras: fCompras.value,
+            fechaRegistro: new Date().toLocaleString()
+        };
+
+        await push(ref(database, "seguimiento"), nuevoSeg);
+        alert("Seguimiento guardado");
+        document.getElementById("descripcion").value = ""; // Limpiar solo el campo de escritura
+    };
+
+    // 4. HISTORIAL DE ESTE FOLIO
+    onValue(ref(database, "seguimiento"), (snap) => {
+        const tbody = document.getElementById("tablaSegBody");
+        tbody.innerHTML = "";
+        
+        snap.forEach(child => {
+            const s = child.val();
+            // Mostrar solo si coincide el folio
+            if (s.folio === folioURL) {
+                const color = s.status === "ENVIADO A COMPRAS" ? "status-compras" : 
+                              s.status === "ENVIADO A ZONA" ? "status-zona" : 
+                              s.status === "PENDIENTE POR AUTORIZAR" ? "status-pendiente" : "status-sistemas";
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${s.folio}</td>
+                        <td>${s.solicito}</td>
+                        <td>${s.descripcion}</td>
+                        <td class="${color} fw-bold">${s.status}</td>
+                        <td>${s.fechaCompras}</td>
+                        <td>
+                            <span class="action-btn text-danger" onclick="eliminarFila('${child.key}')">🗑️</span>
+                        </td>
+                    </tr>`;
+            }
+        });
+    });
+
+    window.eliminarFila = async (key) => {
+        if(confirm("¿Eliminar este registro?")) {
+            await remove(ref(database, "seguimiento/" + key));
+        }
+    };
+
+    // Iniciar el proceso
+    inicializarSeguimiento();
+</script>
 </body>
 </html>
+
