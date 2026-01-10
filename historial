@@ -12,7 +12,7 @@
         .st-confirmado { background-color: #d1e7dd !important; color: #0f5132; }
         .badge-del { background: #dc3545; color: white; }
         .badge-ok { background: #198754; color: white; }
-        .img-preview { cursor: pointer; border-radius: 8px; transition: 0.2s; }
+        .img-preview { cursor: pointer; border-radius: 8px; transition: 0.2s; border: 1px solid #ddd; }
         .img-preview:hover { transform: scale(1.1); }
     </style>
 </head>
@@ -34,7 +34,8 @@
                         <th>Sucursal</th>
                         <th>Status Final</th>
                         <th>Motivo/Comentario</th>
-                        <th>Evidencia</th> <th>Archivo</th>
+                        <th>Evidencia</th> 
+                        <th>Archivo</th>
                         <th>Fecha Reg.</th>
                     </tr>
                 </thead>
@@ -68,19 +69,21 @@ async function cargarHistorial() {
         const segs = globalSegs.filter(x => x.folio === s.folio)
                                .sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
         
-        const estaConfirmado = s.status === "CONFIRMADO" || (segs.length > 0 && segs[0].status === "CONFIRMADO");
+        // Detectar si debe estar en historial
+        const estaConfirmado = s.status === "CONFIRMADO";
         const estaEliminado = s.eliminado === true;
 
         if (estaEliminado || estaConfirmado) {
             let claseFila = estaEliminado ? "st-eliminado" : "st-confirmado";
             let statusBadge = estaEliminado ? `<span class="badge badge-del">ELIMINADO</span>` : `<span class="badge badge-ok">CONFIRMADO</span>`;
-            let motivo = estaEliminado ? (s.motivoEliminacion || "Sin motivo") : (segs[0]?.comentarios || "Sin comentarios");
             
-            // Lógica para la foto de evidencia
+            // Si es confirmado, buscamos el comentario en el seguimiento de tipo CONFIRMADO
+            let segConfirmado = segs.find(x => x.status === "CONFIRMADO");
+            let motivo = estaEliminado ? (s.motivoEliminacion || "Sin motivo") : (segConfirmado?.comentarios || "Entregado");
+            
             let fotoBtn = "---";
-            if (segs[0]?.fotoEvidencia) {
-                // Si existe foto, creamos un botón/miniatura
-                fotoBtn = `<img src="${segs[0].fotoEvidencia}" width="40" height="40" class="img-preview shadow-sm" onclick="window.verFoto('${segs[0].fotoEvidencia}', '${s.folio}')">`;
+            if (segConfirmado?.fotoEvidencia) {
+                fotoBtn = `<img src="${segConfirmado.fotoEvidencia}" width="40" height="40" class="img-preview shadow-sm" onclick="window.verFoto('${segConfirmado.fotoEvidencia}', '${s.folio}')">`;
             }
 
             body.innerHTML += `
@@ -100,7 +103,6 @@ async function cargarHistorial() {
     });
 }
 
-// Función global para ver la foto en grande
 window.verFoto = (url, folio) => {
     Swal.fire({
         title: `Evidencia de Entrega - ${folio}`,
