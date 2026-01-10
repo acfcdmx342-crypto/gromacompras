@@ -18,15 +18,12 @@
         .acciones { display:flex; justify-content:center; gap:10px; }
         .dropdown-menu { border-radius: 15px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1); padding: 10px; }
         .dropdown-item { border-radius: 8px; margin-bottom: 2px; font-weight: 500; }
-        /* Colores status */
         .st-compras { background-color: #0d6efd !important; color: white; } 
         .st-zona { background-color: #ffc107 !important; color: black; }    
         .st-pendiente { background-color: #dc3545 !important; color: white; } 
         .st-sistemas { background-color: #198754 !important; color: white; }  
         .st-default { background-color: #6c757d !important; color: white; }   
         .tiempo-badge { font-size: 0.75rem; font-weight: bold; color: #555; }
-        
-        /* Estilo para la tabla del historial en el modal */
         .swal-table { font-size: 0.85rem; }
     </style>
 </head>
@@ -65,7 +62,7 @@
                 ☰ Menú
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="historial.html">📜 Ver Historial</a></li>
+                <li><a class="dropdown-item" href="historial_compras.html">📜 Ver Historial</a></li>
                 <li id="liBase"></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item text-danger" href="#" onclick="cerrarSesion()">🚪 Cerrar Sesión</a></li>
@@ -130,7 +127,7 @@
                 
                 const statusActual = segsDelFolio.length > 0 ? segsDelFolio[0].status : (s.status || "PENDIENTE");
 
-                if (s.eliminado || statusActual === "CONFIRMADO") return;
+                if (s.eliminado || statusActual === "CONFIRMADO" || s.status === "CONFIRMADO") return;
 
                 const puedeVerTodo = window.puedeVerBase;
                 const esDueno = s.usuario === window.usuarioSesion;
@@ -139,8 +136,6 @@
                     let claseColor = "st-default";
                     const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas"};
                     claseColor = colores[statusActual] || "st-default";
-
-                    // Determinar si el botón de historial 📜 debe estar deshabilitado
                     const tieneSeguimientos = segsDelFolio.length > 0;
 
                     tbody.innerHTML += `
@@ -172,7 +167,6 @@
         });
     }
 
-    // Nueva función para ver el historial en un Modal filtrado
     window.verHistorialFolio = (folio) => {
         const segs = globalSeguimientos
             .filter(x => x.folio === folio)
@@ -238,7 +232,6 @@
     };
 
   window.confirmarEntrega = async (fol) => {
-    // 1. Buscamos el ID único (Key) de la solicitud basada en el folio
     const snap = await get(solicitudesRef);
     let idKeyPrincipal = null;
     snap.forEach(doc => {
@@ -249,7 +242,7 @@
 
     const { value: formValues } = await Swal.fire({
         title: 'Confirmar Entrega',
-        html: '<input type="file" id="swal-foto" class="form-control mb-2" accept="image/*"><textarea id="swal-comentario" class="form-control" placeholder="Comentario..."></textarea>',
+        html: '<label class="small fw-bold">Subir Foto Evidencia</label><input type="file" id="swal-foto" class="form-control mb-2" accept="image/*"><textarea id="swal-comentario" class="form-control" placeholder="Comentario de entrega..."></textarea>',
         preConfirm: () => {
             const f = document.getElementById('swal-foto').files[0];
             const c = document.getElementById('swal-comentario').value;
@@ -261,14 +254,14 @@
     if (formValues) {
         const reader = new FileReader();
         reader.onload = async () => {
-            // A) Guardamos el seguimiento (como ya lo hacías)
+            // A) Guardamos el seguimiento detallado
             await push(seguimientoRef, { 
                 folio: fol, status: "CONFIRMADO", comentarios: formValues.c, 
                 fotoEvidencia: reader.result, fechaRegistro: new Date().toLocaleString(), 
                 usuario: window.usuarioSesion 
             });
 
-            // B) ACTUALIZACIÓN CLAVE: Marcamos la solicitud original como CONFIRMADA
+            // B) MEJORA: Actualizamos el status en la tabla principal para que se mueva al historial
             await update(ref(database, `tecnologia/${idKeyPrincipal}`), { 
                 status: "CONFIRMADO" 
             });
@@ -312,5 +305,3 @@
 </script>
 </body>
 </html>
-
-
