@@ -25,6 +25,9 @@
         .st-sistemas { background-color: #198754 !important; color: white; }  
         .st-default { background-color: #6c757d !important; color: white; }   
         .tiempo-badge { font-size: 0.75rem; font-weight: bold; color: #555; }
+        
+        /* Estilo para la tabla del historial en el modal */
+        .swal-table { font-size: 0.85rem; }
     </style>
 </head>
 <body class="p-4">
@@ -107,11 +110,13 @@
     const solicitudesRef = ref(database, "tecnologia");
     const seguimientoRef = ref(database, "seguimiento");
     let globalSeguimientos = [];
+
     onValue(seguimientoRef, snap => {
         globalSeguimientos = [];
         snap.forEach(c => { globalSeguimientos.push({ ...c.val(), id: c.key }); });
         renderTable(); 
     });
+
     function renderTable() {
         onValue(solicitudesRef, snap => {
             const tbody = document.getElementById("tablaTecBody");
@@ -135,6 +140,9 @@
                     const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas"};
                     claseColor = colores[statusActual] || "st-default";
 
+                    // Determinar si el botón de historial 📜 debe estar deshabilitado
+                    const tieneSeguimientos = segsDelFolio.length > 0;
+
                     tbody.innerHTML += `
                         <tr>
                             <td><small class="fw-bold">${s.folio}</small></td>
@@ -148,7 +156,12 @@
                             <td><small>${s.fechaEnvio}</small></td>
                             <td>
                                 <div class="acciones">
-                                    <span class="action-btn ${window.esSoporteJR ? 'action-disabled' : ''}" onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}">📋</span>
+                                    <span class="action-btn ${!tieneSeguimientos ? 'action-disabled' : ''}" 
+                                          onclick="${tieneSeguimientos ? `window.verHistorialFolio('${s.folio}')` : ''}" title="Historial de Seguimiento">📜</span>
+
+                                    <span class="action-btn ${window.esSoporteJR ? 'action-disabled' : ''}" 
+                                          onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}">📋</span>
+
                                     ${window.esSoporteJR && statusActual === "ENVIADO A ZONA" ? `<span class="action-btn text-success" onclick="window.confirmarEntrega('${s.folio}')">✅</span>` : ''}
                                     ${puedeVerTodo ? `<span class="action-btn" onclick="window.eliminarSolicitud('${idKey}')">🗑️</span>` : ``}
                                 </div>
@@ -158,6 +171,46 @@
             });
         });
     }
+
+    // Nueva función para ver el historial en un Modal filtrado
+    window.verHistorialFolio = (folio) => {
+        const segs = globalSeguimientos
+            .filter(x => x.folio === folio)
+            .sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
+
+        let tablaHTML = `
+            <div class="table-responsive">
+                <table class="table table-sm table-striped swal-table mt-3">
+                    <thead>
+                        <tr class="table-dark">
+                            <th>Fecha</th>
+                            <th>Status</th>
+                            <th>Usuario</th>
+                            <th>Comentarios</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${segs.map(h => `
+                            <tr>
+                                <td><small>${h.fechaRegistro}</small></td>
+                                <td><span class="badge bg-secondary">${h.status}</span></td>
+                                <td>${h.usuario || 'N/A'}</td>
+                                <td class="text-start">${h.comentarios || ''}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>`;
+
+        Swal.fire({
+            title: `Historial: ${folio}`,
+            html: tablaHTML,
+            width: '800px',
+            showCloseButton: true,
+            confirmButtonText: 'Cerrar',
+            confirmButtonColor: '#0d6efd'
+        });
+    };
 
     function calcularTranscurrido(f) {
         const d = new Date(f); if (isNaN(d)) return "N/A";
@@ -242,4 +295,3 @@
 </script>
 </body>
 </html>
-
