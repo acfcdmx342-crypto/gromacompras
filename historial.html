@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Historial de Compras</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { background:#f2f4f7; padding: 20px; }
+        .card { border-radius:20px; border:none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .st-eliminado { background-color: #f8d7da !important; color: #721c24; }
+        .st-confirmado { background-color: #d1e7dd !important; color: #0f5132; }
+        .badge-del { background: #dc3545; color: white; }
+        .badge-ok { background: #198754; color: white; }
+        .img-preview { cursor: pointer; border-radius: 8px; transition: 0.2s; border: 1px solid #ddd; }
+        .img-preview:hover { transform: scale(1.1); }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold m-0 text-primary">📜 Historial de Solicitudes (Cerradas)</h3>
+            <a href="solicitud_tecnologia.html" class="btn btn-outline-primary btn-rounded">⬅️ Volver al Panel</a>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-hover align-middle text-center border">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Folio</th>
+                        <th>Empresa</th>
+                        <th>Zona</th>
+                        <th>Sucursal</th>
+                        <th>Status Final</th>
+                        <th>Motivo/Comentario</th>
+                        <th>Evidencia</th> 
+                        <th>Archivo</th>
+                        <th>Fecha Reg.</th>
+                    </tr>
+                </thead>
+                <tbody id="historialBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+import { database, ref, onValue, get } from "./firebase.js";
+
+const solicitudesRef = ref(database,"tecnologia");
+const seguimientoRef = ref(database,"seguimiento");
+
+onValue(solicitudesRef, () => cargarHistorial());
+onValue(seguimientoRef, () => cargarHistorial());
+
+async function cargarHistorial() {
+    const snapSolicitudes = await get(solicitudesRef);
+    const snapSeguimientos = await get(seguimientoRef);
+    
+    const globalSegs = [];
+    snapSeguimientos.forEach(c => { globalSegs.push(c.val()); });
+
+    const body = document.getElementById("historialBody");
+    body.innerHTML = "";
+    
+    snapSolicitudes.forEach(c => {
+        const s = c.val();
+        const segs = globalSegs.filter(x => x.folio === s.folio)
+                               .sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
+        
+        // Detectar si debe estar en historial
+        const estaConfirmado = s.status === "CONFIRMADO";
+        const estaEliminado = s.eliminado === true;
+
+        if (estaEliminado || estaConfirmado) {
+            let claseFila = estaEliminado ? "st-eliminado" : "st-confirmado";
+            let statusBadge = estaEliminado ? `<span class="badge badge-del">ELIMINADO</span>` : `<span class="badge badge-ok">CONFIRMADO</span>`;
+            
+            // Si es confirmado, buscamos el comentario en el seguimiento de tipo CONFIRMADO
+            let segConfirmado = segs.find(x => x.status === "CONFIRMADO");
+            let motivo = estaEliminado ? (s.motivoEliminacion || "Sin motivo") : (segConfirmado?.comentarios || "Entregado");
+            
+            let fotoBtn = "---";
+            if (segConfirmado?.fotoEvidencia) {
+                fotoBtn = `<img src="${segConfirmado.fotoEvidencia}" width="40" height="40" class="img-preview shadow-sm" onclick="window.verFoto('${segConfirmado.fotoEvidencia}', '${s.folio}')">`;
+            }
+
+            body.innerHTML += `
+                <tr class="${claseFila}">
+                    <td class="fw-bold">${s.folio}</td>
+                    <td>${s.empresa}</td>
+                    <td>${s.zona}</td>
+                    <td>${s.sucursal}</td>
+                    <td>${statusBadge}</td>
+                    <td class="small text-start">${motivo}</td>
+                    <td>${fotoBtn}</td>
+                    <td><a href="${s.archivoData}" download="${s.archivoNombre}" class="btn btn-sm btn-secondary">📥</a></td>
+                    <td><small>${s.fechaEnvio}</small></td>
+                </tr>
+            `;
+        }
+    });
+}
+
+window.verFoto = (url, folio) => {
+    Swal.fire({
+        title: `Evidencia de Entrega - ${folio}`,
+        imageUrl: url,
+        imageAlt: 'Foto de evidencia',
+        confirmButtonText: 'Cerrar',
+        confirmButtonColor: '#0d6efd'
+    });
+};
+</script>
+</body>
+</html>
