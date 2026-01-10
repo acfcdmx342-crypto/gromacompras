@@ -18,7 +18,6 @@
         .acciones { display:flex; justify-content:center; gap:10px; }
         .dropdown-menu { border-radius: 15px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1); padding: 10px; }
         .dropdown-item { border-radius: 8px; margin-bottom: 2px; font-weight: 500; }
-        
         /* Colores status */
         .st-compras { background-color: #0d6efd !important; color: white; } 
         .st-zona { background-color: #ffc107 !important; color: black; }    
@@ -29,7 +28,6 @@
     </style>
 </head>
 <body class="p-4">
-
 <script>
     const sesionRaw = localStorage.getItem("usuarioLogueado");
     if (!sesionRaw) {
@@ -40,7 +38,6 @@
         window.usuarioSesion = sesion.usuario;
         window.nombreSesion = sesion.nombre;
         window.puestoSesion = (sesion.puesto || "").toUpperCase();
-
         const puestosPrivilegiados = [
             "GERENTE DE SISTEMAS", 
             "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", 
@@ -54,15 +51,13 @@
         window.puedeVerBase = puestosPrivilegiados.includes(window.puestoSesion);
     }
 </script>
-
 <div class="container">
     <div class="d-flex justify-content-between align-items-start mb-4">
         <div class="user-info-box border-start border-primary border-4">
             <div class="fw-bold text-primary">👤 <span id="usuarioActivo"></span></div>
             <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
         </div>
-        
-        <div class="dropdown">
+       <div class="dropdown">
             <button class="btn btn-primary btn-rounded dropdown-toggle fw-bold px-4 shadow-sm" type="button" data-bs-toggle="dropdown">
                 ☰ Menú
             </button>
@@ -74,9 +69,7 @@
             </ul>
         </div>
     </div>
-
-    <h2 class="text-center fw-bold mb-4">Solicitud de Tecnología</h2>
-
+   <h2 class="text-center fw-bold mb-4">Solicitud de Tecnología</h2>
     <div class="card shadow p-4 mb-4 border-0">
         <h5 class="fw-bold mb-3 border-bottom pb-2 text-secondary">Registrar Solicitud</h5>
         <form id="formTec" class="row g-3">
@@ -90,7 +83,6 @@
             </div>
         </form>
     </div>
-
     <div class="card shadow p-4 border-0">
         <h5 class="fw-bold mb-3 border-bottom pb-2 text-secondary">Solicitudes en Proceso</h5>
         <div class="table-responsive">
@@ -103,38 +95,30 @@
         </div>
     </div>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script type="module">
     import { database, ref, push, set, get, onValue, update } from "./firebase.js";
-
     document.getElementById("usuarioActivo").textContent = window.nombreSesion;
     document.getElementById("puestoActivo").textContent = window.puestoSesion;
     document.getElementById("soporte").value = window.nombreSesion;
-
     if (window.puedeVerBase) {
         document.getElementById("liBase").innerHTML = '<a class="dropdown-item" href="base.html">🏠 Página Base (Usuarios)</a>';
     }
-
     const solicitudesRef = ref(database, "tecnologia");
     const seguimientoRef = ref(database, "seguimiento");
-
     let globalSeguimientos = [];
     onValue(seguimientoRef, snap => {
         globalSeguimientos = [];
         snap.forEach(c => { globalSeguimientos.push({ ...c.val(), id: c.key }); });
         renderTable(); 
     });
-
     function renderTable() {
         onValue(solicitudesRef, snap => {
             const tbody = document.getElementById("tablaTecBody");
             tbody.innerHTML = "";
-            
             snap.forEach(c => {
                 const s = c.val();
                 const idKey = c.key;
-
                 const segsDelFolio = globalSeguimientos
                     .filter(x => x.folio === s.folio)
                     .sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
@@ -258,3 +242,4 @@
 </script>
 </body>
 </html>
+
