@@ -17,11 +17,35 @@
     </style>
 </head>
 <body>
+
+<script>
+    // Validar sesión y permisos al cargar la página
+    const sesionRaw = localStorage.getItem("usuarioLogueado");
+    if (!sesionRaw) {
+        location.href = "index.html";
+    } else {
+        const sesion = JSON.parse(sesionRaw);
+        window.usuarioSesion = sesion.usuario;
+        window.puestoSesion = (sesion.puesto || "").toUpperCase();
+
+        const puestosPrivilegiados = [
+            "GERENTE DE SISTEMAS", 
+            "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", 
+            "COORDINADOR DE SOPORTE TECNICO", 
+            "SOPORTE TECNICO", 
+            "SOPORTE TECNICO SR",
+            "BECARIO DE SISTEMAS"
+        ];
+        // Determinar si puede ver los registros de todos
+        window.puedeVerTodo = puestosPrivilegiados.includes(window.puestoSesion);
+    }
+</script>
+
 <div class="container-fluid">
     <div class="card p-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h3 class="fw-bold m-0 text-primary">📜 Historial de Solicitudes (Cerradas)</h3>
-            <a href="tecnologia.html" class="btn btn-outline-primary btn-rounded">⬅️ Volver al Panel</a>
+            <a href="solicitud_tecnologia.html" class="btn btn-outline-primary btn-rounded">⬅️ Volver al Panel</a>
         </div>
         
         <div class="table-responsive">
@@ -66,10 +90,17 @@ async function cargarHistorial() {
     
     snapSolicitudes.forEach(c => {
         const s = c.val();
+        
+        // --- LÓGICA DE FILTRADO POR PERFIL ---
+        const esSuPropioRegistro = s.usuario === window.usuarioSesion;
+        if (!window.puedeVerTodo && !esSuPropioRegistro) {
+            return; // Saltar este registro si no tiene permiso
+        }
+        // -------------------------------------
+
         const segs = globalSegs.filter(x => x.folio === s.folio)
                                .sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
         
-        // Detectar si debe estar en historial
         const estaConfirmado = s.status === "CONFIRMADO";
         const estaEliminado = s.eliminado === true;
 
@@ -77,7 +108,6 @@ async function cargarHistorial() {
             let claseFila = estaEliminado ? "st-eliminado" : "st-confirmado";
             let statusBadge = estaEliminado ? `<span class="badge badge-del">ELIMINADO</span>` : `<span class="badge badge-ok">CONFIRMADO</span>`;
             
-            // Si es confirmado, buscamos el comentario en el seguimiento de tipo CONFIRMADO
             let segConfirmado = segs.find(x => x.status === "CONFIRMADO");
             let motivo = estaEliminado ? (s.motivoEliminacion || "Sin motivo") : (segConfirmado?.comentarios || "Entregado");
             
