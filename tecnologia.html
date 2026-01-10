@@ -237,30 +237,47 @@
         }
     };
 
-    window.confirmarEntrega = async (fol) => {
-        const { value: formValues } = await Swal.fire({
-            title: 'Confirmar Entrega',
-            html: '<input type="file" id="swal-foto" class="form-control mb-2" accept="image/*"><textarea id="swal-comentario" class="form-control" placeholder="Comentario..."></textarea>',
-            preConfirm: () => {
-                const f = document.getElementById('swal-foto').files[0];
-                const c = document.getElementById('swal-comentario').value;
-                if (!f || !c) return Swal.showValidationMessage('Foto y comentario obligatorios');
-                return { f, c };
-            }
-        });
-        if (formValues) {
-            const reader = new FileReader();
-            reader.onload = async () => {
-                await push(seguimientoRef, { 
-                    folio: fol, status: "CONFIRMADO", comentarios: formValues.c, 
-                    fotoEvidencia: reader.result, fechaRegistro: new Date().toLocaleString(), 
-                    usuario: window.usuarioSesion 
-                });
-                Swal.fire('Confirmado', 'El folio se ha cerrado.', 'success');
-            };
-            reader.readAsDataURL(formValues.f);
+  window.confirmarEntrega = async (fol) => {
+    // 1. Buscamos el ID único (Key) de la solicitud basada en el folio
+    const snap = await get(solicitudesRef);
+    let idKeyPrincipal = null;
+    snap.forEach(doc => {
+        if (doc.val().folio === fol) idKeyPrincipal = doc.key;
+    });
+
+    if (!idKeyPrincipal) return Swal.fire("Error", "No se encontró el registro original", "error");
+
+    const { value: formValues } = await Swal.fire({
+        title: 'Confirmar Entrega',
+        html: '<input type="file" id="swal-foto" class="form-control mb-2" accept="image/*"><textarea id="swal-comentario" class="form-control" placeholder="Comentario..."></textarea>',
+        preConfirm: () => {
+            const f = document.getElementById('swal-foto').files[0];
+            const c = document.getElementById('swal-comentario').value;
+            if (!f || !c) return Swal.showValidationMessage('Foto y comentario obligatorios');
+            return { f, c };
         }
-    };
+    });
+
+    if (formValues) {
+        const reader = new FileReader();
+        reader.onload = async () => {
+            // A) Guardamos el seguimiento (como ya lo hacías)
+            await push(seguimientoRef, { 
+                folio: fol, status: "CONFIRMADO", comentarios: formValues.c, 
+                fotoEvidencia: reader.result, fechaRegistro: new Date().toLocaleString(), 
+                usuario: window.usuarioSesion 
+            });
+
+            // B) ACTUALIZACIÓN CLAVE: Marcamos la solicitud original como CONFIRMADA
+            await update(ref(database, `tecnologia/${idKeyPrincipal}`), { 
+                status: "CONFIRMADO" 
+            });
+
+            Swal.fire('Confirmado', 'El folio se ha cerrado y movido al historial.', 'success');
+        };
+        reader.readAsDataURL(formValues.f);
+    }
+};
 
     window.guardarSolicitud = async () => {
         const emp = document.getElementById("empresa").value;
@@ -295,3 +312,4 @@
 </script>
 </body>
 </html>
+
