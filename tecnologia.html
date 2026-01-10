@@ -31,7 +31,6 @@
 <body class="p-4">
 
 <script>
-    // 1. VALIDACIÓN PREVIA DE SESIÓN
     const sesionRaw = localStorage.getItem("usuarioLogueado");
     if (!sesionRaw) {
         alert("Sesión no válida");
@@ -109,7 +108,6 @@
 <script type="module">
     import { database, ref, push, set, get, onValue, update } from "./firebase.js";
 
-    // Inicializar datos de usuario
     document.getElementById("usuarioActivo").textContent = window.nombreSesion;
     document.getElementById("puestoActivo").textContent = window.puestoSesion;
     document.getElementById("soporte").value = window.nombreSesion;
@@ -121,7 +119,6 @@
     const solicitudesRef = ref(database, "tecnologia");
     const seguimientoRef = ref(database, "seguimiento");
 
-    // Escuchar cambios en seguimientos para reflejar el status real
     let globalSeguimientos = [];
     onValue(seguimientoRef, snap => {
         globalSeguimientos = [];
@@ -129,7 +126,6 @@
         renderTable(); 
     });
 
-    // Función para renderizar la tabla
     function renderTable() {
         onValue(solicitudesRef, snap => {
             const tbody = document.getElementById("tablaTecBody");
@@ -179,7 +175,6 @@
         });
     }
 
-    // Calcular tiempo
     function calcularTranscurrido(f) {
         const d = new Date(f); if (isNaN(d)) return "N/A";
         const dif = new Date() - d;
@@ -188,7 +183,6 @@
         return dias > 0 ? `${dias}d ${horas}h` : `${horas}h`;
     }
 
-    // Funciones globales para botones
     window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
     window.irSeguimiento = f => location.href = "seguimiento.html?folio=" + encodeURIComponent(f);
 
