@@ -26,7 +26,9 @@
     .acciones { display:flex; justify-content:center; gap:10px; }
 
     /* Ajuste para el dropdown */
-    .dropdown-menu { border-radius: 15px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+    .dropdown-menu { border-radius: 15px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1); padding: 10px; }
+    .dropdown-item { border-radius: 8px; margin-bottom: 2px; font-weight: 500; }
+    .dropdown-item:hover { background-color: #f8f9fa; color: #0d6efd; }
 </style>
 </head>
 <body class="p-4">
@@ -36,10 +38,21 @@
     if (!sesion) { alert("Sesión no válida"); location.href = "index.html"; }
     const usuarioSesion = sesion.usuario;
     const nombreSesion = sesion.nombre;
-    const puestoSesion = sesion.puesto;
+    const puestoSesion = sesion.puesto.toUpperCase(); // Normalizamos a mayúsculas
 
-    const puestosPrivilegiados = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO", "BECARIO"];
+    // Listado de puestos con privilegios para ver "Página Base" y eliminar
+    const puestosPrivilegiados = [
+        "GERENTE DE SISTEMAS", 
+        "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", 
+        "COORDINADOR DE SOPORTE TECNICO", 
+        "SOPORTE TECNICO", 
+        "SOPORTE TECNICO SR",
+        "BECARIO DE SISTEMAS",
+        "BECARIO"
+    ];
+
     const esSoporteJR = puestoSesion === "SOPORTE TECNICO JR";
+    const puedeVerBase = puestosPrivilegiados.includes(puestoSesion);
 </script>
 
 <div class="container">
@@ -51,13 +64,14 @@
         
         <div class="dropdown">
             <button class="btn btn-primary btn-rounded dropdown-toggle fw-bold px-4 shadow-sm" type="button" id="menuApps" data-bs-toggle="dropdown" aria-expanded="false">
-                ☰ Menú
+                ☰ Menú de Usuario
             </button>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="menuApps">
-                <li><a class="dropdown-item" href="historial.html">📜 Ver Historial</a></li>
+                <li><a class="dropdown-item" href="historial_compras.html">📜 Ver Historial</a></li>
                 
                 <script>
-                    if (!esSoporteJR) {
+                    // Mostrar "Página Base" solo si tiene el puesto requerido
+                    if (puedeVerBase) {
                         document.write('<li><a class="dropdown-item" href="base.html">🏠 Página Base</a></li>');
                     }
                 </script>
