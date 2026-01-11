@@ -259,7 +259,8 @@
             status: document.getElementById("status").value,
             comentarios: document.getElementById("comentarios").value.toUpperCase(),
             fechaRegistro: new Date().toISOString(),
-            usuarioModifico: sesion.usuario,
+            'usuarioModifico: sesion.usuario,
+            usuario: sesion.nombre,
             eliminado: false
         };
 
@@ -347,3 +348,4 @@
 </script>
 </body>
 </html>
+
