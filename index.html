@@ -6,7 +6,7 @@
 <title>Solicitud de Tecnologia</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
-*{
+* {
   box-sizing:border-box;
 }
 body {
@@ -23,7 +23,6 @@ body {
   width:100%;
   max-width:380px;
 }
-/* Estilo para la imagen centrada */
 .login-logo {
   display: block;
   margin: 0 auto 20px auto;
@@ -76,18 +75,46 @@ button:hover {
   background:#28a745;
   margin-top:10px;
 }
-/* Ajustes extra para pantallas muy pequeñas */
+
+/* --- ESTILOS DEL LOADER --- */
+#loader { 
+  display: none; 
+  position: fixed; 
+  top: 0; left: 0; 
+  width: 100%; height: 100%; 
+  background: rgba(255,255,255,0.9); 
+  z-index: 9999; 
+  justify-content: center; 
+  align-items: center; 
+  flex-direction: column; 
+}
+.loader-logo-container {
+  animation: pulse-procomex 1.5s ease-in-out infinite;
+}
+@keyframes pulse-procomex {
+  0% { transform: scale(0.95); opacity: 0.7; }
+  50% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.7; }
+}
+
 @media (max-width:400px){
-  .card{
-    padding:15px;
-  }
-  h2{
-    font-size:20px;
-  }
+  .card{ padding:15px; }
+  h2{ font-size:20px; }
 }
 </style>
 </head>
 <body>
+
+<div id="loader">
+    <div class="loader-logo-container">
+        <img src="https://gruporoma.com/wp-content/uploads/2023/06/cropped-cropped-procomex-pachuca-logo-350-%C3%97-100-px-1.png" 
+             alt="Cargando..." style="width: 250px; height: auto;">
+    </div>
+    <div style="margin-top: 20px; font-weight: bold; color: #007bff;">
+        <i class="fa-solid fa-circle-notch fa-spin"></i> Procesando...
+    </div>
+</div>
+
 <div class="container">
     <img src="https://gruporoma.com/wp-content/uploads/2023/06/cropped-cropped-procomex-pachuca-logo-350-%C3%97-100-px-1.png" alt="Logo Procomex" class="login-logo">
       <h2>REGISTRO DE SOLICITUD DE TECNOLOGIA</h2>
@@ -107,94 +134,114 @@ button:hover {
 
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 <script>emailjs.init("0aHlArLgvHrj2Xbk8");</script>
+
+<script>
+    // Funciones globales de control del loader
+    const mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
+    const ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
+</script>
+
 <script type="module">
     import { database, ref, get } from "./firebase.js";
     const loginUser = document.getElementById("loginUser");
     const loginPass = document.getElementById("loginPass");
     const toggleBtn = document.getElementById("toggleBtn");
+
     toggleBtn.onclick = () => {
         const isPass = loginPass.type === "password";
         loginPass.type = isPass ? "text" : "password";
         toggleBtn.classList.toggle("fa-eye");
         toggleBtn.classList.toggle("fa-eye-slash");
     };
+
     document.getElementById("btnLogin").onclick = async () => {
         const usuario = loginUser.value.trim().toUpperCase();
         const pass = loginPass.value.trim();
         if (!usuario || !pass) return alert("Completa todos los campos");
-        const snap = await get(ref(database, "usuarios/" + usuario));
-        if (!snap.exists()) return alert("❌ Usuario NO registrado");
-        const data = snap.val();
-        if (data.contrasena !== pass) return alert("❌ Contraseña incorrecta");
-        // Validar si el usuario está bloqueado
-        if (data.bloqueado) return alert("❌ Este usuario está desactivado. Contacta a sistemas.");
-        localStorage.setItem("usuarioLogueado", JSON.stringify({
-            usuario: data.usuario,
-            nombre: data.nombre,
-            puesto: data.puesto.toUpperCase()
-        }));
-        window.location.href = "tecnologia.html";
+
+        mostrarCargando(); // MOSTRAR LOADER
+
+        try {
+            const snap = await get(ref(database, "usuarios/" + usuario));
+            if (!snap.exists()) {
+                ocultarCargando();
+                return alert("❌ Usuario NO registrado");
+            }
+            const data = snap.val();
+            if (data.contrasena !== pass) {
+                ocultarCargando();
+                return alert("❌ Contraseña incorrecta");
+            }
+            if (data.bloqueado) {
+                ocultarCargando();
+                return alert("❌ Este usuario está desactivado. Contacta a sistemas.");
+            }
+
+            localStorage.setItem("usuarioLogueado", JSON.stringify({
+                usuario: data.usuario,
+                nombre: data.nombre,
+                puesto: data.puesto.toUpperCase()
+            }));
+            
+            // Redirigir (el loader se quita al cargar la otra página)
+            window.location.href = "tecnologia.html";
+
+        } catch (error) {
+            ocultarCargando();
+            alert("❌ Error de conexión.");
+        }
     };
-    // --- NUEVA FUNCIÓN DE RECUPERACIÓN ---
+
     document.getElementById("btnRecover").onclick = async () => {
         const usuario = prompt("Ingresa tu NOMBRE DE USUARIO para recuperar la contraseña:");
         if (!usuario) return;
+
+        mostrarCargando(); // MOSTRAR LOADER
+
         const userUpper = usuario.trim().toUpperCase();
-       try {
+        try {
             const snap = await get(ref(database, "usuarios/" + userUpper));
             if (!snap.exists()) {
+                ocultarCargando();
                 return alert("❌ El usuario no existe en nuestra base de datos.");
             }
             const data = snap.val();
             if (!data.correo) {
-                return alert("❌ El usuario no tiene un correo electrónico registrado. Contacta a Soporte Técnico.");
+                ocultarCargando();
+                return alert("❌ El usuario no tiene un correo electrónico registrado.");
             }
-            // Parámetros para EmailJS
-            // NOTA: Asegúrate de que en tu plantilla de EmailJS los nombres coincidan: {{to_name}}, {{user_email}}, {{user_pass}}
+
             const templateParams = {
                 to_name: data.nombre,
                 user_email: data.correo,
                 user_pass: data.contrasena
             };
-            // Enviar correo (Asegúrate de cambiar 'service_id' y 'template_id' por los tuyos de EmailJS)
-            // Si no los tienes a la mano, EmailJS suele usar 'default_service'
+
             emailjs.send('default_service', 'template_ub0ksu5', templateParams)
                 .then(() => {
+                    ocultarCargando();
                     alert("✅ Éxito: Tu contraseña ha sido enviada al correo: " + data.correo);
                 }, (error) => {
-                    console.error("Error EmailJS:", error);
-                    alert("❌ Error al enviar el correo. Intenta más tarde.");
+                    ocultarCargando();
+                    alert("❌ Error al enviar el correo.");
                 });
 
         } catch (error) {
-            console.error(error);
+            ocultarCargando();
             alert("❌ Ocurrió un error al consultar la base de datos.");
         }
     };
 </script>
+
 <script>
-  // 1. Deshabilitar clic derecho
+  // Seguridad de código fuente
   document.addEventListener('contextmenu', (e) => e.preventDefault());
-
-  // 2. Deshabilitar atajos de teclado comunes
   document.onkeydown = function(e) {
-    // Bloquear F12
     if(e.keyCode == 123) return false;
-
-    // Bloquear Ctrl+Shift+I (Inspeccionar)
     if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
-
-    // Bloquear Ctrl+Shift+J (Consola)
     if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
-
-    // Bloquear Ctrl+U (Ver código fuente)
     if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
   };
 </script>
 </body>
 </html>
-
-
-
-
-
