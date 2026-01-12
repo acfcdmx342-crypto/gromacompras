@@ -29,13 +29,49 @@
         .field-locked { background-color: #e9ecef !important; cursor: not-allowed; pointer-events: none; }
         .group-header { cursor: pointer; transition: background 0.2s; }
         .chevron-icon { transition: transform 0.3s; font-size: 0.8rem; }
+
+        /* --- ESTILOS DEL LOADER PROCOMEX --- */
+        #loader { 
+            display: none; 
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: rgba(255,255,255,0.95); 
+            z-index: 9999; 
+            justify-content: center; 
+            align-items: center; 
+            flex-direction: column; 
+        }
+        .loader-logo-container {
+            animation: pulse-procomex 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse-procomex {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
     </style>
 </head>
 <body class="p-4">
 
+<div id="loader">
+    <div class="loader-logo-container">
+        <img src="https://gruporoma.com/wp-content/uploads/2023/06/cropped-cropped-procomex-pachuca-logo-350-%C3%97-100-px-1.png" 
+             alt="Cargando..." style="width: 250px; height: auto;">
+    </div>
+    <div class="mt-3">
+        <div class="spinner-border text-primary" role="status" style="width: 1.5rem; height: 1.5rem; vertical-align: middle;"></div>
+        <span class="ms-2 fw-bold text-dark">Procesando información...</span>
+    </div>
+</div>
+
 <script>
     const sesion = JSON.parse(localStorage.getItem("usuarioLogueado"));
     if (!sesion) { location.href = "index.html"; }
+
+    // Funciones globales de control del loader
+    window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
+    window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
 </script>
 
 <div class="container">
@@ -187,7 +223,6 @@
             const el = document.getElementById(id);
             if (!el) return;
             el.value = data[id] || "";
-            // Bloquear si ya tiene datos (excepto los básicos)
             if (id !== "folio" && id !== "status" && id !== "comentarios" && data[id]) {
                 el.readOnly = true;
                 el.classList.add("field-locked");
@@ -202,6 +237,9 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    // Iniciar carga de datos
+    window.mostrarCargando();
+
     onValue(ref(database, "tecnologia"), (snap) => {
         selectFolio.innerHTML = '<option value="">Seleccione un folio</option>';
         snap.forEach(child => {
@@ -211,7 +249,6 @@
             option.value = d.folio; option.textContent = d.folio;
             selectFolio.appendChild(option);
         });
-        // Si viene folio por URL
         const urlParams = new URLSearchParams(window.location.search);
         if(urlParams.has('folio')) {
             selectFolio.value = urlParams.get('folio');
@@ -237,34 +274,42 @@
     document.getElementById("btnGuardar").onclick = async () => {
         if (!selectFolio.value) return Swal.fire("Error", "Seleccione un folio", "error");
         
-        const fCot = document.getElementById("fileCot").files[0];
-        const fFac = document.getElementById("fileFactura").files[0];
+        window.mostrarCargando(); // MOSTRAR LOADER
 
-        const dataGuardar = {
-            folio: selectFolio.value,
-            fechaCompras: document.getElementById("fechaCompras").value,
-            descripcion: document.getElementById("descripcion").value.toUpperCase(),
-            fechaCot: document.getElementById("fechaCot").value,
-            folioCot: document.getElementById("folioCot").value.toUpperCase(),
-            archivoCot: fCot ? await toBase64(fCot) : null,
-            autoriza: document.getElementById("autoriza").value.toUpperCase(),
-            fechaAuto: document.getElementById("fechaAuto").value,
-            fechaEntrega: document.getElementById("fechaEntrega").value,
-            recibe: document.getElementById("recibe").value.toUpperCase(),
-            folioFactura: document.getElementById("folioFactura").value.toUpperCase(),
-            archivoFac: fFac ? await toBase64(fFac) : null,
-            fechaEnvio: document.getElementById("fechaEnvio").value,
-            envia: document.getElementById("envia").value.toUpperCase(),
-            adonde: document.getElementById("adonde").value.toUpperCase(),
-            status: document.getElementById("status").value,
-            comentarios: document.getElementById("comentarios").value.toUpperCase(),
-            fechaRegistro: new Date().toISOString(),
-            usuarioModifico: sesion.usuario,
-            eliminado: false
-        };
+        try {
+            const fCot = document.getElementById("fileCot").files[0];
+            const fFac = document.getElementById("fileFactura").files[0];
 
-        await push(ref(database, "seguimiento"), dataGuardar);
-        Swal.fire("Éxito", "Seguimiento guardado", "success").then(() => location.reload());
+            const dataGuardar = {
+                folio: selectFolio.value,
+                fechaCompras: document.getElementById("fechaCompras").value,
+                descripcion: document.getElementById("descripcion").value.toUpperCase(),
+                fechaCot: document.getElementById("fechaCot").value,
+                folioCot: document.getElementById("folioCot").value.toUpperCase(),
+                archivoCot: fCot ? await toBase64(fCot) : null,
+                autoriza: document.getElementById("autoriza").value.toUpperCase(),
+                fechaAuto: document.getElementById("fechaAuto").value,
+                fechaEntrega: document.getElementById("fechaEntrega").value,
+                recibe: document.getElementById("recibe").value.toUpperCase(),
+                folioFactura: document.getElementById("folioFactura").value.toUpperCase(),
+                archivoFac: fFac ? await toBase64(fFac) : null,
+                fechaEnvio: document.getElementById("fechaEnvio").value,
+                envia: document.getElementById("envia").value.toUpperCase(),
+                adonde: document.getElementById("adonde").value.toUpperCase(),
+                status: document.getElementById("status").value,
+                comentarios: document.getElementById("comentarios").value.toUpperCase(),
+                fechaRegistro: new Date().toISOString(),
+                usuarioModifico: sesion.usuario,
+                eliminado: false
+            };
+
+            await push(ref(database, "seguimiento"), dataGuardar);
+            window.ocultarCargando();
+            Swal.fire("Éxito", "Seguimiento guardado", "success").then(() => location.reload());
+        } catch (error) {
+            window.ocultarCargando();
+            Swal.fire("Error", "No se pudo guardar el seguimiento", "error");
+        }
     };
 
     onValue(ref(database, "seguimiento"), (snap) => {
@@ -323,6 +368,7 @@
                     </td>
                 </tr>`;
         });
+        window.ocultarCargando(); // OCULTAR LOADER AL FINALIZAR CARGA
     });
 
     window.eliminarLogico = async (key) => {
@@ -336,38 +382,28 @@
             inputValidator: (value) => { if (!value) return 'El motivo es obligatorio' }
         });
         if (motivo) {
+            window.mostrarCargando();
             await update(ref(database, `seguimiento/${key}`), { 
                 eliminado: true, 
                 motivoEliminacion: motivo.toUpperCase(),
                 fechaEliminacion: new Date().toISOString()
             });
+            window.ocultarCargando();
             Swal.fire('Actualizado', 'Registro marcado como eliminado.', 'success');
         }
     };
 </script>
+
 <script>
-  // 1. Deshabilitar clic derecho
+  // Seguridad de código
   document.addEventListener('contextmenu', (e) => e.preventDefault());
-
-  // 2. Deshabilitar atajos de teclado comunes
   document.onkeydown = function(e) {
-    // Bloquear F12
     if(e.keyCode == 123) return false;
-
-    // Bloquear Ctrl+Shift+I (Inspeccionar)
     if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
-
-    // Bloquear Ctrl+Shift+J (Consola)
     if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
-
-    // Bloquear Ctrl+U (Ver código fuente)
     if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
   };
 </script>
     
 </body>
 </html>
-
-
-
-
