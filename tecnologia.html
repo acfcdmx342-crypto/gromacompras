@@ -25,9 +25,42 @@
         .st-default { background-color: #6c757d !important; color: white; }   
         .tiempo-badge { font-size: 0.75rem; font-weight: bold; color: #555; }
         .swal-table { font-size: 0.85rem; }
+
+        /* --- ESTILOS DEL LOADER PROCOMEX --- */
+        #loader { 
+            display: none; 
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: rgba(255,255,255,0.9); 
+            z-index: 9999; 
+            justify-content: center; 
+            align-items: center; 
+            flex-direction: column; 
+        }
+        .loader-logo-container {
+            animation: pulse-procomex 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse-procomex {
+            0% { transform: scale(0.95); opacity: 0.7; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.7; }
+        }
     </style>
 </head>
 <body class="p-4">
+
+<div id="loader">
+    <div class="loader-logo-container">
+        <img src="https://gruporoma.com/wp-content/uploads/2023/06/cropped-cropped-procomex-pachuca-logo-350-%C3%97-100-px-1.png" 
+             alt="Cargando..." style="width: 250px; height: auto;">
+    </div>
+    <div class="mt-3">
+        <div class="spinner-border text-primary" role="status" style="width: 1.5rem; height: 1.5rem; vertical-align: middle;"></div>
+        <span class="ms-2 fw-bold text-dark">Procesando información...</span>
+    </div>
+</div>
+
 <script>
     const sesionRaw = localStorage.getItem("usuarioLogueado");
     if (!sesionRaw) {
@@ -50,7 +83,12 @@
         window.esSoporteJR = window.puestoSesion === "SOPORTE TECNICO JR";
         window.puedeVerBase = puestosPrivilegiados.includes(window.puestoSesion);
     }
+
+    // Funciones globales de control del loader
+    window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
+    window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
 </script>
+
 <div class="container">
     <div class="d-flex justify-content-between align-items-start mb-4">
         <div class="user-info-box border-start border-primary border-4">
@@ -95,18 +133,26 @@
         </div>
     </div>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 <script type="module">
     import { database, ref, push, set, get, onValue, update } from "./firebase.js";
+
     document.getElementById("usuarioActivo").textContent = window.nombreSesion;
     document.getElementById("puestoActivo").textContent = window.puestoSesion;
     document.getElementById("soporte").value = window.nombreSesion;
+
     if (window.puedeVerBase) {
         document.getElementById("liBase").innerHTML = '<a class="dropdown-item" href="base.html">🏠 Página Base (Usuarios)</a>';
     }
+
     const solicitudesRef = ref(database, "tecnologia");
     const seguimientoRef = ref(database, "seguimiento");
     let globalSeguimientos = [];
+
+    // Mostrar cargando al iniciar la escucha de datos
+    window.mostrarCargando();
 
     onValue(seguimientoRef, snap => {
         globalSeguimientos = [];
@@ -164,46 +210,57 @@
                         </tr>`;
                 }
             });
+            window.ocultarCargando(); // Ocultar cuando la tabla termine de renderizar
         });
     }
 
+    window.guardarSolicitud = async () => {
+        const emp = document.getElementById("empresa").value;
+        const zon = document.getElementById("zona").value;
+        const suc = document.getElementById("sucursal").value;
+        const arc = document.getElementById("archivo").files[0];
+
+        if (!emp || !zon || !suc || !arc) return Swal.fire("Atención", "Faltan campos obligatorios", "warning");
+
+        window.mostrarCargando(); // ACTIVAR LOADER
+
+        try {
+            const key = `TEC_${emp}_${zon}`.toUpperCase();
+            const rFolio = ref(database, "folios/" + key);
+            const sFolio = await get(rFolio);
+            let n = sFolio.exists() ? sFolio.val() + 1 : 1;
+            await set(rFolio, n);
+            const fol = `TEC-${emp}-${zon}-${n.toString().padStart(4, "0")}`.toUpperCase();
+
+            const reader = new FileReader();
+            reader.onload = async () => {
+                await push(solicitudesRef, {
+                    folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
+                    soporte: window.nombreSesion, sucursal: suc.toUpperCase(),
+                    archivoData: reader.result, archivoNombre: arc.name,
+                    status: "PENDIENTE", fechaEnvio: new Date().toLocaleString(), 
+                    fechaISO: new Date().toISOString(),
+                    usuario: window.usuarioSesion, eliminado: false
+                });
+                document.getElementById("formTec").reset();
+                window.ocultarCargando(); // DESACTIVAR LOADER
+                Swal.fire("Éxito", "Solicitud guardada con folio: " + fol, "success");
+            };
+            reader.readAsDataURL(arc);
+        } catch (error) {
+            window.ocultarCargando();
+            Swal.fire("Error", "No se pudo procesar la solicitud", "error");
+        }
+    };
+
+    // --- Resto de funciones se mantienen igual ---
     window.verHistorialFolio = (folio) => {
         const segs = globalSeguimientos
             .filter(x => x.folio === folio)
             .sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
 
-        let tablaHTML = `
-            <div class="table-responsive">
-                <table class="table table-sm table-striped swal-table mt-3">
-                    <thead>
-                        <tr class="table-dark">
-                            <th>Fecha</th>
-                            <th>Status</th>
-                            <th>Usuario</th>
-                            <th>Comentarios</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${segs.map(h => `
-                            <tr>
-                                <td><small>${h.fechaRegistro}</small></td>
-                                <td><span class="badge bg-secondary">${h.status}</span></td>
-                                <td>${h.usuario || 'Sistemas'}</td>
-                                <td class="text-start">${h.comentarios || ''}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>`;
-
-        Swal.fire({
-            title: `Historial: ${folio}`,
-            html: tablaHTML,
-            width: '800px',
-            showCloseButton: true,
-            confirmButtonText: 'Cerrar',
-            confirmButtonColor: '#0d6efd'
-        });
+        let tablaHTML = `<div class="table-responsive"><table class="table table-sm table-striped swal-table mt-3"><thead><tr class="table-dark"><th>Fecha</th><th>Status</th><th>Usuario</th><th>Comentarios</th></tr></thead><tbody>${segs.map(h => `<tr><td><small>${h.fechaRegistro}</small></td><td><span class="badge bg-secondary">${h.status}</span></td><td>${h.usuario || 'Sistemas'}</td><td class="text-start">${h.comentarios || ''}</td></tr>`).join('')}</tbody></table></div>`;
+        Swal.fire({ title: `Historial: ${folio}`, html: tablaHTML, width: '800px', showCloseButton: true, confirmButtonText: 'Cerrar', confirmButtonColor: '#0d6efd' });
     };
 
     function calcularTranscurrido(f) {
@@ -218,113 +275,55 @@
     window.irSeguimiento = f => location.href = "seguimiento.html?folio=" + encodeURIComponent(f);
 
     window.eliminarSolicitud = async (id) => {
-        const { value: motivo } = await Swal.fire({
-            title: 'Motivo de eliminación',
-            input: 'textarea',
-            inputPlaceholder: 'Escriba por qué elimina este registro...',
-            showCancelButton: true,
-            inputValidator: (value) => { if (!value) return '¡El motivo es obligatorio!' }
-        });
+        const { value: motivo } = await Swal.fire({ title: 'Motivo de eliminación', input: 'textarea', inputPlaceholder: 'Escriba por qué elimina este registro...', showCancelButton: true, inputValidator: (value) => { if (!value) return '¡El motivo es obligatorio!' } });
         if (motivo) {
+            window.mostrarCargando();
             await update(ref(database, `tecnologia/${id}`), { eliminado: true, motivoEliminacion: motivo });
+            window.ocultarCargando();
             Swal.fire('Eliminado', 'Registro movido al historial.', 'success');
         }
     };
 
-  window.confirmarEntrega = async (fol) => {
-    const snap = await get(solicitudesRef);
-    let idKeyPrincipal = null;
-    snap.forEach(doc => {
-        if (doc.val().folio === fol) idKeyPrincipal = doc.key;
-    });
+    window.confirmarEntrega = async (fol) => {
+        const snap = await get(solicitudesRef);
+        let idKeyPrincipal = null;
+        snap.forEach(doc => { if (doc.val().folio === fol) idKeyPrincipal = doc.key; });
+        if (!idKeyPrincipal) return Swal.fire("Error", "No se encontró el registro original", "error");
 
-    if (!idKeyPrincipal) return Swal.fire("Error", "No se encontró el registro original", "error");
+        const { value: formValues } = await Swal.fire({
+            title: 'Confirmar Entrega',
+            html: '<label class="small fw-bold">Subir Foto Evidencia</label><input type="file" id="swal-foto" class="form-control mb-2" accept="image/*"><textarea id="swal-comentario" class="form-control" placeholder="Comentario de entrega..."></textarea>',
+            preConfirm: () => {
+                const f = document.getElementById('swal-foto').files[0];
+                const c = document.getElementById('swal-comentario').value;
+                if (!f || !c) return Swal.showValidationMessage('Foto y comentario obligatorios');
+                return { f, c };
+            }
+        });
 
-    const { value: formValues } = await Swal.fire({
-        title: 'Confirmar Entrega',
-        html: '<label class="small fw-bold">Subir Foto Evidencia</label><input type="file" id="swal-foto" class="form-control mb-2" accept="image/*"><textarea id="swal-comentario" class="form-control" placeholder="Comentario de entrega..."></textarea>',
-        preConfirm: () => {
-            const f = document.getElementById('swal-foto').files[0];
-            const c = document.getElementById('swal-comentario').value;
-            if (!f || !c) return Swal.showValidationMessage('Foto y comentario obligatorios');
-            return { f, c };
+        if (formValues) {
+            window.mostrarCargando();
+            const reader = new FileReader();
+            reader.onload = async () => {
+                await push(seguimientoRef, { folio: fol, status: "CONFIRMADO", comentarios: formValues.c, fotoEvidencia: reader.result, fechaRegistro: new Date().toLocaleString(), usuario: window.usuarioSesion });
+                await update(ref(database, `tecnologia/${idKeyPrincipal}`), { status: "CONFIRMADO" });
+                window.ocultarCargando();
+                Swal.fire('Confirmado', 'El folio se ha cerrado y movido al historial.', 'success');
+            };
+            reader.readAsDataURL(formValues.f);
         }
-    });
-
-    if (formValues) {
-        const reader = new FileReader();
-        reader.onload = async () => {
-            // A) Guardamos el seguimiento detallado
-            await push(seguimientoRef, { 
-                folio: fol, status: "CONFIRMADO", comentarios: formValues.c, 
-                fotoEvidencia: reader.result, fechaRegistro: new Date().toLocaleString(), 
-                usuario: window.usuarioSesion 
-            });
-
-            // B) MEJORA: Actualizamos el status en la tabla principal para que se mueva al historial
-            await update(ref(database, `tecnologia/${idKeyPrincipal}`), { 
-                status: "CONFIRMADO" 
-            });
-
-            Swal.fire('Confirmado', 'El folio se ha cerrado y movido al historial.', 'success');
-        };
-        reader.readAsDataURL(formValues.f);
-    }
-};
-
-    window.guardarSolicitud = async () => {
-        const emp = document.getElementById("empresa").value;
-        const zon = document.getElementById("zona").value;
-        const suc = document.getElementById("sucursal").value;
-        const arc = document.getElementById("archivo").files[0];
-
-        if (!emp || !zon || !suc || !arc) return Swal.fire("Atención", "Faltan campos obligatorios", "warning");
-
-        const key = `TEC_${emp}_${zon}`.toUpperCase();
-        const rFolio = ref(database, "folios/" + key);
-        const sFolio = await get(rFolio);
-        let n = sFolio.exists() ? sFolio.val() + 1 : 1;
-        await set(rFolio, n);
-        const fol = `TEC-${emp}-${zon}-${n.toString().padStart(4, "0")}`.toUpperCase();
-
-        const reader = new FileReader();
-        reader.onload = async () => {
-            await push(solicitudesRef, {
-                folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
-                soporte: window.nombreSesion, sucursal: suc.toUpperCase(),
-                archivoData: reader.result, archivoNombre: arc.name,
-                status: "PENDIENTE", fechaEnvio: new Date().toLocaleString(), 
-                fechaISO: new Date().toISOString(),
-                usuario: window.usuarioSesion, eliminado: false
-            });
-            document.getElementById("formTec").reset();
-            Swal.fire("Éxito", "Solicitud guardada con folio: " + fol, "success");
-        };
-        reader.readAsDataURL(arc);
     };
 </script>
+
 <script>
-  // 1. Deshabilitar clic derecho
+  // Seguridad de código fuente
   document.addEventListener('contextmenu', (e) => e.preventDefault());
-
-  // 2. Deshabilitar atajos de teclado comunes
   document.onkeydown = function(e) {
-    // Bloquear F12
     if(e.keyCode == 123) return false;
-
-    // Bloquear Ctrl+Shift+I (Inspeccionar)
     if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
-
-    // Bloquear Ctrl+Shift+J (Consola)
     if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
-
-    // Bloquear Ctrl+U (Ver código fuente)
     if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
   };
 </script>
-    
 </body>
 </html>
-
-
-
