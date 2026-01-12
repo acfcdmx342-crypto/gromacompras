@@ -107,36 +107,27 @@ button:hover {
 
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 <script>emailjs.init("0aHlArLgvHrj2Xbk8");</script>
-
 <script type="module">
     import { database, ref, get } from "./firebase.js";
-
     const loginUser = document.getElementById("loginUser");
     const loginPass = document.getElementById("loginPass");
     const toggleBtn = document.getElementById("toggleBtn");
-
     toggleBtn.onclick = () => {
         const isPass = loginPass.type === "password";
         loginPass.type = isPass ? "text" : "password";
         toggleBtn.classList.toggle("fa-eye");
         toggleBtn.classList.toggle("fa-eye-slash");
     };
-
     document.getElementById("btnLogin").onclick = async () => {
         const usuario = loginUser.value.trim().toUpperCase();
         const pass = loginPass.value.trim();
-
         if (!usuario || !pass) return alert("Completa todos los campos");
-
         const snap = await get(ref(database, "usuarios/" + usuario));
         if (!snap.exists()) return alert("❌ Usuario NO registrado");
-
         const data = snap.val();
         if (data.contrasena !== pass) return alert("❌ Contraseña incorrecta");
-
         // Validar si el usuario está bloqueado
         if (data.bloqueado) return alert("❌ Este usuario está desactivado. Contacta a sistemas.");
-
         localStorage.setItem("usuarioLogueado", JSON.stringify({
             usuario: data.usuario,
             nombre: data.nombre,
@@ -144,27 +135,20 @@ button:hover {
         }));
         window.location.href = "tecnologia.html";
     };
-
     // --- NUEVA FUNCIÓN DE RECUPERACIÓN ---
     document.getElementById("btnRecover").onclick = async () => {
         const usuario = prompt("Ingresa tu NOMBRE DE USUARIO para recuperar la contraseña:");
         if (!usuario) return;
-
         const userUpper = usuario.trim().toUpperCase();
-        
-        try {
+       try {
             const snap = await get(ref(database, "usuarios/" + userUpper));
-            
             if (!snap.exists()) {
                 return alert("❌ El usuario no existe en nuestra base de datos.");
             }
-
             const data = snap.val();
-
             if (!data.correo) {
                 return alert("❌ El usuario no tiene un correo electrónico registrado. Contacta a Soporte Técnico.");
             }
-
             // Parámetros para EmailJS
             // NOTA: Asegúrate de que en tu plantilla de EmailJS los nombres coincidan: {{to_name}}, {{user_email}}, {{user_pass}}
             const templateParams = {
@@ -172,7 +156,6 @@ button:hover {
                 user_email: data.correo,
                 user_pass: data.contrasena
             };
-
             // Enviar correo (Asegúrate de cambiar 'service_id' y 'template_id' por los tuyos de EmailJS)
             // Si no los tienes a la mano, EmailJS suele usar 'default_service'
             emailjs.send('default_service', 'template_ub0ksu5', templateParams)
@@ -210,6 +193,7 @@ button:hover {
 </script>
 </body>
 </html>
+
 
 
 
