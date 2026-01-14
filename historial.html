@@ -15,8 +15,8 @@
         .badge-ok { background: #198754; color: white; }
         .img-preview { cursor: pointer; border-radius: 8px; transition: 0.2s; border: 1px solid #ddd; }
         .img-preview:hover { transform: scale(1.1); }
+        .btn-rounded { border-radius: 50px; }
 
-        /* --- ESTILOS DEL LOADER PROCOMEX --- */
         #loader { 
             display: none; 
             position: fixed; 
@@ -47,12 +47,11 @@
     </div>
     <div class="mt-3">
         <div class="spinner-border text-primary" role="status" style="width: 1.2rem; height: 1.2rem; vertical-align: middle;"></div>
-        <span class="ms-2 fw-bold text-dark">Generando historial...</span>
+        <span class="ms-2 fw-bold text-dark">Procesando información...</span>
     </div>
 </div>
 
 <script>
-    // Validar sesión y permisos al cargar la página
     const sesionRaw = localStorage.getItem("usuarioLogueado");
     if (!sesionRaw) {
         location.href = "index.html";
@@ -70,9 +69,10 @@
             "BECARIO DE SISTEMAS"
         ];
         window.puedeVerTodo = puestosPrivilegiados.includes(window.puestoSesion);
+        // Validar si NO es JR para permitir exportación
+        window.esSoporteJR = window.puestoSesion === "SOPORTE TECNICO JR";
     }
 
-    // Funciones de control del loader
     window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
     window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
 </script>
@@ -81,7 +81,10 @@
     <div class="card p-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h3 class="fw-bold m-0 text-primary">📜 Historial de Solicitudes (Cerradas)</h3>
-            <a href="tecnologia.html" class="btn btn-outline-primary btn-rounded">⬅️ Volver al Panel</a>
+            <div class="d-flex gap-2">
+                <div id="contenedorExportar"></div>
+                <a href="tecnologia.html" class="btn btn-outline-primary btn-rounded">⬅️ Volver al Panel</a>
+            </div>
         </div>
         
         <div class="table-responsive">
@@ -111,7 +114,17 @@ import { database, ref, onValue, get } from "./firebase.js";
 const solicitudesRef = ref(database,"tecnologia");
 const seguimientoRef = ref(database,"seguimiento");
 
-// Mostrar loader al iniciar la carga de datos
+let datosParaExportar = [];
+
+// Mostrar botón de exportar solo si no es JR
+if (!window.esSoporteJR) {
+    document.getElementById("contenedorExportar").innerHTML = `
+        <button class="btn btn-success btn-rounded shadow-sm fw-bold" onclick="window.descargarExcelHistorial()">
+            <i class="fas fa-file-excel me-2"></i>Exportar Historial
+        </button>
+    `;
+}
+
 window.mostrarCargando();
 
 onValue(solicitudesRef, () => cargarHistorial());
@@ -127,14 +140,12 @@ async function cargarHistorial() {
 
         const body = document.getElementById("historialBody");
         body.innerHTML = "";
+        datosParaExportar = [];
         
         snapSolicitudes.forEach(c => {
             const s = c.val();
-            
             const esSuPropioRegistro = s.usuario === window.usuarioSesion;
-            if (!window.puedeVerTodo && !esSuPropioRegistro) {
-                return;
-            }
+            if (!window.puedeVerTodo && !esSuPropioRegistro) return;
 
             const segs = globalSegs.filter(x => x.folio === s.folio)
                                    .sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
@@ -143,16 +154,39 @@ async function cargarHistorial() {
             const estaEliminado = s.eliminado === true;
 
             if (estaEliminado || estaConfirmado) {
-                let claseFila = estaEliminado ? "st-eliminado" : "st-confirmado";
-                let statusBadge = estaEliminado ? `<span class="badge badge-del">ELIMINADO</span>` : `<span class="badge badge-ok">CONFIRMADO</span>`;
-                
+                let statusFinalLabel = estaEliminado ? "ELIMINADO" : "CONFIRMADO";
                 let segConfirmado = segs.find(x => x.status === "CONFIRMADO");
                 let motivo = estaEliminado ? (s.motivoEliminacion || "Sin motivo") : (segConfirmado?.comentarios || "Entregado");
                 
-                let fotoBtn = "---";
-                if (segConfirmado?.fotoEvidencia) {
-                    fotoBtn = `<img src="${segConfirmado.fotoEvidencia}" width="40" height="40" class="img-preview shadow-sm" onclick="window.verFoto('${segConfirmado.fotoEvidencia}', '${s.folio}')">`;
+                // --- CÁLCULO TIEMPO DE ENTREGA ---
+                let tiempoEntrega = "N/A";
+                if (estaConfirmado && segConfirmado) {
+                    const inicio = new Date(s.fechaISO || s.fechaEnvio);
+                    const fin = new Date(segConfirmado.fechaRegistro);
+                    if (!isNaN(inicio) && !isNaN(fin)) {
+                        const dif = fin - inicio;
+                        const dias = Math.floor(dif / 86400000);
+                        const horas = Math.floor((dif / 3600000) % 24);
+                        tiempoEntrega = dias > 0 ? `${dias}d ${horas}h` : `${horas}h`;
+                    }
                 }
+
+                // Guardar para exportación
+                datosParaExportar.push({
+                    folio: s.folio,
+                    empresa: s.empresa,
+                    zona: s.zona,
+                    sucursal: s.sucursal,
+                    statusFinal: statusFinalLabel,
+                    motivo: motivo,
+                    fechaReg: s.fechaEnvio,
+                    tiempo: tiempoEntrega
+                });
+
+                // Render en tabla
+                let claseFila = estaEliminado ? "st-eliminado" : "st-confirmado";
+                let statusBadge = estaEliminado ? `<span class="badge badge-del">ELIMINADO</span>` : `<span class="badge badge-ok">CONFIRMADO</span>`;
+                let fotoBtn = segConfirmado?.fotoEvidencia ? `<img src="${segConfirmado.fotoEvidencia}" width="40" height="40" class="img-preview shadow-sm" onclick="window.verFoto('${segConfirmado.fotoEvidencia}', '${s.folio}')">` : "---";
 
                 body.innerHTML += `
                     <tr class="${claseFila}">
@@ -170,30 +204,52 @@ async function cargarHistorial() {
             }
         });
     } catch (error) {
-        console.error("Error al cargar historial:", error);
+        console.error(error);
     } finally {
-        window.ocultarCargando(); // Ocultar loader siempre al finalizar la carga
+        window.ocultarCargando();
     }
 }
 
-window.verFoto = (url, folio) => {
-    Swal.fire({
-        title: `Evidencia de Entrega - ${folio}`,
-        imageUrl: url,
-        imageAlt: 'Foto de evidencia',
-        confirmButtonText: 'Cerrar',
-        confirmButtonColor: '#0d6efd'
+// --- FUNCIÓN PARA DESCARGAR EXCEL (CSV) ---
+window.descargarExcelHistorial = () => {
+    if (datosParaExportar.length === 0) return Swal.fire("Aviso", "No hay datos para exportar", "info");
+
+    let csvContent = "\uFEFF"; // BOM para Excel
+    csvContent += "Folio,Empresa,Zona,Sucursal,Status Final,Motivo/Comentario,Fecha de Registro,Tiempo de Entrega\n";
+
+    datosParaExportar.forEach(d => {
+        const fila = [
+            d.folio,
+            d.empresa,
+            d.zona,
+            d.sucursal,
+            d.statusFinal,
+            d.motivo.replace(/,/g, "."), // Evitar que comas en comentarios rompan columnas
+            d.fechaReg,
+            d.tiempo
+        ];
+        csvContent += fila.map(campo => `"${campo}"`).join(",") + "\n";
     });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `Historial_Tecnologia_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`;
+    link.click();
+    
+    Swal.fire("Éxito", "Historial exportado correctamente", "success");
+};
+
+window.verFoto = (url, folio) => {
+    Swal.fire({ title: `Evidencia - ${folio}`, imageUrl: url, imageAlt: 'Evidencia', confirmButtonText: 'Cerrar' });
 };
 </script>
 
 <script>
-    // Seguridad de código fuente
     document.addEventListener('contextmenu', (e) => e.preventDefault());
     document.onkeydown = function(e) {
         if(e.keyCode == 123) return false;
-        if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
-        if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
+        if(e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) return false;
         if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
     };
 </script>
