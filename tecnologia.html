@@ -105,7 +105,9 @@
             </ul>
         </div>
     </div>
+
    <h2 class="text-center fw-bold mb-4">Solicitud de Tecnología</h2>
+
     <div class="card shadow p-4 mb-4 border-0">
         <h5 class="fw-bold mb-3 border-bottom pb-2 text-secondary">Registrar Solicitud</h5>
         <form id="formTec" class="row g-3">
@@ -119,6 +121,7 @@
             </div>
         </form>
     </div>
+
     <div class="card shadow p-4 border-0">
         <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
             <h5 class="fw-bold m-0 text-secondary">Solicitudes en Proceso</h5>
@@ -148,11 +151,11 @@
         document.getElementById("liBase").innerHTML = '<a class="dropdown-item" href="base.html">🏠 Página Base (Usuarios)</a>';
     }
 
-    // Lógica para mostrar el botón de exportar solo a rangos superiores a JR
+    // El botón solo aparece si NO es Soporte JR
     if (!window.esSoporteJR) {
         document.getElementById("contenerdorExportar").innerHTML = `
             <button class="btn btn-success btn-sm btn-rounded px-3 shadow-sm" onclick="window.exportarExcel()">
-                📊 Exportar Reporte Completo
+                📊 Exportar Excel
             </button>
         `;
     }
@@ -160,7 +163,7 @@
     const solicitudesRef = ref(database, "tecnologia");
     const seguimientoRef = ref(database, "seguimiento");
     let globalSeguimientos = [];
-    let solicitudesActualesParaExportar = []; // Variable auxiliar para el export
+    let solicitudesActualesParaExportar = []; 
 
     window.mostrarCargando();
 
@@ -174,7 +177,7 @@
         onValue(solicitudesRef, snap => {
             const tbody = document.getElementById("tablaTecBody");
             tbody.innerHTML = "";
-            solicitudesActualesParaExportar = []; // Limpiamos cada vez que actualiza
+            solicitudesActualesParaExportar = []; 
 
             snap.forEach(c => {
                 const s = c.val();
@@ -191,8 +194,8 @@
                 const esDueno = s.usuario === window.usuarioSesion;
 
                 if(puedeVerTodo || esDueno) {
-                    // Guardamos para exportar después
-                    solicitudesActualesParaExportar.push({ ...s, statusActual, seguimientos: segsDelFolio });
+                    // Guardamos datos para la exportación
+                    solicitudesActualesParaExportar.push({ ...s, statusActual });
 
                     let claseColor = "st-default";
                     const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas"};
@@ -213,11 +216,9 @@
                             <td>
                                 <div class="acciones">
                                     <span class="action-btn ${!tieneSeguimientos ? 'action-disabled' : ''}" 
-                                          onclick="${tieneSeguimientos ? `window.verHistorialFolio('${s.folio}')` : ''}" title="Historial de Seguimiento">📜</span>
-
+                                          onclick="${tieneSeguimientos ? `window.verHistorialFolio('${s.folio}')` : ''}" title="Historial">📜</span>
                                     <span class="action-btn ${window.esSoporteJR ? 'action-disabled' : ''}" 
                                           onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}">📋</span>
-
                                     ${window.esSoporteJR && statusActual === "ENVIADO A ZONA" ? `<span class="action-btn text-success" onclick="window.confirmarEntrega('${s.folio}')">✅</span>` : ''}
                                     ${puedeVerTodo ? `<span class="action-btn" onclick="window.eliminarSolicitud('${idKey}')">🗑️</span>` : ``}
                                 </div>
@@ -229,21 +230,19 @@
         });
     }
 
-    // --- FUNCIÓN PARA EXPORTAR ---
+    // --- FUNCIÓN EXPORTAR EXCEL ACTUALIZADA ---
     window.exportarExcel = () => {
-        if (solicitudesActualesParaExportar.length === 0) return Swal.fire("Sin datos", "No hay solicitudes para exportar", "info");
+        if (solicitudesActualesParaExportar.length === 0) return Swal.fire("Sin datos", "No hay solicitudes en proceso", "info");
 
         window.mostrarCargando();
         
-        let csvContent = "\uFEFF"; // BOM para caracteres especiales
-        csvContent += "Folio,Empresa,Zona,Soporte,Sucursal,Status Actual,Fecha Solicitud,Historial de Seguimiento (Fecha | Status | Usuario | Comentario)\n";
+        let csvContent = "\uFEFF"; // Para acentos en Excel
+        csvContent += "Folio,Empresa,Zona,Soporte,Sucursal,Status Actual,Fecha de Solicitud,Tiempo Abierta\n";
 
         solicitudesActualesParaExportar.forEach(s => {
-            // Formateamos el historial en una sola celda
-            const historialTexto = s.seguimientos.map(h => 
-                `[${h.fechaRegistro} - ${h.status} - ${h.usuario || 'SISTEMAS'} - ${h.comentarios || 'Sin comentario'}]`
-            ).join(" / ");
-
+            // Calcula el tiempo abierta automáticamente al momento de exportar
+            const tiempo = calcularTranscurrido(s.fechaISO || s.fechaEnvio);
+            
             const fila = [
                 s.folio,
                 s.empresa,
@@ -252,23 +251,20 @@
                 s.sucursal,
                 s.statusActual,
                 s.fechaEnvio,
-                `"${historialTexto.replace(/"/g, '""')}"` // Comillas para evitar errores con comas
+                tiempo
             ];
-            csvContent += fila.join(",") + "\n";
+            // Unir campos con comas y comillas para evitar errores de formato
+            csvContent += fila.map(f => `"${f}"`).join(",") + "\n";
         });
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", `Reporte_Tecnologia_${new Date().toLocaleDateString()}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
+        link.href = URL.createObjectURL(blob);
+        link.download = `Reporte_Tecnologia_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`;
         link.click();
-        document.body.removeChild(link);
         
         window.ocultarCargando();
-        Swal.fire("Éxito", "El reporte se ha generado correctamente", "success");
+        Swal.fire("Éxito", "Excel generado correctamente", "success");
     };
 
     window.guardarSolicitud = async () => {
@@ -280,7 +276,6 @@
         if (!emp || !zon || !suc || !arc) return Swal.fire("Atención", "Faltan campos obligatorios", "warning");
 
         window.mostrarCargando();
-
         try {
             const key = `TEC_${emp}_${zon}`.toUpperCase();
             const rFolio = ref(database, "folios/" + key);
@@ -301,12 +296,12 @@
                 });
                 document.getElementById("formTec").reset();
                 window.ocultarCargando();
-                Swal.fire("Éxito", "Solicitud guardada con folio: " + fol, "success");
+                Swal.fire("Éxito", "Folio: " + fol, "success");
             };
             reader.readAsDataURL(arc);
-        } catch (error) {
+        } catch (e) {
             window.ocultarCargando();
-            Swal.fire("Error", "No se pudo procesar la solicitud", "error");
+            Swal.fire("Error", "No se pudo guardar", "error");
         }
     };
 
@@ -316,7 +311,7 @@
             .sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
 
         let tablaHTML = `<div class="table-responsive"><table class="table table-sm table-striped swal-table mt-3"><thead><tr class="table-dark"><th>Fecha</th><th>Status</th><th>Usuario</th><th>Comentarios</th></tr></thead><tbody>${segs.map(h => `<tr><td><small>${h.fechaRegistro}</small></td><td><span class="badge bg-secondary">${h.status}</span></td><td>${h.usuario || 'Sistemas'}</td><td class="text-start">${h.comentarios || ''}</td></tr>`).join('')}</tbody></table></div>`;
-        Swal.fire({ title: `Historial: ${folio}`, html: tablaHTML, width: '800px', showCloseButton: true, confirmButtonText: 'Cerrar', confirmButtonColor: '#0d6efd' });
+        Swal.fire({ title: `Historial: ${folio}`, html: tablaHTML, width: '800px', showCloseButton: true, confirmButtonText: 'Cerrar' });
     };
 
     function calcularTranscurrido(f) {
@@ -331,12 +326,11 @@
     window.irSeguimiento = f => location.href = "seguimiento.html?folio=" + encodeURIComponent(f);
 
     window.eliminarSolicitud = async (id) => {
-        const { value: motivo } = await Swal.fire({ title: 'Motivo de eliminación', input: 'textarea', inputPlaceholder: 'Escriba por qué elimina este registro...', showCancelButton: true, inputValidator: (value) => { if (!value) return '¡El motivo es obligatorio!' } });
+        const { value: motivo } = await Swal.fire({ title: 'Motivo', input: 'textarea', showCancelButton: true });
         if (motivo) {
             window.mostrarCargando();
             await update(ref(database, `tecnologia/${id}`), { eliminado: true, motivoEliminacion: motivo });
             window.ocultarCargando();
-            Swal.fire('Eliminado', 'Registro movido al historial.', 'success');
         }
     };
 
@@ -344,11 +338,9 @@
         const snap = await get(solicitudesRef);
         let idKeyPrincipal = null;
         snap.forEach(doc => { if (doc.val().folio === fol) idKeyPrincipal = doc.key; });
-        if (!idKeyPrincipal) return Swal.fire("Error", "No se encontró el registro original", "error");
-
         const { value: formValues } = await Swal.fire({
-            title: 'Confirmar Entrega',
-            html: '<label class="small fw-bold">Subir Foto Evidencia</label><input type="file" id="swal-foto" class="form-control mb-2" accept="image/*"><textarea id="swal-comentario" class="form-control" placeholder="Comentario de entrega..."></textarea>',
+            title: 'Entrega',
+            html: '<input type="file" id="swal-foto" class="form-control mb-2" accept="image/*"><textarea id="swal-comentario" class="form-control"></textarea>',
             preConfirm: () => {
                 const f = document.getElementById('swal-foto').files[0];
                 const c = document.getElementById('swal-comentario').value;
@@ -364,7 +356,6 @@
                 await push(seguimientoRef, { folio: fol, status: "CONFIRMADO", comentarios: formValues.c, fotoEvidencia: reader.result, fechaRegistro: new Date().toLocaleString(), usuario: window.usuarioSesion });
                 await update(ref(database, `tecnologia/${idKeyPrincipal}`), { status: "CONFIRMADO" });
                 window.ocultarCargando();
-                Swal.fire('Confirmado', 'El folio se ha cerrado y movido al historial.', 'success');
             };
             reader.readAsDataURL(formValues.f);
         }
