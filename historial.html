@@ -17,6 +17,7 @@
         .img-preview:hover { transform: scale(1.1); }
         .btn-rounded { border-radius: 50px; }
 
+        /* --- ESTILOS DEL LOADER PROCOMEX --- */
         #loader { 
             display: none; 
             position: fixed; 
@@ -52,6 +53,7 @@
 </div>
 
 <script>
+    // Validar sesión y permisos al cargar la página
     const sesionRaw = localStorage.getItem("usuarioLogueado");
     if (!sesionRaw) {
         location.href = "index.html";
@@ -69,7 +71,7 @@
             "BECARIO DE SISTEMAS"
         ];
         window.puedeVerTodo = puestosPrivilegiados.includes(window.puestoSesion);
-        // Validar si NO es JR para permitir exportación
+        // Condición para el botón de exportar (No JR)
         window.esSoporteJR = window.puestoSesion === "SOPORTE TECNICO JR";
     }
 
@@ -120,7 +122,7 @@ let datosParaExportar = [];
 if (!window.esSoporteJR) {
     document.getElementById("contenedorExportar").innerHTML = `
         <button class="btn btn-success btn-rounded shadow-sm fw-bold" onclick="window.descargarExcelHistorial()">
-            <i class="fas fa-file-excel me-2"></i>Exportar Historial
+            <i class="fas fa-file-excel me-2"></i>Exportar Excel
         </button>
     `;
 }
@@ -154,36 +156,36 @@ async function cargarHistorial() {
             const estaEliminado = s.eliminado === true;
 
             if (estaEliminado || estaConfirmado) {
-                let statusFinalLabel = estaEliminado ? "ELIMINADO" : "CONFIRMADO";
                 let segConfirmado = segs.find(x => x.status === "CONFIRMADO");
                 let motivo = estaEliminado ? (s.motivoEliminacion || "Sin motivo") : (segConfirmado?.comentarios || "Entregado");
                 
-                // --- CÁLCULO TIEMPO DE ENTREGA ---
+                // --- CÁLCULO TIEMPO DE ENTREGA (Columna Automática) ---
                 let tiempoEntrega = "N/A";
                 if (estaConfirmado && segConfirmado) {
                     const inicio = new Date(s.fechaISO || s.fechaEnvio);
                     const fin = new Date(segConfirmado.fechaRegistro);
                     if (!isNaN(inicio) && !isNaN(fin)) {
-                        const dif = fin - inicio;
-                        const dias = Math.floor(dif / 86400000);
-                        const horas = Math.floor((dif / 3600000) % 24);
-                        tiempoEntrega = dias > 0 ? `${dias}d ${horas}h` : `${horas}h`;
+                        const difMs = fin - inicio;
+                        const horasTotales = Math.floor(difMs / 3600000);
+                        const dias = Math.floor(horasTotales / 24);
+                        const horasRestantes = horasTotales % 24;
+                        tiempoEntrega = dias > 0 ? `${dias}d ${horasRestantes}h` : `${horasRestantes}h`;
                     }
                 }
 
-                // Guardar para exportación
+                // Guardar datos formateados para el Excel
                 datosParaExportar.push({
                     folio: s.folio,
                     empresa: s.empresa,
                     zona: s.zona,
                     sucursal: s.sucursal,
-                    statusFinal: statusFinalLabel,
+                    statusFinal: estaEliminado ? "ELIMINADO" : "CONFIRMADO",
                     motivo: motivo,
                     fechaReg: s.fechaEnvio,
                     tiempo: tiempoEntrega
                 });
 
-                // Render en tabla
+                // Renderizado en tabla
                 let claseFila = estaEliminado ? "st-eliminado" : "st-confirmado";
                 let statusBadge = estaEliminado ? `<span class="badge badge-del">ELIMINADO</span>` : `<span class="badge badge-ok">CONFIRMADO</span>`;
                 let fotoBtn = segConfirmado?.fotoEvidencia ? `<img src="${segConfirmado.fotoEvidencia}" width="40" height="40" class="img-preview shadow-sm" onclick="window.verFoto('${segConfirmado.fotoEvidencia}', '${s.folio}')">` : "---";
@@ -204,13 +206,13 @@ async function cargarHistorial() {
             }
         });
     } catch (error) {
-        console.error(error);
+        console.error("Error al cargar historial:", error);
     } finally {
         window.ocultarCargando();
     }
 }
 
-// --- FUNCIÓN PARA DESCARGAR EXCEL (CSV) ---
+// --- FUNCIÓN DE EXPORTACIÓN ---
 window.descargarExcelHistorial = () => {
     if (datosParaExportar.length === 0) return Swal.fire("Aviso", "No hay datos para exportar", "info");
 
@@ -224,7 +226,7 @@ window.descargarExcelHistorial = () => {
             d.zona,
             d.sucursal,
             d.statusFinal,
-            d.motivo.replace(/,/g, "."), // Evitar que comas en comentarios rompan columnas
+            d.motivo.replace(/,/g, "."), // Evita que comas en el texto rompan las columnas
             d.fechaReg,
             d.tiempo
         ];
@@ -234,22 +236,30 @@ window.descargarExcelHistorial = () => {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `Historial_Tecnologia_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`;
+    link.download = `Reporte_Historial_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`;
     link.click();
     
-    Swal.fire("Éxito", "Historial exportado correctamente", "success");
+    Swal.fire("Éxito", "Reporte generado correctamente", "success");
 };
 
 window.verFoto = (url, folio) => {
-    Swal.fire({ title: `Evidencia - ${folio}`, imageUrl: url, imageAlt: 'Evidencia', confirmButtonText: 'Cerrar' });
+    Swal.fire({
+        title: `Evidencia de Entrega - ${folio}`,
+        imageUrl: url,
+        imageAlt: 'Foto de evidencia',
+        confirmButtonText: 'Cerrar',
+        confirmButtonColor: '#0d6efd'
+    });
 };
 </script>
 
 <script>
+    // Seguridad de código fuente
     document.addEventListener('contextmenu', (e) => e.preventDefault());
     document.onkeydown = function(e) {
         if(e.keyCode == 123) return false;
-        if(e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) return false;
+        if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
+        if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
         if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
     };
 </script>
