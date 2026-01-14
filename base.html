@@ -6,188 +6,189 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
-    .action-btn { cursor:pointer; font-size:18px; margin-right:10px; }
+    .action-btn { cursor:pointer; font-size:18px; margin-right:10px; }
 </style>
 </head>
 <body class="p-4 bg-light">
 
 <script>
-    // ESTANDARIZACIÓN DE SESIÓN
-    const sesionRaw = localStorage.getItem("usuarioLogueado");
-    
-    if (!sesionRaw) {
-        alert("Sesión no válida");
-        location.href = "index.html";
-    } else {
-        const sesion = JSON.parse(sesionRaw);
-        const puestoSesion = (sesion.puesto || "").toUpperCase();
+    // ESTANDARIZACIÓN DE SESIÓN
+    const sesionRaw = localStorage.getItem("usuarioLogueado");
+    
+    if (!sesionRaw) {
+        alert("Sesión no válida");
+        location.href = "index.html";
+    } else {
+        const sesion = JSON.parse(sesionRaw);
+        const puestoSesion = (sesion.puesto || "").toUpperCase();
 
-        // SOLO estos puestos pueden administrar usuarios
-        const puestosAdmin = [
-            "GERENTE DE SISTEMAS",
-            "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO",
-            "COORDINADOR DE SOPORTE TECNICO"
-        ];
+        // SOLO estos puestos pueden administrar usuarios
+        const puestosAdmin = [
+            "GERENTE DE SISTEMAS",
+            "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO",
+            "COORDINADOR DE SOPORTE TECNICO"
+        ];
 
-        if (!puestosAdmin.includes(puestoSesion)) {
-            alert("No tienes permisos para administrar usuarios");
-            location.href = "tecnologia.html";
-        }
-    }
+        if (!puestosAdmin.includes(puestoSesion)) {
+            alert("No tienes permisos para administrar usuarios");
+            location.href = "tecnologia.html";
+        }
+    }
 </script>
 
 <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Registro de Personal</h2>
-        <button class="btn btn-secondary" onclick="location.href='tecnologia.html'">Regresar a Tecnología</button>
-    </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Registro de Personal</h2>
+        <button class="btn btn-secondary" onclick="location.href='tecnologia.html'">Regresar a Tecnología</button>
+    </div>
 
-    <div class="card p-4 shadow border-0" style="border-radius: 15px;">
-        <form id="formPersonal" class="row g-3">
-            <div class="col-md-4"><label>Empresa</label><input id="empresa" class="form-control"></div>
-            <div class="col-md-4"><label>Zona</label><input id="zona" class="form-control"></div>
-            <div class="col-md-4"><label>Puesto</label><input id="puesto" class="form-control" oninput="this.value = this.value.toUpperCase()"></div>
-            <div class="col-md-6"><label>Nombre</label><input id="nombre" class="form-control"></div>
-            <div class="col-md-6"><label>Correo</label><input id="correo" class="form-control"></div>
-            <div class="col-md-6"><label>Usuario</label><input id="usuario" class="form-control" oninput="this.value = this.value.toUpperCase()"></div>
-            <div class="col-md-6"><label>Contraseña</label><input id="contrasena" type="password" class="form-control"></div>
-            <div class="col-12">
-                <button type="button" class="btn btn-success px-4" onclick="guardarPersonal()">💾 Guardar Usuario</button>
-            </div>
-        </form>
-    </div>
+    <div class="card p-4 shadow border-0" style="border-radius: 15px;">
+        <form id="formPersonal" class="row g-3">
+            <div class="col-md-4"><label>Empresa</label><input id="empresa" class="form-control"></div>
+            <div class="col-md-4"><label>Zona</label><input id="zona" class="form-control"></div>
+            <div class="col-md-4"><label>Puesto</label><input id="puesto" class="form-control" oninput="this.value = this.value.toUpperCase()"></div>
+            <div class="col-md-6"><label>Nombre</label><input id="nombre" class="form-control"></div>
+            <div class="col-md-6"><label>Correo</label><input id="correo" class="form-control"></div>
+            <div class="col-md-6"><label>Usuario</label><input id="usuario" class="form-control" oninput="this.value = this.value.toUpperCase()"></div>
+            <div class="col-md-6"><label>Contraseña</label><input id="contrasena" type="password" class="form-control"></div>
+            <div class="col-12">
+                <button type="button" class="btn btn-success px-4" onclick="guardarPersonal()">💾 Guardar Usuario</button>
+            </div>
+        </form>
+    </div>
 
-    <hr class="my-5">
+    <hr class="my-5">
 
-    <h4>Usuarios Registrados</h4>
-    <div class="table-responsive">
-        <table class="table table-bordered table-striped bg-white shadow-sm">
-            <thead class="table-dark">
-                <tr>
-                    <th>Empresa</th><th>Zona</th><th>Nombre</th><th>Puesto</th><th>Usuario</th><th>Contraseña</th><th>Status</th><th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody id="tablaBody"></tbody>
-        </table>
-    </div>
+    <h4>Usuarios Registrados</h4>
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped bg-white shadow-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>Empresa</th><th>Zona</th><th>Nombre</th><th>Puesto</th><th>Usuario</th><th>Contraseña</th><th>Status</th><th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tablaBody"></tbody>
+        </table>
+    </div>
 </div>
 
 <div class="modal fade" id="modalEditar" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Editar Usuario</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3"><label class="fw-bold">Usuario</label><input id="editUsuario" class="form-control"></div>
-                <div class="mb-3"><label class="fw-bold">Contraseña</label><input id="editContrasena" type="password" class="form-control"></div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button class="btn btn-primary" onclick="guardarEdicion()">Guardar cambios</button>
-            </div>
-        </div>
-    </div>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3"><label class="fw-bold">Usuario</label><input id="editUsuario" class="form-control"></div>
+                <div class="mb-3"><label class="fw-bold">Contraseña</label><input id="editContrasena" type="password" class="form-control"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-primary" onclick="guardarEdicion()">Guardar cambios</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script type="module">
-    import { database, ref, set, onValue, update, remove, get } from "./firebase.js";
+    import { database, ref, set, onValue, update, remove, get } from "./firebase.js";
 
-    let usuarioActual = null;
-    let modal;
+    let usuarioActual = null;
+    let modal;
 
-    window.guardarPersonal = function(){
-        const data = {
-            empresa: document.getElementById("empresa").value,
-            zona: document.getElementById("zona").value,
-            nombre: document.getElementById("nombre").value.toUpperCase(),
-            correo: document.getElementById("correo").value,
-            puesto: document.getElementById("puesto").value.toUpperCase(),
-            usuario: document.getElementById("usuario").value.toUpperCase(),
-            contrasena: document.getElementById("contrasena").value,
-            bloqueado: false
-        };
+    window.guardarPersonal = function(){
+        const data = {
+            empresa: document.getElementById("empresa").value,
+            zona: document.getElementById("zona").value,
+            nombre: document.getElementById("nombre").value.toUpperCase(),
+            correo: document.getElementById("correo").value,
+            puesto: document.getElementById("puesto").value.toUpperCase(),
+            usuario: document.getElementById("usuario").value.toUpperCase(),
+            contrasena: document.getElementById("contrasena").value,
+            bloqueado: false
+        };
 
-        if(!data.usuario || !data.contrasena) return alert("Usuario y contraseña obligatorios");
+        if(!data.usuario || !data.contrasena) return alert("Usuario y contraseña obligatorios");
 
-        set(ref(database,"usuarios/"+data.usuario), data)
-            .then(()=>{
-                alert("Usuario guardado");
-                document.getElementById("formPersonal").reset();
-            });
-    };
+        set(ref(database,"usuarios/"+data.usuario), data)
+            .then(()=>{
+                alert("Usuario guardado");
+                document.getElementById("formPersonal").reset();
+            });
+    };
 
-    onValue(ref(database,"usuarios"), snapshot => {
-        const tbody = document.getElementById("tablaBody");
-        tbody.innerHTML="";
-        snapshot.forEach(child => {
-            const u = child.val();
-            tbody.innerHTML += `
-                <tr>
-                    <td>${u.empresa}</td><td>${u.zona}</td><td>${u.nombre}</td><td>${u.puesto}</td><td>${u.usuario}</td><td>${u.contrasena}</td>
-                    <td>${u.bloqueado ? '<span class="badge bg-danger">Inactivo</span>' : '<span class="badge bg-success">Activo</span>'}</td>
-                    <td>
-                        <i class="fa-solid fa-pen action-btn text-primary" onclick="abrirModal('${u.usuario}')"></i>
-                        <i class="fa-solid fa-ban action-btn text-warning" onclick="bloquearUsuario('${u.usuario}',${u.bloqueado})"></i>
-                        <i class="fa-solid fa-trash action-btn text-danger" onclick="eliminarUsuario('${u.usuario}')"></i>
-                    </td>
-                </tr>`;
-        });
-    });
+    onValue(ref(database,"usuarios"), snapshot => {
+        const tbody = document.getElementById("tablaBody");
+        tbody.innerHTML="";
+        snapshot.forEach(child => {
+            const u = child.val();
+            tbody.innerHTML += `
+                <tr>
+                    <td>${u.empresa}</td><td>${u.zona}</td><td>${u.nombre}</td><td>${u.puesto}</td><td>${u.usuario}</td><td>${u.contrasena}</td>
+                    <td>${u.bloqueado ? '<span class="badge bg-danger">Inactivo</span>' : '<span class="badge bg-success">Activo</span>'}</td>
+                    <td>
+                        <i class="fa-solid fa-pen action-btn text-primary" onclick="abrirModal('${u.usuario}')"></i>
+                        <i class="fa-solid fa-ban action-btn text-warning" onclick="bloquearUsuario('${u.usuario}',${u.bloqueado})"></i>
+                        <i class="fa-solid fa-trash action-btn text-danger" onclick="eliminarUsuario('${u.usuario}')"></i>
+                    </td>
+                </tr>`;
+        });
+    });
 
-    window.abrirModal = async function(usuario){
-        usuarioActual = usuario;
-        const snap = await get(ref(database,"usuarios/"+usuario));
-        if(!snap.exists()) return;
-        const u = snap.val();
-        document.getElementById("editUsuario").value = u.usuario;
-        document.getElementById("editContrasena").value = u.contrasena;
-        modal = new bootstrap.Modal(document.getElementById("modalEditar"));
-        modal.show();
-    };
+    window.abrirModal = async function(usuario){
+        usuarioActual = usuario;
+        const snap = await get(ref(database,"usuarios/"+usuario));
+        if(!snap.exists()) return;
+        const u = snap.val();
+        document.getElementById("editUsuario").value = u.usuario;
+        document.getElementById("editContrasena").value = u.contrasena;
+        modal = new bootstrap.Modal(document.getElementById("modalEditar"));
+        modal.show();
+    };
 
-    window.guardarEdicion = async function(){
-        const nuevoUsuario = document.getElementById("editUsuario").value.toUpperCase();
-        const nuevaPass = document.getElementById("editContrasena").value;
-        const refActual = ref(database,"usuarios/"+usuarioActual);
-        const snap = await get(refActual);
-        const data = snap.val();
-        data.usuario = nuevoUsuario;
-        data.contrasena = nuevaPass;
+    window.guardarEdicion = async function(){
+        const nuevoUsuario = document.getElementById("editUsuario").value.toUpperCase();
+        const nuevaPass = document.getElementById("editContrasena").value;
+        const refActual = ref(database,"usuarios/"+usuarioActual);
+        const snap = await get(refActual);
+        const data = snap.val();
+        data.usuario = nuevoUsuario;
+        data.contrasena = nuevaPass;
 
-        if(nuevoUsuario !== usuarioActual){
-            await set(ref(database,"usuarios/"+nuevoUsuario), data);
-            await remove(refActual);
-        } else {
-            await update(refActual, {contrasena:nuevaPass});
-        }
-        modal.hide();
-        alert("Usuario actualizado");
-    };
+        if(nuevoUsuario !== usuarioActual){
+            await set(ref(database,"usuarios/"+nuevoUsuario), data);
+            await remove(refActual);
+        } else {
+            await update(refActual, {contrasena:nuevaPass});
+        }
+        modal.hide();
+        alert("Usuario actualizado");
+    };
 
-    window.bloquearUsuario = (usuario, estado) => update(ref(database,"usuarios/"+usuario), {bloqueado: !estado});
-    window.eliminarUsuario = usuario => confirm("¿Eliminar usuario?") && remove(ref(database,"usuarios/"+usuario));
+    window.bloquearUsuario = (usuario, estado) => update(ref(database,"usuarios/"+usuario), {bloqueado: !estado});
+    window.eliminarUsuario = usuario => confirm("¿Eliminar usuario?") && remove(ref(database,"usuarios/"+usuario));
 </script>
-    <script>
-  // 1. Deshabilitar clic derecho
-  document.addEventListener('contextmenu', (e) => e.preventDefault());
+    <script>
+  // 1. Deshabilitar clic derecho
+  document.addEventListener('contextmenu', (e) => e.preventDefault());
 
-  // 2. Deshabilitar atajos de teclado comunes
-  document.onkeydown = function(e) {
-    // Bloquear F12
-    if(e.keyCode == 123) return false;
+  // 2. Deshabilitar atajos de teclado comunes
+  document.onkeydown = function(e) {
+    // Bloquear F12
+    if(e.keyCode == 123) return false;
 
-    // Bloquear Ctrl+Shift+I (Inspeccionar)
-    if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
+    // Bloquear Ctrl+Shift+I (Inspeccionar)
+    if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
 
-    // Bloquear Ctrl+Shift+J (Consola)
-    if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
+    // Bloquear Ctrl+Shift+J (Consola)
+    if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
 
-    // Bloquear Ctrl+U (Ver código fuente)
-    if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
-  };
+    // Bloquear Ctrl+U (Ver código fuente)
+    if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+  };
 </script>
 </body>
 </html>
+
