@@ -7,28 +7,21 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
     .action-btn { cursor:pointer; font-size:18px; margin-right:10px; }
+    .toggle-pass { cursor: pointer; }
 </style>
 </head>
 <body class="p-4 bg-light">
 
 <script>
-    // ESTANDARIZACIÓN DE SESIÓN
+    // ESTANDARIZACIÓN DE SESIÓN (Mantener tu lógica original)
     const sesionRaw = localStorage.getItem("usuarioLogueado");
-    
     if (!sesionRaw) {
         alert("Sesión no válida");
         location.href = "index.html";
     } else {
         const sesion = JSON.parse(sesionRaw);
         const puestoSesion = (sesion.puesto || "").toUpperCase();
-
-        // SOLO estos puestos pueden administrar usuarios
-        const puestosAdmin = [
-            "GERENTE DE SISTEMAS",
-            "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO",
-            "COORDINADOR DE SOPORTE TECNICO"
-        ];
-
+        const puestosAdmin = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO"];
         if (!puestosAdmin.includes(puestoSesion)) {
             alert("No tienes permisos para administrar usuarios");
             location.href = "tecnologia.html";
@@ -50,7 +43,17 @@
             <div class="col-md-6"><label>Nombre</label><input id="nombre" class="form-control"></div>
             <div class="col-md-6"><label>Correo</label><input id="correo" class="form-control"></div>
             <div class="col-md-6"><label>Usuario</label><input id="usuario" class="form-control" oninput="this.value = this.value.toUpperCase()"></div>
-            <div class="col-md-6"><label>Contraseña</label><input id="contrasena" type="password" class="form-control"></div>
+            
+            <div class="col-md-6">
+                <label>Contraseña</label>
+                <div class="input-group">
+                    <input id="contrasena" type="password" class="form-control">
+                    <span class="input-group-text toggle-pass" onclick="togglePassword('contrasena', 'iconMain')">
+                        <i id="iconMain" class="fa-solid fa-eye"></i>
+                    </span>
+                </div>
+            </div>
+
             <div class="col-12">
                 <button type="button" class="btn btn-success px-4" onclick="guardarPersonal()">💾 Guardar Usuario</button>
             </div>
@@ -81,7 +84,15 @@
             </div>
             <div class="modal-body">
                 <div class="mb-3"><label class="fw-bold">Usuario</label><input id="editUsuario" class="form-control"></div>
-                <div class="mb-3"><label class="fw-bold">Contraseña</label><input id="editContrasena" type="password" class="form-control"></div>
+                <div class="mb-3">
+                    <label class="fw-bold">Contraseña</label>
+                    <div class="input-group">
+                        <input id="editContrasena" type="password" class="form-control">
+                        <span class="input-group-text toggle-pass" onclick="togglePassword('editContrasena', 'iconEdit')">
+                            <i id="iconEdit" class="fa-solid fa-eye"></i>
+                        </span>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -92,6 +103,22 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // Función para ver/ocultar contraseña
+    function togglePassword(inputId, iconId) {
+        const input = document.getElementById(inputId);
+        const icon = document.getElementById(iconId);
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.replace("fa-eye", "fa-eye-slash");
+        } else {
+            input.type = "password";
+            icon.classList.replace("fa-eye-slash", "fa-eye");
+        }
+    }
+</script>
+
 <script type="module">
     import { database, ref, set, onValue, update, remove, get } from "./firebase.js";
 
@@ -124,9 +151,13 @@
         tbody.innerHTML="";
         snapshot.forEach(child => {
             const u = child.val();
+            // Mostrar asteriscos en lugar de la contraseña real
+            const passOculta = "••••••••"; 
+            
             tbody.innerHTML += `
                 <tr>
-                    <td>${u.empresa}</td><td>${u.zona}</td><td>${u.nombre}</td><td>${u.puesto}</td><td>${u.usuario}</td><td>${u.contrasena}</td>
+                    <td>${u.empresa}</td><td>${u.zona}</td><td>${u.nombre}</td><td>${u.puesto}</td><td>${u.usuario}</td>
+                    <td><span class="badge bg-light text-dark">${passOculta}</span></td>
                     <td>${u.bloqueado ? '<span class="badge bg-danger">Inactivo</span>' : '<span class="badge bg-success">Activo</span>'}</td>
                     <td>
                         <i class="fa-solid fa-pen action-btn text-primary" onclick="abrirModal('${u.usuario}')"></i>
@@ -137,6 +168,7 @@
         });
     });
 
+    // ... resto de funciones (abrirModal, guardarEdicion, etc.) sin cambios ...
     window.abrirModal = async function(usuario){
         usuarioActual = usuario;
         const snap = await get(ref(database,"usuarios/"+usuario));
@@ -170,26 +202,13 @@
     window.bloquearUsuario = (usuario, estado) => update(ref(database,"usuarios/"+usuario), {bloqueado: !estado});
     window.eliminarUsuario = usuario => confirm("¿Eliminar usuario?") && remove(ref(database,"usuarios/"+usuario));
 </script>
-    <script>
-  // 1. Deshabilitar clic derecho
-  document.addEventListener('contextmenu', (e) => e.preventDefault());
 
-  // 2. Deshabilitar atajos de teclado comunes
-  document.onkeydown = function(e) {
-    // Bloquear F12
-    if(e.keyCode == 123) return false;
-
-    // Bloquear Ctrl+Shift+I (Inspeccionar)
-    if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
-
-    // Bloquear Ctrl+Shift+J (Consola)
-    if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
-
-    // Bloquear Ctrl+U (Ver código fuente)
-    if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
-  };
+<script>
+    // Protección de código original
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
+    document.onkeydown = function(e) {
+        if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) || (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0))) return false;
+    };
 </script>
 </body>
 </html>
-
-
