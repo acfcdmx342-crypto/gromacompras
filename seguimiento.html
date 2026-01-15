@@ -18,10 +18,14 @@
         }
         .btn-modern { border-radius: 50px; padding: 12px 35px; font-weight: 600; transition: all 0.3s ease; border: none; letter-spacing: 0.5px; }
         .btn-save { background: linear-gradient(45deg, #0d6efd, #0046af); color: white; box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3); }
-        .status-compras { background:#e7f1ff !important; color:#0d6efd !important; border-radius: 20px; }
-        .status-zona { background:#fff9e6 !important; color:#ffc107 !important; border-radius: 20px; }
-        .status-pendiente { background:#fff2f4 !important; color:#dc3545 !important; border-radius: 20px; }
-        .status-sistemas { background:#e6fcf5 !important; color:#198754 !important; border-radius: 20px; }
+
+        /* --- COLORES DE ESTATUS SOLICITADOS --- */
+        .status-compras { background:#0d6efd !important; color: white !important; border-radius: 20px; } /* Azul */
+        .status-zona { background:#ffc107 !important; color: black !important; border-radius: 20px; } /* Amarillo */
+        .status-pendiente { background:#fd7e14 !important; color: white !important; border-radius: 20px; } /* Naranja */
+        .status-sistemas { background:#198754 !important; color: white !important; border-radius: 20px; } /* Verde */
+        .status-devolucion { background:#ff0000 !important; color: white !important; border-radius: 20px; } /* Rojo */
+        
         .registro-eliminado { background-color: #ffe5e5 !important; color: #b00000 !important; }
         .texto-eliminado { text-decoration: line-through; opacity: 0.7; }
         
@@ -30,7 +34,7 @@
         .group-header { cursor: pointer; transition: background 0.2s; }
         .chevron-icon { transition: transform 0.3s; font-size: 0.8rem; }
 
-        /* --- ESTILOS DEL LOADER PROCOMEX --- */
+        /* --- LOADER --- */
         #loader { 
             display: none; 
             position: fixed; 
@@ -42,9 +46,7 @@
             align-items: center; 
             flex-direction: column; 
         }
-        .loader-logo-container {
-            animation: pulse-procomex 1.5s ease-in-out infinite;
-        }
+        .loader-logo-container { animation: pulse-procomex 1.5s ease-in-out infinite; }
         @keyframes pulse-procomex {
             0% { transform: scale(0.95); opacity: 0.8; }
             50% { transform: scale(1.05); opacity: 1; }
@@ -68,8 +70,6 @@
 <script>
     const sesion = JSON.parse(localStorage.getItem("usuarioLogueado"));
     if (!sesion) { location.href = "index.html"; }
-
-    // Funciones globales de control del loader
     window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
     window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
 </script>
@@ -134,7 +134,7 @@
 
             <div class="section-header"><i class="fa-solid fa-box me-2"></i>Entrega y Facturación</div>
             <div class="col-md-3"><label class="form-label fw-bold small">FECHA ENTREGA</label><input id="fechaEntrega" type="date" class="form-control"></div>
-            <div class="col-md-3"><label class="form-label fw-bold small">QUIEN RECIBE</label><input id="recibe" type="text" class="form-control"></div>
+            <div class="col-md-3"><label class="form-label fw-bold small">QUIEN RECIBE</label><input id="recibe" text="text" class="form-control"></div>
             <div class="col-md-3"><label class="form-label fw-bold small">FOLIO FACTURA</label><input id="folioFactura" type="text" class="form-control"></div>
             <div class="col-md-3"><label class="form-label fw-bold small">SUBIR FACTURA</label><input id="fileFactura" type="file" class="form-control"></div>
 
@@ -151,6 +151,7 @@
                     <option>ENVIADO A ZONA</option>
                     <option>PENDIENTE POR AUTORIZAR</option>
                     <option>EN SISTEMAS</option>
+                    <option>DEVOLUCION</option>
                 </select>
             </div>
             <div class="col-md-8">
@@ -190,7 +191,6 @@
     import { database, ref, get, push, update, onValue, query, orderByChild, equalTo } from "./firebase.js";
 
     document.getElementById("nombreUsuarioMenu").textContent = sesion.nombre;
-
     window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
 
     const selectFolio = document.getElementById("folio");
@@ -198,6 +198,18 @@
     const sucInput = document.getElementById("sucursal");
     const btnArc = document.getElementById("btnArchivo");
     let dataArchivoActual = null;
+
+    // Función para asignar clase CSS según el status
+    function getStatusClass(status) {
+        if (!status) return 'status-sistemas';
+        const s = status.toUpperCase();
+        if (s === 'ENVIADO A COMPRAS') return 'status-compras';
+        if (s === 'ENVIADO A ZONA') return 'status-zona';
+        if (s === 'PENDIENTE POR AUTORIZAR') return 'status-pendiente';
+        if (s === 'EN SISTEMAS') return 'status-sistemas';
+        if (s === 'DEVOLUCION') return 'status-devolucion';
+        return 'status-sistemas';
+    }
 
     const toBase64 = file => new Promise((resolve, reject) => {
         if (!file) resolve(null);
@@ -217,27 +229,22 @@
     window.cargarParaContinuar = (dataString) => {
         const data = JSON.parse(decodeURIComponent(dataString));
         if(data.eliminado) return;
-
         const campos = ["folio", "fechaCompras", "descripcion", "fechaCot", "folioCot", "autoriza", "fechaAuto", "fechaEntrega", "recibe", "folioFactura", "fechaEnvio", "envia", "adonde", "status", "comentarios"];
         campos.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
             el.value = data[id] || "";
             if (id !== "folio" && id !== "status" && id !== "comentarios" && data[id]) {
-                el.readOnly = true;
-                el.classList.add("field-locked");
+                el.readOnly = true; el.classList.add("field-locked");
                 if (el.tagName === "SELECT") el.disabled = true;
             } else {
-                el.readOnly = false;
-                el.disabled = false;
-                el.classList.remove("field-locked");
+                el.readOnly = false; el.disabled = false; el.classList.remove("field-locked");
             }
         });
         cargarInfoPorFolio(data.folio);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    // Iniciar carga de datos
     window.mostrarCargando();
 
     onValue(ref(database, "tecnologia"), (snap) => {
@@ -273,13 +280,10 @@
 
     document.getElementById("btnGuardar").onclick = async () => {
         if (!selectFolio.value) return Swal.fire("Error", "Seleccione un folio", "error");
-        
-        window.mostrarCargando(); // MOSTRAR LOADER
-
+        window.mostrarCargando();
         try {
             const fCot = document.getElementById("fileCot").files[0];
             const fFac = document.getElementById("fileFactura").files[0];
-
             const dataGuardar = {
                 folio: selectFolio.value,
                 fechaCompras: document.getElementById("fechaCompras").value,
@@ -302,7 +306,6 @@
                 usuarioModifico: sesion.usuario,
                 eliminado: false
             };
-
             await push(ref(database, "seguimiento"), dataGuardar);
             window.ocultarCargando();
             Swal.fire("Éxito", "Seguimiento guardado", "success").then(() => location.reload());
@@ -317,7 +320,6 @@
         tbody.innerHTML = "";
         let registros = [];
         snap.forEach(child => { registros.push({ key: child.key, ...child.val() }); });
-        
         const grupos = registros.reduce((acc, item) => {
             if (!acc[item.folio]) acc[item.folio] = [];
             acc[item.folio].push(item);
@@ -334,7 +336,7 @@
                     <td class="text-center"><i class="fa-solid fa-chevron-down chevron-icon"></i></td>
                     <td class="fw-bold text-primary">${folio}</td>
                     <td class="small">${(ultimo.descripcion || "").substring(0, 30)}...</td>
-                    <td><span class="px-3 py-1 fw-bold small ${ultimo.eliminado ? 'bg-danger text-white' : 'status-sistemas'}">${ultimo.eliminado ? 'ELIMINADO' : ultimo.status}</span></td>
+                    <td><span class="px-3 py-1 fw-bold small text-center d-inline-block w-100 ${ultimo.eliminado ? 'bg-danger text-white' : getStatusClass(ultimo.status)}">${ultimo.eliminado ? 'ELIMINADO' : ultimo.status}</span></td>
                     <td><span class="badge bg-light text-dark">${historial.length} reg.</span></td>
                     <td><button class="btn btn-sm btn-outline-primary">Ver Historial</button></td>
                 </tr>
@@ -351,7 +353,7 @@
                                         return `
                                             <tr class="${isEliminado ? 'registro-eliminado' : ''}">
                                                 <td class="${isEliminado ? 'texto-eliminado' : ''}">${new Date(h.fechaRegistro).toLocaleString()}</td>
-                                                <td><span class="badge ${isEliminado ? 'bg-danger' : 'bg-info'}">${isEliminado ? 'ELIMINADO' : h.status}</span></td>
+                                                <td><span class="badge ${isEliminado ? 'bg-danger' : getStatusClass(h.status)}">${isEliminado ? 'ELIMINADO' : h.status}</span></td>
                                                 <td class="small">${isEliminado ? `<b>MOTIVO:</b> ${h.motivoEliminacion}` : (h.comentarios || '-')}</td>
                                                 <td>
                                                     ${!isEliminado ? `
@@ -368,7 +370,7 @@
                     </td>
                 </tr>`;
         });
-        window.ocultarCargando(); // OCULTAR LOADER AL FINALIZAR CARGA
+        window.ocultarCargando();
     });
 
     window.eliminarLogico = async (key) => {
@@ -395,7 +397,6 @@
 </script>
 
 <script>
-  // Seguridad de código
   document.addEventListener('contextmenu', (e) => e.preventDefault());
   document.onkeydown = function(e) {
     if(e.keyCode == 123) return false;
