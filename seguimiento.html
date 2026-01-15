@@ -19,12 +19,13 @@
         .btn-modern { border-radius: 50px; padding: 12px 35px; font-weight: 600; transition: all 0.3s ease; border: none; letter-spacing: 0.5px; }
         .btn-save { background: linear-gradient(45deg, #0d6efd, #0046af); color: white; box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3); }
         
-        /* --- COLORES DE ESTATUS ACTUALIZADOS --- */
+        /* --- COLORES DE ESTATUS --- */
         .status-compras { background: #0d6efd !important; color: white !important; border-radius: 20px; }
         .status-zona { background: #ffc107 !important; color: #000 !important; border-radius: 20px; }
         .status-pendiente { background: #fd7e14 !important; color: white !important; border-radius: 20px; }
         .status-sistemas { background: #198754 !important; color: white !important; border-radius: 20px; }
         .status-devolucion { background: lawngreen !important; color: #000 !important; border-radius: 20px; }
+        .status-confirmado { background: #6f42c1 !important; color: white !important; border-radius: 20px; }
         
         .registro-eliminado { background-color: #ffe5e5 !important; color: #b00000 !important; }
         .texto-eliminado { text-decoration: line-through; opacity: 0.7; }
@@ -45,9 +46,7 @@
             align-items: center; 
             flex-direction: column; 
         }
-        .loader-logo-container {
-            animation: pulse-procomex 1.5s ease-in-out infinite;
-        }
+        .loader-logo-container { animation: pulse-procomex 1.5s ease-in-out infinite; }
         @keyframes pulse-procomex {
             0% { transform: scale(0.95); opacity: 0.8; }
             50% { transform: scale(1.05); opacity: 1; }
@@ -59,8 +58,7 @@
 
 <div id="loader">
     <div class="loader-logo-container">
-        <img src="https://gruporoma.com/wp-content/uploads/2023/06/cropped-cropped-procomex-pachuca-logo-350-%C3%97-100-px-1.png" 
-             alt="Cargando..." style="width: 250px; height: auto;">
+        <img src="https://gruporoma.com/wp-content/uploads/2023/06/cropped-cropped-procomex-pachuca-logo-350-%C3%97-100-px-1.png" alt="Cargando..." style="width: 250px; height: auto;">
     </div>
     <div class="mt-3">
         <div class="spinner-border text-primary" role="status" style="width: 1.5rem; height: 1.5rem; vertical-align: middle;"></div>
@@ -200,7 +198,6 @@
     const btnArc = document.getElementById("btnArchivo");
     let dataArchivoActual = null;
 
-    // --- FUNCIÓN PARA ASIGNAR CLASES DE COLOR SEGÚN ESTATUS ---
     const obtenerClaseEstatus = (status) => {
         switch(status) {
             case 'ENVIADO A COMPRAS': return 'status-compras';
@@ -208,6 +205,7 @@
             case 'PENDIENTE POR AUTORIZAR': return 'status-pendiente';
             case 'EN SISTEMAS': return 'status-sistemas';
             case 'DEVOLUCIÓN': return 'status-devolucion';
+            case 'CONFIRMADO': return 'status-confirmado';
             default: return 'bg-secondary text-white';
         }
     };
@@ -230,20 +228,19 @@
     window.cargarParaContinuar = (dataString) => {
         const data = JSON.parse(decodeURIComponent(dataString));
         if(data.eliminado) return;
-        const campos = ["folio", "fechaCompras", "descripcion", "fechaCot", "folioCot", "autoriza", "fechaAuto", "fechaEntrega", "recibe", "folioFactura", "fechaEnvio", "envia", "adonde", "status", "comentarios"];
+        const campos = ["fechaCompras", "descripcion", "fechaCot", "folioCot", "autoriza", "fechaAuto", "fechaEntrega", "recibe", "folioFactura", "fechaEnvio", "envia", "adonde", "status", "comentarios"];
+        
+        // Asignar Folio primero
+        selectFolio.value = data.folio;
+
         campos.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
             el.value = data[id] || "";
-            if (id !== "folio" && id !== "status" && id !== "comentarios" && data[id]) {
-                el.readOnly = true;
-                el.classList.add("field-locked");
-                if (el.tagName === "SELECT") el.disabled = true;
-            } else {
-                el.readOnly = false;
-                el.disabled = false;
-                el.classList.remove("field-locked");
-            }
+            // Desbloquear campos para edición, pero marcarlos visualmente si ya tenían datos
+            el.readOnly = false;
+            el.disabled = false;
+            el.classList.remove("field-locked");
         });
         cargarInfoPorFolio(data.folio);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -288,6 +285,7 @@
         try {
             const fCot = document.getElementById("fileCot").files[0];
             const fFac = document.getElementById("fileFactura").files[0];
+            
             const dataGuardar = {
                 folio: selectFolio.value,
                 fechaCompras: document.getElementById("fechaCompras").value,
@@ -310,12 +308,23 @@
                 usuarioModifico: sesion.usuario,
                 eliminado: false
             };
+
+            // 1. Guardar en seguimiento
             await push(ref(database, "seguimiento"), dataGuardar);
+
+            // 2. Sincronizar estatus en la tabla principal de tecnología
+            const q = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(selectFolio.value));
+            const snap = await get(q);
+            if (snap.exists()) {
+                const keyTec = Object.keys(snap.val())[0];
+                await update(ref(database, `tecnologia/${keyTec}`), { status: dataGuardar.status });
+            }
+
             window.ocultarCargando();
-            Swal.fire("Éxito", "Seguimiento guardado", "success").then(() => location.reload());
+            Swal.fire("Éxito", "Seguimiento guardado y estatus actualizado", "success").then(() => location.reload());
         } catch (error) {
             window.ocultarCargando();
-            Swal.fire("Error", "No se pudo guardar el seguimiento", "error");
+            Swal.fire("Error", "No se pudo guardar", "error");
         }
     };
 
@@ -340,10 +349,10 @@
                 <tr class="group-header" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
                     <td class="text-center"><i class="fa-solid fa-chevron-down chevron-icon"></i></td>
                     <td class="fw-bold text-primary">${folio}</td>
-                    <td class="small">${(ultimo.descripcion || "").substring(0, 30)}...</td>
+                    <td class="small">${(ultimo.descripcion || "").substring(0, 40)}...</td>
                     <td><span class="px-3 py-1 fw-bold small ${ultimo.eliminado ? 'bg-danger text-white' : obtenerClaseEstatus(ultimo.status)}">${ultimo.eliminado ? 'ELIMINADO' : ultimo.status}</span></td>
                     <td><span class="badge bg-light text-dark">${historial.length} reg.</span></td>
-                    <td><button class="btn btn-sm btn-outline-primary">Ver Historial</button></td>
+                    <td><button class="btn btn-sm btn-outline-primary">Historial</button></td>
                 </tr>
                 <tr>
                     <td colspan="6" class="p-0">
@@ -357,7 +366,7 @@
                                         const isEliminado = h.eliminado === true;
                                         return `
                                             <tr class="${isEliminado ? 'registro-eliminado' : ''}">
-                                                <td class="${isEliminado ? 'texto-eliminado' : ''}">${new Date(h.fechaRegistro).toLocaleString()}</td>
+                                                <td>${new Date(h.fechaRegistro).toLocaleString()}</td>
                                                 <td><span class="badge ${isEliminado ? 'bg-danger' : obtenerClaseEstatus(h.status)}">${isEliminado ? 'ELIMINADO' : h.status}</span></td>
                                                 <td class="small">${isEliminado ? `<b>MOTIVO:</b> ${h.motivoEliminacion}` : (h.comentarios || '-')}</td>
                                                 <td>
@@ -381,7 +390,6 @@
     window.eliminarLogico = async (key) => {
         const { value: motivo } = await Swal.fire({
             title: '¿Eliminar registro?',
-            text: "Este cambio quedará registrado en el historial.",
             input: 'textarea',
             inputPlaceholder: 'Escriba el motivo...',
             showCancelButton: true,
@@ -402,6 +410,7 @@
 </script>
 
 <script>
+  // Seguridad básica
   document.addEventListener('contextmenu', (e) => e.preventDefault());
   document.onkeydown = function(e) {
     if(e.keyCode == 123) return false;
