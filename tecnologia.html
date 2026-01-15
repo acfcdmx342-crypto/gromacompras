@@ -20,28 +20,22 @@
         .action-disabled { color:#adb5bd; cursor:not-allowed; opacity: 0.5; filter: grayscale(1); }
         .table thead { background:#0d6efd; color:white; }
         .btn-rounded { border-radius:50px; }
-        .user-info-box { background: white; padding: 10px 20px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: inline-block; }
+        .user-info-box { background: white; padding: 10px 20px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 15px; }
         .acciones { display:flex; justify-content:center; gap:10px; }
         .dropdown-menu { border-radius: 15px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1); padding: 10px; }
         .dropdown-item { border-radius: 8px; margin-bottom: 2px; font-weight: 500; }
+        
+        /* Status Colors */
         .st-compras { background-color: #0d6efd !important; color: white; } 
         .st-zona { background-color: #ffc107 !important; color: black; }    
         .st-pendiente { background-color: #dc3545 !important; color: white; } 
         .st-sistemas { background-color: #198754 !important; color: white; }  
-        .st-devolucion { background-color: #ff0000 !important; color: white; } /* Status Rojo Devolución */
+        .st-devolucion { background-color: #ff0000 !important; color: white; } /* Rojo para Devolución */
         .st-default { background-color: #6c757d !important; color: white; }   
+        
         .tiempo-badge { font-size: 0.75rem; font-weight: bold; color: #555; }
         .swal-table { font-size: 0.85rem; }
-        .aviso-devolucion { 
-            max-width: 500px; 
-            font-size: 0.75rem; 
-            background: #fff3cd; 
-            color: #856404; 
-            padding: 10px; 
-            border-radius: 10px; 
-            border: 1px solid #ffeeba;
-            line-height: 1.2;
-        }
+        .aviso-devolucion { font-size: 0.7rem; line-height: 1.1; max-width: 400px; color: #dc3545; font-weight: bold; border-left: 2px solid #dc3545; padding-left: 10px; }
 
         #loader { 
             display: none; 
@@ -54,9 +48,7 @@
             align-items: center; 
             flex-direction: column; 
         }
-        .loader-logo-container {
-            animation: pulse-procomex 1.5s ease-in-out infinite;
-        }
+        .loader-logo-container { animation: pulse-procomex 1.5s ease-in-out infinite; }
         @keyframes pulse-procomex {
             0% { transform: scale(0.95); opacity: 0.7; }
             50% { transform: scale(1.05); opacity: 1; }
@@ -101,19 +93,18 @@
     }
 
     window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
-    window.ocultarCargando = () => { document.getElementById("loader").style.none = "none"; };
     window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
 </script>
 
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <div class="d-flex align-items-center gap-3">
-            <div class="user-info-box border-start border-primary border-4">
+        <div class="user-info-box border-start border-primary border-4">
+            <div>
                 <div class="fw-bold text-primary">👤 <span id="usuarioActivo"></span></div>
                 <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
             </div>
-            <div class="aviso-devolucion fw-bold">
-                ⚠️ Se les recuerda que para hacer una devolución de mercancía los empaques deben de estar lo más intactos posibles (sin rayaduras, enmendaduras, rotos) de lo contrario no procederán y aplicará una penalización.
+            <div class="aviso-devolucion d-none d-md-block">
+                ⚠️ SE LES RECUERDA QUE PARA HACER UNA DEVOLUCIÓN DE MERCANCÍA LOS EMPAQUES DEBEN DE ESTAR LO MÁS INTACTOS POSIBLES (SIN RAYADURAS, ENMENDADURAS, ROTOS) DE LO CONTRARIO NO PROCEDERÁN Y APLICARÁ UNA PENALIZACIÓN.
             </div>
         </div>
         <div class="dropdown">
@@ -244,10 +235,14 @@
                                 <div class="acciones">
                                     <span class="action-btn ${!tieneSeguimientos ? 'action-disabled' : ''}" 
                                           onclick="${tieneSeguimientos ? `window.verHistorialFolio('${s.folio}')` : ''}" title="Historial">📜</span>
+                                    
                                     <span class="action-btn ${window.esSoporteJR ? 'action-disabled' : ''}" 
                                           onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}" title="Seguimiento">📋</span>
+                                    
+                                    <span class="action-btn ${statusActual !== "ENVIADO A ZONA" ? 'action-disabled' : 'text-danger'}" 
+                                          onclick="${statusActual === "ENVIADO A ZONA" ? `window.aplicarDevolucion('${s.folio}')` : ''}" title="Devolución">🔄</span>
+
                                     ${window.esSoporteJR && statusActual === "ENVIADO A ZONA" ? `<span class="action-btn text-success" onclick="window.confirmarEntrega('${s.folio}')" title="Confirmar">✅</span>` : ''}
-                                    <span class="action-btn text-danger" onclick="window.aplicarDevolucion('${s.folio}', '${idKey}')" title="Devolución">🔄</span>
                                     ${puedeVerTodo ? `<span class="action-btn" onclick="window.eliminarSolicitud('${idKey}')" title="Eliminar">🗑️</span>` : ``}
                                 </div>
                             </td>
@@ -258,28 +253,27 @@
         });
     }
 
-    // --- NUEVA FUNCIÓN: APLICAR DEVOLUCIÓN ---
-    window.aplicarDevolucion = async (fol, idKey) => {
+    // --- FUNCIÓN DEVOLUCIÓN ---
+    window.aplicarDevolucion = async (fol) => {
         const { value: formValues } = await Swal.fire({
             title: 'Aplicar Devolución',
             html: `
-                <div class="text-start small mb-2 text-danger fw-bold">Asegúrese de que el empaque esté intacto.</div>
-                <label class="small fw-bold">Motivo de la devolución:</label>
-                <textarea id="swal-motivo-dev" class="form-control mb-3" placeholder="Escriba el motivo..."></textarea>
-                <label class="small fw-bold">Imagen de evidencia:</label>
-                <input type="file" id="swal-img-dev" class="form-control" accept="image/*">
+                <label class="small fw-bold d-block text-start mb-1">Motivo de devolución:</label>
+                <textarea id="swal-motivo" class="form-control mb-3" placeholder="Escriba el motivo..."></textarea>
+                <label class="small fw-bold d-block text-start mb-1">Evidencia Fotográfica:</label>
+                <input type="file" id="swal-evidencia" class="form-control" accept="image/*">
             `,
+            focusConfirm: false,
             showCancelButton: true,
-            confirmButtonText: 'Aplicar',
-            cancelButtonText: 'Cancelar',
+            confirmButtonText: 'Procesar Devolución',
             preConfirm: () => {
-                const motivo = document.getElementById('swal-motivo-dev').value;
-                const imagen = document.getElementById('swal-img-dev').files[0];
-                if (!motivo || !imagen) {
-                    Swal.showValidationMessage('Debe ingresar el motivo y la imagen de evidencia');
+                const motivo = document.getElementById('swal-motivo').value;
+                const file = document.getElementById('swal-evidencia').files[0];
+                if (!motivo || !file) {
+                    Swal.showValidationMessage('Debe ingresar motivo y evidencia');
                     return false;
                 }
-                return { motivo, imagen };
+                return { motivo, file };
             }
         });
 
@@ -287,26 +281,35 @@
             window.mostrarCargando();
             const reader = new FileReader();
             reader.onload = async () => {
-                const dataUrl = reader.result;
-                const fecha = new Date().toLocaleString();
+                try {
+                    // Buscar la solicitud para actualizar su status principal
+                    const snap = await get(solicitudesRef);
+                    let idKeyPrincipal = null;
+                    snap.forEach(doc => { if (doc.val().folio === fol) idKeyPrincipal = doc.key; });
 
-                // 1. Guardar en Historial (Seguimiento)
-                await push(seguimientoRef, {
-                    folio: fol,
-                    status: "DEVOLUCION",
-                    comentarios: `MOTIVO DEVOLUCIÓN: ${formValues.motivo}`,
-                    fotoEvidencia: dataUrl,
-                    fechaRegistro: fecha,
-                    usuario: window.usuarioSesion
-                });
+                    // Guardar en Seguimiento (Historial)
+                    await push(seguimientoRef, { 
+                        folio: fol, 
+                        status: "DEVOLUCION", 
+                        comentarios: "DEVOLUCIÓN: " + formValues.motivo, 
+                        fotoEvidencia: reader.result, 
+                        fechaRegistro: new Date().toLocaleString(), 
+                        usuario: window.usuarioSesion 
+                    });
 
-                // 2. Actualizar Status en Solicitud Principal
-                await update(ref(database, `tecnologia/${idKey}`), { status: "DEVOLUCION" });
+                    // Actualizar status en la tabla principal
+                    if (idKeyPrincipal) {
+                        await update(ref(database, `tecnologia/${idKeyPrincipal}`), { status: "DEVOLUCION" });
+                    }
 
-                window.ocultarCargando();
-                Swal.fire("Devolución Aplicada", "El status ha cambiado a devolución y se guardó en el historial.", "success");
+                    window.ocultarCargando();
+                    Swal.fire("Éxito", "Devolución registrada correctamente", "success");
+                } catch (e) {
+                    window.ocultarCargando();
+                    Swal.fire("Error", "No se pudo registrar la devolución", "error");
+                }
             };
-            reader.readAsDataURL(formValues.imagen);
+            reader.readAsDataURL(formValues.file);
         }
     };
 
@@ -350,7 +353,6 @@
             const reader = new FileReader();
             reader.onload = async () => {
                 const base64Data = reader.result;
-                
                 await push(solicitudesRef, {
                     folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
                     soporte: window.nombreSesion, sucursal: suc.toUpperCase(),
@@ -360,24 +362,14 @@
                     usuario: window.usuarioSesion, eliminado: false
                 });
 
-                const templateParams = {
-                    folio: fol,
-                    empresa: emp.toUpperCase(),
-                    zona: zon.toUpperCase(),
-                    sucursal: suc.toUpperCase(),
-                    soporte: window.nombreSesion
-                };
-
+                const templateParams = { folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(), sucursal: suc.toUpperCase(), soporte: window.nombreSesion };
                 try {
                     await emailjs.send('service_mya4ogg', 'template_apg1whs', templateParams);
-                    console.log("Correo enviado");
-                } catch (mailErr) {
-                    console.error("Error correo:", mailErr);
-                }
+                } catch (mailErr) { console.error("Error correo:", mailErr); }
 
                 document.getElementById("formTec").reset();
                 window.ocultarCargando();
-                Swal.fire("Éxito", "Solicitud guardada y aviso enviado. Folio: " + fol, "success");
+                Swal.fire("Éxito", "Solicitud guardada. Folio: " + fol, "success");
             };
             reader.readAsDataURL(arc);
         } catch (e) {
@@ -390,8 +382,8 @@
         const segs = globalSeguimientos
             .filter(x => x.folio === folio)
             .sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
-        let tablaHTML = `<div class="table-responsive"><table class="table table-sm table-striped swal-table mt-3"><thead><tr class="table-dark"><th>Fecha</th><th>Status</th><th>Usuario</th><th>Comentarios</th><th>Evidencia</th></tr></thead><tbody>${segs.map(h => `<tr><td><small>${h.fechaRegistro}</small></td><td><span class="badge ${h.status === 'DEVOLUCION' ? 'bg-danger' : 'bg-secondary'}">${h.status}</span></td><td>${h.usuario || 'Sistemas'}</td><td class="text-start">${h.comentarios || ''}</td><td>${h.fotoEvidencia ? `<a href="${h.fotoEvidencia}" target="_blank">🖼️ Ver</a>` : 'N/A'}</td></tr>`).join('')}</tbody></table></div>`;
-        Swal.fire({ title: `Historial: ${folio}`, html: tablaHTML, width: '850px', showCloseButton: true, confirmButtonText: 'Cerrar' });
+        let tablaHTML = `<div class="table-responsive"><table class="table table-sm table-striped swal-table mt-3"><thead><tr class="table-dark"><th>Fecha</th><th>Status</th><th>Usuario</th><th>Comentarios</th><th>Evidencia</th></tr></thead><tbody>${segs.map(h => `<tr><td><small>${h.fechaRegistro}</small></td><td><span class="badge bg-secondary">${h.status}</span></td><td>${h.usuario || 'Sistemas'}</td><td class="text-start">${h.comentarios || ''}</td><td>${h.fotoEvidencia ? `<a href="${h.fotoEvidencia}" target="_blank">🖼️ Ver</a>` : '-'}</td></tr>`).join('')}</tbody></table></div>`;
+        Swal.fire({ title: `Historial: ${folio}`, html: tablaHTML, width: '900px', showCloseButton: true, confirmButtonText: 'Cerrar' });
     };
 
     function calcularTranscurrido(f) {
@@ -406,7 +398,7 @@
     window.irSeguimiento = f => location.href = "seguimiento.html?folio=" + encodeURIComponent(f);
 
     window.eliminarSolicitud = async (id) => {
-        const { value: motivo } = await Swal.fire({ title: 'Motivo', input: 'textarea', showCancelButton: true });
+        const { value: motivo } = await Swal.fire({ title: 'Motivo de eliminación', input: 'textarea', showCancelButton: true });
         if (motivo) {
             window.mostrarCargando();
             await update(ref(database, `tecnologia/${id}`), { eliminado: true, motivoEliminacion: motivo });
@@ -419,8 +411,8 @@
         let idKeyPrincipal = null;
         snap.forEach(doc => { if (doc.val().folio === fol) idKeyPrincipal = doc.key; });
         const { value: formValues } = await Swal.fire({
-            title: 'Entrega',
-            html: '<input type="file" id="swal-foto" class="form-control mb-2" accept="image/*"><textarea id="swal-comentario" class="form-control"></textarea>',
+            title: 'Confirmar Entrega',
+            html: '<input type="file" id="swal-foto" class="form-control mb-2" accept="image/*"><textarea id="swal-comentario" class="form-control" placeholder="Comentario"></textarea>',
             preConfirm: () => {
                 const f = document.getElementById('swal-foto').files[0];
                 const c = document.getElementById('swal-comentario').value;
@@ -440,16 +432,6 @@
             reader.readAsDataURL(formValues.f);
         }
     };
-</script>
-
-<script>
-  document.addEventListener('contextmenu', (e) => e.preventDefault());
-  document.onkeydown = function(e) {
-    if(e.keyCode == 123) return false;
-    if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
-    if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
-    if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
-  };
 </script>
 </body>
 </html>
