@@ -95,7 +95,6 @@
     let tiempoInactividad;
     const reiniciarTemporizador = () => {
         clearTimeout(tiempoInactividad);
-        // 10 minutos = 600,000 milisegundos
         tiempoInactividad = setTimeout(async () => {
             await Swal.fire({
                 title: 'Sesión expirada',
@@ -107,7 +106,6 @@
         }, 600000); 
     };
 
-    // Detectar interacción del usuario para reiniciar el reloj
     window.onload = reiniciarTemporizador;
     document.onmousemove = reiniciarTemporizador;
     document.onkeypress = reiniciarTemporizador;
@@ -127,7 +125,7 @@
                 <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
             </div>
             <div class="aviso-devolucion">
-                <strong>⚠️ Aviso importante:</strong> Se les recuerda que para hacer una devolución de mercancía los empaques deben de estar lo más intactos posibles (sin rayaduras, enmendaduras, rotos), de lo contrario no procederán y aplicará una penalización.
+                <strong>⚠️ Aviso importante:</strong> Se les recuerda que para hacer una devolución de mercancía los empaques deben de estar lo más intactos posibles.
             </div>
         </div>
         <div class="dropdown">
@@ -201,8 +199,7 @@
     let globalSeguimientos = [];
     let solicitudesActualesParaExportar = []; 
 
-    window.mostrarCargando();
-
+    // Escuchar cambios en seguimientos primero
     onValue(seguimientoRef, snap => {
         globalSeguimientos = [];
         snap.forEach(c => { globalSeguimientos.push({ ...c.val(), id: c.key }); });
@@ -218,12 +215,15 @@
             snap.forEach(c => {
                 const s = c.val();
                 const idKey = c.key;
+                
+                // Obtener el último estatus de la tabla de seguimiento para este folio
                 const segsDelFolio = globalSeguimientos
                     .filter(x => x.folio === s.folio)
                     .sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
                 
                 const statusActual = segsDelFolio.length > 0 ? segsDelFolio[0].status : (s.status || "PENDIENTE");
 
+                // Filtrar eliminados o ya confirmados
                 if (s.eliminado || statusActual === "CONFIRMADO" || s.status === "CONFIRMADO") return;
 
                 const puedeVerTodo = window.puedeVerBase;
@@ -232,9 +232,8 @@
                 if(puedeVerTodo || esDueno) {
                     solicitudesActualesParaExportar.push({ ...s, statusActual });
 
-                    let claseColor = "st-default";
                     const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas"};
-                    claseColor = colores[statusActual] || "st-default";
+                    const claseColor = colores[statusActual] || "st-default";
                     const tieneSeguimientos = segsDelFolio.length > 0;
 
                     tbody.innerHTML += `
@@ -244,16 +243,15 @@
                             <td>${s.zona}</td>
                             <td>${s.soporte}</td>
                             <td>${s.sucursal}</td>
-                            <td><a class="btn btn-success btn-sm" download="${s.archivoNombre}" href="${s.archivoData}">📥</a></td>
+                            <td><button class="btn btn-sm btn-success" onclick="window.verPDF('${s.archivoData}')">👁️</button></td>
                             <td><span class="badge ${claseColor} p-2 w-100">${statusActual}</span></td>
                             <td class="tiempo-badge">${calcularTranscurrido(s.fechaISO || s.fechaEnvio)}</td>
                             <td><small>${s.fechaEnvio}</small></td>
                             <td>
                                 <div class="acciones">
-                                    <span class="action-btn ${!tieneSeguimientos ? 'action-disabled' : ''}" 
-                                          onclick="${tieneSeguimientos ? `window.verHistorialFolio('${s.folio}')` : ''}" title="Historial">📜</span>
+                                    <span class="action-btn" onclick="window.verHistorialFolio('${s.folio}')" title="Historial">📜</span>
                                     <span class="action-btn ${window.esSoporteJR ? 'action-disabled' : ''}" 
-                                          onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}">📋</span>
+                                          onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}" title="Seguimiento">📋</span>
                                     ${window.esSoporteJR && statusActual === "ENVIADO A ZONA" ? `<span class="action-btn text-success" onclick="window.confirmarEntrega('${s.folio}')">✅</span>` : ''}
                                     ${puedeVerTodo ? `<span class="action-btn" onclick="window.eliminarSolicitud('${idKey}')">🗑️</span>` : ``}
                                 </div>
@@ -261,13 +259,17 @@
                         </tr>`;
                 }
             });
-            window.ocultarCargando();
         });
     }
 
+    // Función corregida para visualizar PDF o imagen en nueva pestaña
+    window.verPDF = (data) => {
+        const win = window.open();
+        win.document.write(`<iframe src="${data}" frameborder="0" style="width:100%; height:100%;" allowfullscreen></iframe>`);
+    };
+
     window.exportarExcel = () => {
         if (solicitudesActualesParaExportar.length === 0) return Swal.fire("Sin datos", "No hay solicitudes en proceso", "info");
-        window.mostrarCargando();
         let csvContent = "\uFEFF"; 
         csvContent += "Folio,Empresa,Zona,Soporte,Sucursal,Status Actual,Fecha de Solicitud,Tiempo Abierta\n";
         solicitudesActualesParaExportar.forEach(s => {
@@ -278,10 +280,8 @@
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.download = `Reporte_Tecnologia_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`;
+        link.download = `Reporte_Tecnologia.csv`;
         link.click();
-        window.ocultarCargando();
-        Swal.fire("Éxito", "Excel generado correctamente", "success");
     };
 
     window.guardarSolicitud = async () => {
@@ -304,35 +304,24 @@
 
             const reader = new FileReader();
             reader.onload = async () => {
-                const base64Data = reader.result;
-                
                 await push(solicitudesRef, {
                     folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
                     soporte: window.nombreSesion, sucursal: suc.toUpperCase(),
-                    archivoData: base64Data, archivoNombre: arc.name,
+                    archivoData: reader.result, archivoNombre: arc.name,
                     status: "PENDIENTE", fechaEnvio: new Date().toLocaleString(), 
                     fechaISO: new Date().toISOString(),
                     usuario: window.usuarioSesion, eliminado: false
                 });
 
-                const templateParams = {
-                    folio: fol,
-                    empresa: emp.toUpperCase(),
-                    zona: zon.toUpperCase(),
-                    sucursal: suc.toUpperCase(),
-                    soporte: window.nombreSesion
-                };
-
-                try {
-                    await emailjs.send('service_mya4ogg', 'template_apg1whs', templateParams);
-                    console.log("Correo enviado");
-                } catch (mailErr) {
-                    console.error("Error correo:", mailErr);
-                }
+                // EmailJS Logic
+                emailjs.send('service_mya4ogg', 'template_apg1whs', {
+                    folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
+                    sucursal: suc.toUpperCase(), soporte: window.nombreSesion
+                });
 
                 document.getElementById("formTec").reset();
                 window.ocultarCargando();
-                Swal.fire("Éxito", "Solicitud guardada y aviso enviado. Folio: " + fol, "success");
+                Swal.fire("Éxito", "Solicitud guardada. Folio: " + fol, "success");
             };
             reader.readAsDataURL(arc);
         } catch (e) {
@@ -345,8 +334,13 @@
         const segs = globalSeguimientos
             .filter(x => x.folio === folio)
             .sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
-        let tablaHTML = `<div class="table-responsive"><table class="table table-sm table-striped swal-table mt-3"><thead><tr class="table-dark"><th>Fecha</th><th>Status</th><th>Usuario</th><th>Comentarios</th></tr></thead><tbody>${segs.map(h => `<tr><td><small>${h.fechaRegistro}</small></td><td><span class="badge bg-secondary">${h.status}</span></td><td>${h.usuario || 'Sistemas'}</td><td class="text-start">${h.comentarios || ''}</td></tr>`).join('')}</tbody></table></div>`;
-        Swal.fire({ title: `Historial: ${folio}`, html: tablaHTML, width: '800px', showCloseButton: true, confirmButtonText: 'Cerrar' });
+        
+        let tablaHTML = `<div class="table-responsive"><table class="table table-sm table-striped swal-table mt-3">
+            <thead><tr class="table-dark"><th>Fecha</th><th>Status</th><th>Usuario</th><th>Comentarios</th></tr></thead>
+            <tbody>${segs.map(h => `<tr><td><small>${h.fechaRegistro}</small></td><td><span class="badge bg-secondary">${h.status}</span></td><td>${h.usuario || 'Sistemas'}</td><td class="text-start">${h.comentarios || ''}</td></tr>`).join('')}</tbody>
+            </table></div>`;
+        
+        Swal.fire({ title: `Historial: ${folio}`, html: tablaHTML, width: '800px', confirmButtonText: 'Cerrar' });
     };
 
     function calcularTranscurrido(f) {
@@ -360,11 +354,12 @@
     window.irSeguimiento = f => location.href = "seguimiento.html?folio=" + encodeURIComponent(f);
 
     window.eliminarSolicitud = async (id) => {
-        const { value: motivo } = await Swal.fire({ title: 'Motivo', input: 'textarea', showCancelButton: true });
+        const { value: motivo } = await Swal.fire({ title: 'Motivo de eliminación', input: 'textarea', showCancelButton: true });
         if (motivo) {
             window.mostrarCargando();
             await update(ref(database, `tecnologia/${id}`), { eliminado: true, motivoEliminacion: motivo });
             window.ocultarCargando();
+            Swal.fire("Eliminado", "La solicitud ha sido removida", "success");
         }
     };
 
@@ -372,9 +367,10 @@
         const snap = await get(solicitudesRef);
         let idKeyPrincipal = null;
         snap.forEach(doc => { if (doc.val().folio === fol) idKeyPrincipal = doc.key; });
+
         const { value: formValues } = await Swal.fire({
-            title: 'Entrega',
-            html: '<input type="file" id="swal-foto" class="form-control mb-2" accept="image/*"><textarea id="swal-comentario" class="form-control"></textarea>',
+            title: 'Confirmar Entrega',
+            html: '<label class="small fw-bold">Foto de evidencia:</label><input type="file" id="swal-foto" class="form-control mb-2" accept="image/*"><label class="small fw-bold">Comentario:</label><textarea id="swal-comentario" class="form-control"></textarea>',
             preConfirm: () => {
                 const f = document.getElementById('swal-foto').files[0];
                 const c = document.getElementById('swal-comentario').value;
@@ -387,9 +383,14 @@
             window.mostrarCargando();
             const reader = new FileReader();
             reader.onload = async () => {
-                await push(seguimientoRef, { folio: fol, status: "CONFIRMADO", comentarios: formValues.c, fotoEvidencia: reader.result, fechaRegistro: new Date().toLocaleString(), usuario: window.usuarioSesion });
+                await push(seguimientoRef, { 
+                    folio: fol, status: "CONFIRMADO", comentarios: formValues.c, 
+                    fotoEvidencia: reader.result, fechaRegistro: new Date().toLocaleString(), 
+                    usuario: window.nombreSesion 
+                });
                 await update(ref(database, `tecnologia/${idKeyPrincipal}`), { status: "CONFIRMADO" });
                 window.ocultarCargando();
+                Swal.fire("Entregado", "Se ha cerrado el folio correctamente", "success");
             };
             reader.readAsDataURL(formValues.f);
         }
@@ -397,6 +398,7 @@
 </script>
 
 <script>
+  // Bloqueo de inspección
   document.addEventListener('contextmenu', (e) => e.preventDefault());
   document.onkeydown = function(e) {
     if(e.keyCode == 123) return false;
