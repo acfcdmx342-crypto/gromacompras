@@ -99,7 +99,7 @@
             <div class="fw-bold text-primary">👤 <span id="usuarioActivo"></span></div>
             <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
         </div>
-       <div class="dropdown">
+        <div class="dropdown">
             <button class="btn btn-primary btn-rounded dropdown-toggle fw-bold px-4 shadow-sm" type="button" data-bs-toggle="dropdown">
                 ☰ Menú
             </button>
@@ -253,7 +253,7 @@
         Swal.fire("Éxito", "Excel generado correctamente", "success");
     };
 
-    // --- FUNCIÓN GUARDAR ACTUALIZADA CON EMAILJS ---
+    // --- FUNCIÓN GUARDAR SIN ADJUNTO EN CORREO (PERO SÍ EN FIREBASE) ---
     window.guardarSolicitud = async () => {
         const emp = document.getElementById("empresa").value;
         const zon = document.getElementById("zona").value;
@@ -276,7 +276,7 @@
             reader.onload = async () => {
                 const base64Data = reader.result;
                 
-                // 1. Guardar en Firebase
+                // 1. Guardar en Firebase (Aquí sí se guarda el archivo)
                 await push(solicitudesRef, {
                     folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
                     soporte: window.nombreSesion, sucursal: suc.toUpperCase(),
@@ -286,21 +286,8 @@
                     usuario: window.usuarioSesion, eliminado: false
                 });
 
-                // 2. Enviar Correo vía EmailJS
-                // Creamos un formulario virtual para adjuntar el archivo correctamente
-                const formCorreo = document.createElement("form");
-                
-                // Adjuntar archivo
-                const fileInput = document.createElement("input");
-                fileInput.type = "file";
-                fileInput.name = "my_file"; // Este nombre debe estar en tu plantilla de EmailJS
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(arc);
-                fileInput.files = dataTransfer.files;
-                formCorreo.appendChild(fileInput);
-
-                // Adjuntar variables de texto
-                const datos = {
+                // 2. Enviar Aviso por Correo (Solo Datos de Texto)
+                const templateParams = {
                     folio: fol,
                     empresa: emp.toUpperCase(),
                     zona: zon.toUpperCase(),
@@ -308,15 +295,8 @@
                     soporte: window.nombreSesion
                 };
 
-                for (let k in datos) {
-                    let inp = document.createElement("input");
-                    inp.name = k;
-                    inp.value = datos[k];
-                    formCorreo.appendChild(inp);
-                }
-
                 try {
-                    await emailjs.sendForm('service_mya4ogg', 'template_apg1whs', formCorreo);
+                    await emailjs.send('service_mya4ogg', 'template_apg1whs', templateParams);
                     console.log("Correo enviado");
                 } catch (mailErr) {
                     console.error("Error correo:", mailErr);
@@ -324,7 +304,7 @@
 
                 document.getElementById("formTec").reset();
                 window.ocultarCargando();
-                Swal.fire("Éxito", "Solicitud guardada y correo enviado. Folio: " + fol, "success");
+                Swal.fire("Éxito", "Solicitud guardada y aviso enviado. Folio: " + fol, "success");
             };
             reader.readAsDataURL(arc);
         } catch (e) {
