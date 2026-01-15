@@ -28,9 +28,20 @@
         .st-zona { background-color: #ffc107 !important; color: black; }    
         .st-pendiente { background-color: #dc3545 !important; color: white; } 
         .st-sistemas { background-color: #198754 !important; color: white; }  
+        .st-devolucion { background-color: #ff0000 !important; color: white; } /* Status Rojo Devolución */
         .st-default { background-color: #6c757d !important; color: white; }   
         .tiempo-badge { font-size: 0.75rem; font-weight: bold; color: #555; }
         .swal-table { font-size: 0.85rem; }
+        .aviso-devolucion { 
+            max-width: 500px; 
+            font-size: 0.75rem; 
+            background: #fff3cd; 
+            color: #856404; 
+            padding: 10px; 
+            border-radius: 10px; 
+            border: 1px solid #ffeeba;
+            line-height: 1.2;
+        }
 
         #loader { 
             display: none; 
@@ -90,14 +101,20 @@
     }
 
     window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
+    window.ocultarCargando = () => { document.getElementById("loader").style.none = "none"; };
     window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
 </script>
 
 <div class="container">
-    <div class="d-flex justify-content-between align-items-start mb-4">
-        <div class="user-info-box border-start border-primary border-4">
-            <div class="fw-bold text-primary">👤 <span id="usuarioActivo"></span></div>
-            <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <div class="user-info-box border-start border-primary border-4">
+                <div class="fw-bold text-primary">👤 <span id="usuarioActivo"></span></div>
+                <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
+            </div>
+            <div class="aviso-devolucion fw-bold">
+                ⚠️ Se les recuerda que para hacer una devolución de mercancía los empaques deben de estar lo más intactos posibles (sin rayaduras, enmendaduras, rotos) de lo contrario no procederán y aplicará una penalización.
+            </div>
         </div>
         <div class="dropdown">
             <button class="btn btn-primary btn-rounded dropdown-toggle fw-bold px-4 shadow-sm" type="button" data-bs-toggle="dropdown">
@@ -202,7 +219,13 @@
                     solicitudesActualesParaExportar.push({ ...s, statusActual });
 
                     let claseColor = "st-default";
-                    const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas"};
+                    const colores = {
+                        "ENVIADO A COMPRAS":"st-compras", 
+                        "ENVIADO A ZONA":"st-zona", 
+                        "PENDIENTE POR AUTORIZAR":"st-pendiente", 
+                        "EN SISTEMAS":"st-sistemas",
+                        "DEVOLUCION": "st-devolucion"
+                    };
                     claseColor = colores[statusActual] || "st-default";
                     const tieneSeguimientos = segsDelFolio.length > 0;
 
@@ -222,9 +245,10 @@
                                     <span class="action-btn ${!tieneSeguimientos ? 'action-disabled' : ''}" 
                                           onclick="${tieneSeguimientos ? `window.verHistorialFolio('${s.folio}')` : ''}" title="Historial">📜</span>
                                     <span class="action-btn ${window.esSoporteJR ? 'action-disabled' : ''}" 
-                                          onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}">📋</span>
-                                    ${window.esSoporteJR && statusActual === "ENVIADO A ZONA" ? `<span class="action-btn text-success" onclick="window.confirmarEntrega('${s.folio}')">✅</span>` : ''}
-                                    ${puedeVerTodo ? `<span class="action-btn" onclick="window.eliminarSolicitud('${idKey}')">🗑️</span>` : ``}
+                                          onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}" title="Seguimiento">📋</span>
+                                    ${window.esSoporteJR && statusActual === "ENVIADO A ZONA" ? `<span class="action-btn text-success" onclick="window.confirmarEntrega('${s.folio}')" title="Confirmar">✅</span>` : ''}
+                                    <span class="action-btn text-danger" onclick="window.aplicarDevolucion('${s.folio}', '${idKey}')" title="Devolución">🔄</span>
+                                    ${puedeVerTodo ? `<span class="action-btn" onclick="window.eliminarSolicitud('${idKey}')" title="Eliminar">🗑️</span>` : ``}
                                 </div>
                             </td>
                         </tr>`;
@@ -233,6 +257,58 @@
             window.ocultarCargando();
         });
     }
+
+    // --- NUEVA FUNCIÓN: APLICAR DEVOLUCIÓN ---
+    window.aplicarDevolucion = async (fol, idKey) => {
+        const { value: formValues } = await Swal.fire({
+            title: 'Aplicar Devolución',
+            html: `
+                <div class="text-start small mb-2 text-danger fw-bold">Asegúrese de que el empaque esté intacto.</div>
+                <label class="small fw-bold">Motivo de la devolución:</label>
+                <textarea id="swal-motivo-dev" class="form-control mb-3" placeholder="Escriba el motivo..."></textarea>
+                <label class="small fw-bold">Imagen de evidencia:</label>
+                <input type="file" id="swal-img-dev" class="form-control" accept="image/*">
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Aplicar',
+            cancelButtonText: 'Cancelar',
+            preConfirm: () => {
+                const motivo = document.getElementById('swal-motivo-dev').value;
+                const imagen = document.getElementById('swal-img-dev').files[0];
+                if (!motivo || !imagen) {
+                    Swal.showValidationMessage('Debe ingresar el motivo y la imagen de evidencia');
+                    return false;
+                }
+                return { motivo, imagen };
+            }
+        });
+
+        if (formValues) {
+            window.mostrarCargando();
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const dataUrl = reader.result;
+                const fecha = new Date().toLocaleString();
+
+                // 1. Guardar en Historial (Seguimiento)
+                await push(seguimientoRef, {
+                    folio: fol,
+                    status: "DEVOLUCION",
+                    comentarios: `MOTIVO DEVOLUCIÓN: ${formValues.motivo}`,
+                    fotoEvidencia: dataUrl,
+                    fechaRegistro: fecha,
+                    usuario: window.usuarioSesion
+                });
+
+                // 2. Actualizar Status en Solicitud Principal
+                await update(ref(database, `tecnologia/${idKey}`), { status: "DEVOLUCION" });
+
+                window.ocultarCargando();
+                Swal.fire("Devolución Aplicada", "El status ha cambiado a devolución y se guardó en el historial.", "success");
+            };
+            reader.readAsDataURL(formValues.imagen);
+        }
+    };
 
     window.exportarExcel = () => {
         if (solicitudesActualesParaExportar.length === 0) return Swal.fire("Sin datos", "No hay solicitudes en proceso", "info");
@@ -253,7 +329,6 @@
         Swal.fire("Éxito", "Excel generado correctamente", "success");
     };
 
-    // --- FUNCIÓN GUARDAR SIN ADJUNTO EN CORREO (PERO SÍ EN FIREBASE) ---
     window.guardarSolicitud = async () => {
         const emp = document.getElementById("empresa").value;
         const zon = document.getElementById("zona").value;
@@ -276,7 +351,6 @@
             reader.onload = async () => {
                 const base64Data = reader.result;
                 
-                // 1. Guardar en Firebase (Aquí sí se guarda el archivo)
                 await push(solicitudesRef, {
                     folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
                     soporte: window.nombreSesion, sucursal: suc.toUpperCase(),
@@ -286,7 +360,6 @@
                     usuario: window.usuarioSesion, eliminado: false
                 });
 
-                // 2. Enviar Aviso por Correo (Solo Datos de Texto)
                 const templateParams = {
                     folio: fol,
                     empresa: emp.toUpperCase(),
@@ -317,8 +390,8 @@
         const segs = globalSeguimientos
             .filter(x => x.folio === folio)
             .sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
-        let tablaHTML = `<div class="table-responsive"><table class="table table-sm table-striped swal-table mt-3"><thead><tr class="table-dark"><th>Fecha</th><th>Status</th><th>Usuario</th><th>Comentarios</th></tr></thead><tbody>${segs.map(h => `<tr><td><small>${h.fechaRegistro}</small></td><td><span class="badge bg-secondary">${h.status}</span></td><td>${h.usuario || 'Sistemas'}</td><td class="text-start">${h.comentarios || ''}</td></tr>`).join('')}</tbody></table></div>`;
-        Swal.fire({ title: `Historial: ${folio}`, html: tablaHTML, width: '800px', showCloseButton: true, confirmButtonText: 'Cerrar' });
+        let tablaHTML = `<div class="table-responsive"><table class="table table-sm table-striped swal-table mt-3"><thead><tr class="table-dark"><th>Fecha</th><th>Status</th><th>Usuario</th><th>Comentarios</th><th>Evidencia</th></tr></thead><tbody>${segs.map(h => `<tr><td><small>${h.fechaRegistro}</small></td><td><span class="badge ${h.status === 'DEVOLUCION' ? 'bg-danger' : 'bg-secondary'}">${h.status}</span></td><td>${h.usuario || 'Sistemas'}</td><td class="text-start">${h.comentarios || ''}</td><td>${h.fotoEvidencia ? `<a href="${h.fotoEvidencia}" target="_blank">🖼️ Ver</a>` : 'N/A'}</td></tr>`).join('')}</tbody></table></div>`;
+        Swal.fire({ title: `Historial: ${folio}`, html: tablaHTML, width: '850px', showCloseButton: true, confirmButtonText: 'Cerrar' });
     };
 
     function calcularTranscurrido(f) {
