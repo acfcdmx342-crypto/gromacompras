@@ -98,7 +98,8 @@
                         <th>Archivo</th>
                         <th>Fecha Reg.</th>
                         <th>Fecha Confirmación</th>
-                        <th>Tiempo de Entrega</th> </tr>
+                        <th>Tiempo de Entrega</th> 
+                    </tr>
                 </thead>
                 <tbody id="historialBody"></tbody>
             </table>
@@ -114,13 +115,32 @@ const seguimientoRef = ref(database,"seguimiento");
 
 let datosParaExportar = [];
 
-// Función para limpiar fechas con formato "a.m." o "p.m." que JS no entiende por defecto
+// FUNCIÓN CORREGIDA: Fuerza el formato Día/Mes/Año para evitar cálculos de 200+ días
 const limpiarFecha = (str) => {
     if(!str || str === "---") return null;
-    // Elimina puntos de a.m./p.m. y asegura espacio antes de AM/PM
-    let f = str.replace(/\./g, '').replace(/([ap])\s*m/i, '$1M');
-    let d = new Date(f);
-    return isNaN(d.getTime()) ? null : d;
+    try {
+        // 1. Limpiar puntos y estandarizar AM/PM
+        let s = str.replace(/\./g, '').replace(/([ap])\s*m/i, '$1M');
+        
+        // 2. Extraer partes: [Día, Mes, Año, Hora...]
+        let partes = s.split(/[\/\s,:]+/);
+        if(partes.length < 3) return null;
+
+        let dia = parseInt(partes[0]);
+        let mes = parseInt(partes[1]) - 1; // Enero es 0
+        let anio = parseInt(partes[2]);
+        let hora = parseInt(partes[3] || 0);
+        let min = parseInt(partes[4] || 0);
+        let seg = parseInt(partes[5] || 0);
+        
+        // Ajustar hora si es PM
+        if (s.toUpperCase().includes("PM") && hora < 12) hora += 12;
+        if (s.toUpperCase().includes("AM") && hora === 12) hora = 0;
+
+        return new Date(anio, mes, dia, hora, min, seg);
+    } catch(e) {
+        return null;
+    }
 };
 
 if (!window.esSoporteJR) {
@@ -164,12 +184,12 @@ async function cargarHistorial() {
                 let motivo = estaEliminado ? (s.motivoEliminacion || "Sin motivo") : (segConfirmado?.comentarios || "Entregado");
                 let fechaCierre = segConfirmado ? segConfirmado.fechaRegistro : (s.fechaEliminacion || "---");
                 
-                // --- LÓGICA DE TIEMPO CORREGIDA ---
+                // --- LÓGICA DE TIEMPO OPTIMIZADA ---
                 let tiempoEntrega = "N/A";
                 let fInicio = s.fechaISO ? new Date(s.fechaISO) : limpiarFecha(s.fechaEnvio);
                 let fFin = limpiarFecha(fechaCierre);
 
-                if (fInicio && fFin) {
+                if (fInicio && fFin && !isNaN(fInicio) && !isNaN(fFin)) {
                     const difMs = fFin - fInicio;
                     if (difMs > 0) {
                         const totalMinutos = Math.floor(difMs / 60000);
@@ -184,7 +204,7 @@ async function cargarHistorial() {
                         } else {
                             tiempoEntrega = `${mins}m`;
                         }
-                    } else {
+                    } else if (Math.abs(difMs) < 60000) {
                         tiempoEntrega = "Instante";
                     }
                 }
@@ -247,16 +267,15 @@ window.descargarExcelHistorial = () => {
 window.verFoto = (url, folio) => {
     Swal.fire({ title: `Evidencia - ${folio}`, imageUrl: url, imageAlt: 'Evidencia', confirmButtonText: 'Cerrar' });
 };
-</script>
-    <script>
-  // Seguridad de código fuente
-  document.addEventListener('contextmenu', (e) => e.preventDefault());
-  document.onkeydown = function(e) {
+
+// Bloqueo de inspección
+document.addEventListener('contextmenu', (e) => e.preventDefault());
+document.onkeydown = function(e) {
     if(e.keyCode == 123) return false;
     if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
     if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
     if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
-  };
+};
 </script>
 </body>
 </html>
