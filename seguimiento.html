@@ -19,12 +19,12 @@
         .btn-modern { border-radius: 50px; padding: 12px 35px; font-weight: 600; transition: all 0.3s ease; border: none; letter-spacing: 0.5px; }
         .btn-save { background: linear-gradient(45deg, #0d6efd, #0046af); color: white; box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3); }
 
-        /* --- COLORES DE ESTATUS SOLICITADOS --- */
-        .status-compras { background:#0d6efd !important; color: white !important; border-radius: 20px; } /* Azul */
-        .status-zona { background:#ffc107 !important; color: black !important; border-radius: 20px; } /* Amarillo */
-        .status-pendiente { background:#fd7e14 !important; color: white !important; border-radius: 20px; } /* Naranja */
-        .status-sistemas { background:#198754 !important; color: white !important; border-radius: 20px; } /* Verde */
-        .status-devolucion { background:#ff0000 !important; color: white !important; border-radius: 20px; } /* Rojo */
+        /* --- COLORES DE ESTATUS --- */
+        .status-compras { background:#0d6efd !important; color: white !important; border-radius: 20px; }
+        .status-zona { background:#ffc107 !important; color: black !important; border-radius: 20px; }
+        .status-pendiente { background:#fd7e14 !important; color: white !important; border-radius: 20px; }
+        .status-sistemas { background:#198754 !important; color: white !important; border-radius: 20px; }
+        .status-devolucion { background:#ff0000 !important; color: white !important; border-radius: 20px; }
         
         .registro-eliminado { background-color: #ffe5e5 !important; color: #b00000 !important; }
         .texto-eliminado { text-decoration: line-through; opacity: 0.7; }
@@ -34,7 +34,6 @@
         .group-header { cursor: pointer; transition: background 0.2s; }
         .chevron-icon { transition: transform 0.3s; font-size: 0.8rem; }
 
-        /* --- LOADER --- */
         #loader { 
             display: none; 
             position: fixed; 
@@ -134,7 +133,7 @@
 
             <div class="section-header"><i class="fa-solid fa-box me-2"></i>Entrega y Facturación</div>
             <div class="col-md-3"><label class="form-label fw-bold small">FECHA ENTREGA</label><input id="fechaEntrega" type="date" class="form-control"></div>
-            <div class="col-md-3"><label class="form-label fw-bold small">QUIEN RECIBE</label><input id="recibe" text="text" class="form-control"></div>
+            <div class="col-md-3"><label class="form-label fw-bold small">QUIEN RECIBE</label><input id="recibe" type="text" class="form-control"></div>
             <div class="col-md-3"><label class="form-label fw-bold small">FOLIO FACTURA</label><input id="folioFactura" type="text" class="form-control"></div>
             <div class="col-md-3"><label class="form-label fw-bold small">SUBIR FACTURA</label><input id="fileFactura" type="file" class="form-control"></div>
 
@@ -199,7 +198,6 @@
     const btnArc = document.getElementById("btnArchivo");
     let dataArchivoActual = null;
 
-    // Función para asignar clase CSS según el status
     function getStatusClass(status) {
         if (!status) return 'status-sistemas';
         const s = status.toUpperCase();
@@ -278,14 +276,19 @@
 
     selectFolio.addEventListener("change", (e) => cargarInfoPorFolio(e.target.value));
 
+    // LÓGICA DE GUARDADO ACTUALIZADA PARA ACTUALIZAR STATUS GLOBAL
     document.getElementById("btnGuardar").onclick = async () => {
-        if (!selectFolio.value) return Swal.fire("Error", "Seleccione un folio", "error");
+        const folioValue = selectFolio.value;
+        if (!folioValue) return Swal.fire("Error", "Seleccione un folio", "error");
+        
         window.mostrarCargando();
         try {
             const fCot = document.getElementById("fileCot").files[0];
             const fFac = document.getElementById("fileFactura").files[0];
+            const nuevoStatus = document.getElementById("status").value;
+
             const dataGuardar = {
-                folio: selectFolio.value,
+                folio: folioValue,
                 fechaCompras: document.getElementById("fechaCompras").value,
                 descripcion: document.getElementById("descripcion").value.toUpperCase(),
                 fechaCot: document.getElementById("fechaCot").value,
@@ -300,16 +303,30 @@
                 fechaEnvio: document.getElementById("fechaEnvio").value,
                 envia: document.getElementById("envia").value.toUpperCase(),
                 adonde: document.getElementById("adonde").value.toUpperCase(),
-                status: document.getElementById("status").value,
+                status: nuevoStatus,
                 comentarios: document.getElementById("comentarios").value.toUpperCase(),
                 fechaRegistro: new Date().toISOString(),
                 usuarioModifico: sesion.usuario,
                 eliminado: false
             };
+
+            // 1. Guardar en historial de seguimientos
             await push(ref(database, "seguimiento"), dataGuardar);
+
+            // 2. Actualizar el estatus en la colección "tecnologia"
+            const qTec = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(folioValue));
+            const snapTec = await get(qTec);
+            if (snapTec.exists()) {
+                const keyTec = Object.keys(snapTec.val())[0];
+                await update(ref(database, `tecnologia/${keyTec}`), {
+                    status: nuevoStatus
+                });
+            }
+
             window.ocultarCargando();
-            Swal.fire("Éxito", "Seguimiento guardado", "success").then(() => location.reload());
+            Swal.fire("Éxito", "Seguimiento guardado y estatus actualizado", "success").then(() => location.reload());
         } catch (error) {
+            console.error(error);
             window.ocultarCargando();
             Swal.fire("Error", "No se pudo guardar el seguimiento", "error");
         }
