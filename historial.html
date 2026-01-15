@@ -97,7 +97,8 @@
                         <th>Evidencia</th> 
                         <th>Archivo</th>
                         <th>Fecha Reg.</th>
-                        <th>Fecha Confirmación</th> </tr>
+                        <th>Fecha Confirmación</th>
+                        <th>Tiempo de Entrega</th> </tr>
                 </thead>
                 <tbody id="historialBody"></tbody>
             </table>
@@ -112,6 +113,15 @@ const solicitudesRef = ref(database,"tecnologia");
 const seguimientoRef = ref(database,"seguimiento");
 
 let datosParaExportar = [];
+
+// Función para limpiar fechas con formato "a.m." o "p.m." que JS no entiende por defecto
+const limpiarFecha = (str) => {
+    if(!str || str === "---") return null;
+    // Elimina puntos de a.m./p.m. y asegura espacio antes de AM/PM
+    let f = str.replace(/\./g, '').replace(/([ap])\s*m/i, '$1M');
+    let d = new Date(f);
+    return isNaN(d.getTime()) ? null : d;
+};
 
 if (!window.esSoporteJR) {
     document.getElementById("contenedorExportar").innerHTML = `
@@ -154,32 +164,31 @@ async function cargarHistorial() {
                 let motivo = estaEliminado ? (s.motivoEliminacion || "Sin motivo") : (segConfirmado?.comentarios || "Entregado");
                 let fechaCierre = segConfirmado ? segConfirmado.fechaRegistro : (s.fechaEliminacion || "---");
                 
-                // --- LÓGICA DE TIEMPO ---
+                // --- LÓGICA DE TIEMPO CORREGIDA ---
                 let tiempoEntrega = "N/A";
-                let fInicio = s.fechaISO ? new Date(s.fechaISO) : new Date(s.fechaEnvio.replace(/-/g, '/'));
-                let fFin = segConfirmado ? new Date(segConfirmado.fechaRegistro) : null;
+                let fInicio = s.fechaISO ? new Date(s.fechaISO) : limpiarFecha(s.fechaEnvio);
+                let fFin = limpiarFecha(fechaCierre);
 
-                if (fInicio && fFin && !isNaN(fInicio) && !isNaN(fFin)) {
+                if (fInicio && fFin) {
                     const difMs = fFin - fInicio;
                     if (difMs > 0) {
-                        const horasTotales = Math.floor(difMs / 3600000);
-                        const dias = Math.floor(horasTotales / 24);
-                        const horasRestantes = horasTotales % 24;
-                        const minutos = Math.floor((difMs / 60000) % 60);
+                        const totalMinutos = Math.floor(difMs / 60000);
+                        const dias = Math.floor(totalMinutos / 1440);
+                        const horas = Math.floor((totalMinutos % 1440) / 60);
+                        const mins = totalMinutos % 60;
                         
                         if (dias > 0) {
-                            tiempoEntrega = `${dias}d ${horasRestantes}h`;
-                        } else if (horasTotales > 0) {
-                            tiempoEntrega = `${horasTotales}h ${minutos}m`;
+                            tiempoEntrega = `${dias}d ${horas}h`;
+                        } else if (horas > 0) {
+                            tiempoEntrega = `${horas}h ${mins}m`;
                         } else {
-                            tiempoEntrega = `${minutos}m`;
+                            tiempoEntrega = `${mins}m`;
                         }
                     } else {
                         tiempoEntrega = "Instante";
                     }
                 }
 
-                // Guardar para exportación
                 datosParaExportar.push({
                     folio: s.folio,
                     empresa: s.empresa,
@@ -188,7 +197,7 @@ async function cargarHistorial() {
                     statusFinal: estaEliminado ? "ELIMINADO" : "CONFIRMADO",
                     motivo: motivo,
                     fechaReg: s.fechaEnvio,
-                    fechaConf: fechaCierre, // Dato nuevo
+                    fechaConf: fechaCierre,
                     tiempo: tiempoEntrega
                 });
 
@@ -208,6 +217,7 @@ async function cargarHistorial() {
                         <td><a href="${s.archivoData}" download="${s.archivoNombre}" class="btn btn-sm btn-secondary">📥</a></td>
                         <td><small>${s.fechaEnvio}</small></td>
                         <td><small class="fw-bold">${fechaCierre}</small></td>
+                        <td class="fw-bold text-primary">${tiempoEntrega}</td>
                     </tr>
                 `;
             }
@@ -221,26 +231,12 @@ async function cargarHistorial() {
 
 window.descargarExcelHistorial = () => {
     if (datosParaExportar.length === 0) return Swal.fire("Aviso", "No hay datos", "info");
-
     let csvContent = "\uFEFF"; 
-    // Cabecera actualizada en el Excel
     csvContent += "Folio,Empresa,Zona,Sucursal,Status Final,Motivo/Comentario,Fecha de Registro,Fecha de Confirmación,Tiempo de Entrega\n";
-
     datosParaExportar.forEach(d => {
-        const fila = [
-            d.folio, 
-            d.empresa, 
-            d.zona, 
-            d.sucursal, 
-            d.statusFinal, 
-            d.motivo.replace(/,/g, "."), 
-            d.fechaReg, 
-            d.fechaConf, // Nueva columna en Excel
-            d.tiempo
-        ];
+        const fila = [d.folio, d.empresa, d.zona, d.sucursal, d.statusFinal, d.motivo.replace(/,/g, "."), d.fechaReg, d.fechaConf, d.tiempo];
         csvContent += fila.map(campo => `"${campo}"`).join(",") + "\n";
     });
-
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
