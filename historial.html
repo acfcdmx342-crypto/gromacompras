@@ -97,7 +97,7 @@
                         <th>Evidencia</th> 
                         <th>Archivo</th>
                         <th>Fecha Reg.</th>
-                    </tr>
+                        <th>Fecha Confirmación</th> </tr>
                 </thead>
                 <tbody id="historialBody"></tbody>
             </table>
@@ -152,13 +152,11 @@ async function cargarHistorial() {
             if (estaEliminado || estaConfirmado) {
                 let segConfirmado = segs.find(x => x.status === "CONFIRMADO");
                 let motivo = estaEliminado ? (s.motivoEliminacion || "Sin motivo") : (segConfirmado?.comentarios || "Entregado");
+                let fechaCierre = segConfirmado ? segConfirmado.fechaRegistro : (s.fechaEliminacion || "---");
                 
-                // --- LÓGICA DE TIEMPO MEJORADA ---
+                // --- LÓGICA DE TIEMPO ---
                 let tiempoEntrega = "N/A";
-                
-                // Intentar obtener fecha de inicio (Prioridad ISO, luego string)
                 let fInicio = s.fechaISO ? new Date(s.fechaISO) : new Date(s.fechaEnvio.replace(/-/g, '/'));
-                // Intentar obtener fecha de fin (del último seguimiento o del registro de confirmación)
                 let fFin = segConfirmado ? new Date(segConfirmado.fechaRegistro) : null;
 
                 if (fInicio && fFin && !isNaN(fInicio) && !isNaN(fFin)) {
@@ -181,6 +179,7 @@ async function cargarHistorial() {
                     }
                 }
 
+                // Guardar para exportación
                 datosParaExportar.push({
                     folio: s.folio,
                     empresa: s.empresa,
@@ -189,6 +188,7 @@ async function cargarHistorial() {
                     statusFinal: estaEliminado ? "ELIMINADO" : "CONFIRMADO",
                     motivo: motivo,
                     fechaReg: s.fechaEnvio,
+                    fechaConf: fechaCierre, // Dato nuevo
                     tiempo: tiempoEntrega
                 });
 
@@ -207,6 +207,7 @@ async function cargarHistorial() {
                         <td>${fotoBtn}</td>
                         <td><a href="${s.archivoData}" download="${s.archivoNombre}" class="btn btn-sm btn-secondary">📥</a></td>
                         <td><small>${s.fechaEnvio}</small></td>
+                        <td><small class="fw-bold">${fechaCierre}</small></td>
                     </tr>
                 `;
             }
@@ -222,10 +223,21 @@ window.descargarExcelHistorial = () => {
     if (datosParaExportar.length === 0) return Swal.fire("Aviso", "No hay datos", "info");
 
     let csvContent = "\uFEFF"; 
-    csvContent += "Folio,Empresa,Zona,Sucursal,Status Final,Motivo/Comentario,Fecha de Registro,Tiempo de Entrega\n";
+    // Cabecera actualizada en el Excel
+    csvContent += "Folio,Empresa,Zona,Sucursal,Status Final,Motivo/Comentario,Fecha de Registro,Fecha de Confirmación,Tiempo de Entrega\n";
 
     datosParaExportar.forEach(d => {
-        const fila = [d.folio, d.empresa, d.zona, d.sucursal, d.statusFinal, d.motivo.replace(/,/g, "."), d.fechaReg, d.tiempo];
+        const fila = [
+            d.folio, 
+            d.empresa, 
+            d.zona, 
+            d.sucursal, 
+            d.statusFinal, 
+            d.motivo.replace(/,/g, "."), 
+            d.fechaReg, 
+            d.fechaConf, // Nueva columna en Excel
+            d.tiempo
+        ];
         csvContent += fila.map(campo => `"${campo}"`).join(",") + "\n";
     });
 
