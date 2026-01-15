@@ -17,7 +17,6 @@
         .img-preview:hover { transform: scale(1.1); }
         .btn-rounded { border-radius: 50px; }
 
-        /* --- ESTILOS DEL LOADER PROCOMEX --- */
         #loader { 
             display: none; 
             position: fixed; 
@@ -29,9 +28,7 @@
             align-items: center; 
             flex-direction: column; 
         }
-        .loader-logo-container {
-            animation: pulse-procomex 1.5s ease-in-out infinite;
-        }
+        .loader-logo-container { animation: pulse-procomex 1.5s ease-in-out infinite; }
         @keyframes pulse-procomex {
             0% { transform: scale(0.95); opacity: 0.8; }
             50% { transform: scale(1.05); opacity: 1; }
@@ -48,12 +45,11 @@
     </div>
     <div class="mt-3">
         <div class="spinner-border text-primary" role="status" style="width: 1.2rem; height: 1.2rem; vertical-align: middle;"></div>
-        <span class="ms-2 fw-bold text-dark">Procesando información...</span>
+        <span class="ms-2 fw-bold text-dark">Procesando historial...</span>
     </div>
 </div>
 
 <script>
-    // Validar sesión y permisos al cargar la página
     const sesionRaw = localStorage.getItem("usuarioLogueado");
     if (!sesionRaw) {
         location.href = "index.html";
@@ -71,7 +67,6 @@
             "BECARIO DE SISTEMAS"
         ];
         window.puedeVerTodo = puestosPrivilegiados.includes(window.puestoSesion);
-        // Condición para el botón de exportar (No JR)
         window.esSoporteJR = window.puestoSesion === "SOPORTE TECNICO JR";
     }
 
@@ -118,7 +113,6 @@ const seguimientoRef = ref(database,"seguimiento");
 
 let datosParaExportar = [];
 
-// Mostrar botón de exportar solo si no es JR
 if (!window.esSoporteJR) {
     document.getElementById("contenedorExportar").innerHTML = `
         <button class="btn btn-success btn-rounded shadow-sm fw-bold" onclick="window.descargarExcelHistorial()">
@@ -159,21 +153,34 @@ async function cargarHistorial() {
                 let segConfirmado = segs.find(x => x.status === "CONFIRMADO");
                 let motivo = estaEliminado ? (s.motivoEliminacion || "Sin motivo") : (segConfirmado?.comentarios || "Entregado");
                 
-                // --- CÁLCULO TIEMPO DE ENTREGA (Columna Automática) ---
+                // --- LÓGICA DE TIEMPO MEJORADA ---
                 let tiempoEntrega = "N/A";
-                if (estaConfirmado && segConfirmado) {
-                    const inicio = new Date(s.fechaISO || s.fechaEnvio);
-                    const fin = new Date(segConfirmado.fechaRegistro);
-                    if (!isNaN(inicio) && !isNaN(fin)) {
-                        const difMs = fin - inicio;
+                
+                // Intentar obtener fecha de inicio (Prioridad ISO, luego string)
+                let fInicio = s.fechaISO ? new Date(s.fechaISO) : new Date(s.fechaEnvio.replace(/-/g, '/'));
+                // Intentar obtener fecha de fin (del último seguimiento o del registro de confirmación)
+                let fFin = segConfirmado ? new Date(segConfirmado.fechaRegistro) : null;
+
+                if (fInicio && fFin && !isNaN(fInicio) && !isNaN(fFin)) {
+                    const difMs = fFin - fInicio;
+                    if (difMs > 0) {
                         const horasTotales = Math.floor(difMs / 3600000);
                         const dias = Math.floor(horasTotales / 24);
                         const horasRestantes = horasTotales % 24;
-                        tiempoEntrega = dias > 0 ? `${dias}d ${horasRestantes}h` : `${horasRestantes}h`;
+                        const minutos = Math.floor((difMs / 60000) % 60);
+                        
+                        if (dias > 0) {
+                            tiempoEntrega = `${dias}d ${horasRestantes}h`;
+                        } else if (horasTotales > 0) {
+                            tiempoEntrega = `${horasTotales}h ${minutos}m`;
+                        } else {
+                            tiempoEntrega = `${minutos}m`;
+                        }
+                    } else {
+                        tiempoEntrega = "Instante";
                     }
                 }
 
-                // Guardar datos formateados para el Excel
                 datosParaExportar.push({
                     folio: s.folio,
                     empresa: s.empresa,
@@ -185,7 +192,6 @@ async function cargarHistorial() {
                     tiempo: tiempoEntrega
                 });
 
-                // Renderizado en tabla
                 let claseFila = estaEliminado ? "st-eliminado" : "st-confirmado";
                 let statusBadge = estaEliminado ? `<span class="badge badge-del">ELIMINADO</span>` : `<span class="badge badge-ok">CONFIRMADO</span>`;
                 let fotoBtn = segConfirmado?.fotoEvidencia ? `<img src="${segConfirmado.fotoEvidencia}" width="40" height="40" class="img-preview shadow-sm" onclick="window.verFoto('${segConfirmado.fotoEvidencia}', '${s.folio}')">` : "---";
@@ -206,62 +212,33 @@ async function cargarHistorial() {
             }
         });
     } catch (error) {
-        console.error("Error al cargar historial:", error);
+        console.error("Error:", error);
     } finally {
         window.ocultarCargando();
     }
 }
 
-// --- FUNCIÓN DE EXPORTACIÓN ---
 window.descargarExcelHistorial = () => {
-    if (datosParaExportar.length === 0) return Swal.fire("Aviso", "No hay datos para exportar", "info");
+    if (datosParaExportar.length === 0) return Swal.fire("Aviso", "No hay datos", "info");
 
-    let csvContent = "\uFEFF"; // BOM para Excel
+    let csvContent = "\uFEFF"; 
     csvContent += "Folio,Empresa,Zona,Sucursal,Status Final,Motivo/Comentario,Fecha de Registro,Tiempo de Entrega\n";
 
     datosParaExportar.forEach(d => {
-        const fila = [
-            d.folio,
-            d.empresa,
-            d.zona,
-            d.sucursal,
-            d.statusFinal,
-            d.motivo.replace(/,/g, "."), // Evita que comas en el texto rompan las columnas
-            d.fechaReg,
-            d.tiempo
-        ];
+        const fila = [d.folio, d.empresa, d.zona, d.sucursal, d.statusFinal, d.motivo.replace(/,/g, "."), d.fechaReg, d.tiempo];
         csvContent += fila.map(campo => `"${campo}"`).join(",") + "\n";
     });
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `Reporte_Historial_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`;
+    link.download = `Historial_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`;
     link.click();
-    
-    Swal.fire("Éxito", "Reporte generado correctamente", "success");
 };
 
 window.verFoto = (url, folio) => {
-    Swal.fire({
-        title: `Evidencia de Entrega - ${folio}`,
-        imageUrl: url,
-        imageAlt: 'Foto de evidencia',
-        confirmButtonText: 'Cerrar',
-        confirmButtonColor: '#0d6efd'
-    });
+    Swal.fire({ title: `Evidencia - ${folio}`, imageUrl: url, imageAlt: 'Evidencia', confirmButtonText: 'Cerrar' });
 };
-</script>
-
-<script>
-    // Seguridad de código fuente
-    document.addEventListener('contextmenu', (e) => e.preventDefault());
-    document.onkeydown = function(e) {
-        if(e.keyCode == 123) return false;
-        if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
-        if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
-        if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
-    };
 </script>
 </body>
 </html>
