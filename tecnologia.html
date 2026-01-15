@@ -21,7 +21,6 @@
         .table thead { background:#0d6efd; color:white; }
         .btn-rounded { border-radius:50px; }
         .user-info-box { background: white; padding: 10px 20px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: inline-block; }
-        /* Nuevo estilo para el aviso de devoluciones */
         .aviso-devolucion { background: #fff3cd; border-left: 5px solid #ffc107; padding: 10px 15px; border-radius: 10px; font-size: 0.85rem; color: #856404; max-width: 600px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .acciones { display:flex; justify-content:center; gap:10px; }
         .dropdown-menu { border-radius: 15px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1); padding: 10px; }
@@ -69,6 +68,7 @@
 </div>
 
 <script>
+    // --- LÓGICA DE SESIÓN Y SEGURIDAD ---
     const sesionRaw = localStorage.getItem("usuarioLogueado");
     if (!sesionRaw) {
         alert("Sesión no válida");
@@ -91,8 +91,32 @@
         window.puedeVerBase = puestosPrivilegiados.includes(window.puestoSesion);
     }
 
+    // --- LÓGICA DE INACTIVIDAD (10 MINUTOS) ---
+    let tiempoInactividad;
+    const reiniciarTemporizador = () => {
+        clearTimeout(tiempoInactividad);
+        // 10 minutos = 600,000 milisegundos
+        tiempoInactividad = setTimeout(async () => {
+            await Swal.fire({
+                title: 'Sesión expirada',
+                text: 'Has estado inactivo por más de 10 minutos. Por seguridad, debes iniciar sesión de nuevo.',
+                icon: 'warning',
+                confirmButtonText: 'Entendido'
+            });
+            cerrarSesion();
+        }, 600000); 
+    };
+
+    // Detectar interacción del usuario para reiniciar el reloj
+    window.onload = reiniciarTemporizador;
+    document.onmousemove = reiniciarTemporizador;
+    document.onkeypress = reiniciarTemporizador;
+    document.onclick = reiniciarTemporizador;
+    document.onscroll = reiniciarTemporizador;
+
     window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
     window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
+    window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
 </script>
 
 <div class="container">
@@ -102,12 +126,10 @@
                 <div class="fw-bold text-primary">👤 <span id="usuarioActivo"></span></div>
                 <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
             </div>
-
             <div class="aviso-devolucion">
                 <strong>⚠️ Aviso importante:</strong> Se les recuerda que para hacer una devolución de mercancía los empaques deben de estar lo más intactos posibles (sin rayaduras, enmendaduras, rotos), de lo contrario no procederán y aplicará una penalización.
             </div>
         </div>
-
         <div class="dropdown">
             <button class="btn btn-primary btn-rounded dropdown-toggle fw-bold px-4 shadow-sm" type="button" data-bs-toggle="dropdown">
                 ☰ Menú
@@ -335,7 +357,6 @@
         return dias > 0 ? `${dias}d ${horas}h` : `${horas}h`;
     }
 
-    window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
     window.irSeguimiento = f => location.href = "seguimiento.html?folio=" + encodeURIComponent(f);
 
     window.eliminarSolicitud = async (id) => {
