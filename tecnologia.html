@@ -21,6 +21,8 @@
         .table thead { background:#0d6efd; color:white; }
         .btn-rounded { border-radius:50px; }
         .user-info-box { background: white; padding: 10px 20px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: inline-block; }
+        /* Nuevo estilo para el aviso de devoluciones */
+        .aviso-devolucion { background: #fff3cd; border-left: 5px solid #ffc107; padding: 10px 15px; border-radius: 10px; font-size: 0.85rem; color: #856404; max-width: 600px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .acciones { display:flex; justify-content:center; gap:10px; }
         .dropdown-menu { border-radius: 15px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1); padding: 10px; }
         .dropdown-item { border-radius: 8px; margin-bottom: 2px; font-weight: 500; }
@@ -94,11 +96,18 @@
 </script>
 
 <div class="container">
-    <div class="d-flex justify-content-between align-items-start mb-4">
-        <div class="user-info-box border-start border-primary border-4">
-            <div class="fw-bold text-primary">👤 <span id="usuarioActivo"></span></div>
-            <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="user-info-box border-start border-primary border-4">
+                <div class="fw-bold text-primary">👤 <span id="usuarioActivo"></span></div>
+                <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
+            </div>
+
+            <div class="aviso-devolucion">
+                <strong>⚠️ Aviso importante:</strong> Se les recuerda que para hacer una devolución de mercancía los empaques deben de estar lo más intactos posibles (sin rayaduras, enmendaduras, rotos), de lo contrario no procederán y aplicará una penalización.
+            </div>
         </div>
+
         <div class="dropdown">
             <button class="btn btn-primary btn-rounded dropdown-toggle fw-bold px-4 shadow-sm" type="button" data-bs-toggle="dropdown">
                 ☰ Menú
@@ -253,7 +262,6 @@
         Swal.fire("Éxito", "Excel generado correctamente", "success");
     };
 
-    // --- FUNCIÓN GUARDAR SIN ADJUNTO EN CORREO (PERO SÍ EN FIREBASE) ---
     window.guardarSolicitud = async () => {
         const emp = document.getElementById("empresa").value;
         const zon = document.getElementById("zona").value;
@@ -276,7 +284,6 @@
             reader.onload = async () => {
                 const base64Data = reader.result;
                 
-                // 1. Guardar en Firebase (Aquí sí se guarda el archivo)
                 await push(solicitudesRef, {
                     folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
                     soporte: window.nombreSesion, sucursal: suc.toUpperCase(),
@@ -286,7 +293,6 @@
                     usuario: window.usuarioSesion, eliminado: false
                 });
 
-                // 2. Enviar Aviso por Correo (Solo Datos de Texto)
                 const templateParams = {
                     folio: fol,
                     empresa: emp.toUpperCase(),
