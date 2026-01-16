@@ -33,9 +33,8 @@
         .st-default { background-color: #6c757d !important; color: white; }   
         .tiempo-badge { font-size: 0.75rem; font-weight: bold; color: #555; }
         
-        /* Modificado para que inicie visible */
         #loader { 
-            display: flex; /* Cambiado de none a flex */
+            display: flex; 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(255,255,255,0.9); z-index: 9999; justify-content: center; 
             align-items: center; flex-direction: column; 
@@ -85,7 +84,7 @@
                 <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
             </div>
             <div class="aviso-devolucion d-none d-md-block">
-                <strong>⚠️ Aviso:</strong> Se les recuerda que para hacer una devolucion de mercancia los empaques deben de estar lo mas intactos posibles (sin rayaduras, enmendaduras, rotos) de lo contrario no procederan.
+                <strong>⚠️ Aviso:</strong> Se les recuerda que para hacer una devolucion de mercancia los empaques deben de estar lo mas intactos posibles...
             </div>
         </div>
         
@@ -151,15 +150,13 @@
     const seguimientoRef = ref(database, "seguimiento");
     let globalSeguimientos = [];
 
-    // Cargamos los seguimientos y luego las solicitudes
     onValue(seguimientoRef, snap => {
         globalSeguimientos = [];
         snap.forEach(c => { globalSeguimientos.push({ ...c.val(), id: c.key }); });
         
-        // Una vez cargado el seguimiento, escuchamos las solicitudes
         onValue(solicitudesRef, snapSolicitudes => {
             renderTable(snapSolicitudes);
-            window.ocultarCargando(); // Ocultamos el loader cuando todo cargó por primera vez
+            window.ocultarCargando();
         });
     });
 
@@ -169,10 +166,14 @@
         snap.forEach(c => {
             const s = c.val();
             const idKey = c.key;
+            
+            // Obtener el estatus más reciente del historial
             const segsDelFolio = globalSeguimientos.filter(x => x.folio === s.folio).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
             const statusActual = segsDelFolio.length > 0 ? segsDelFolio[0].status : (s.status || "PENDIENTE");
 
-            if (s.eliminado || statusActual === "CONFIRMADO") return;
+            // ESTA ES LA REGLA CLAVE: 
+            // Si está marcado como eliminado O el estatus actual es CONFIRMADO, no se muestra en esta tabla (Proceso).
+            if (s.eliminado === true || statusActual === "CONFIRMADO") return;
 
             if(window.puedeVerBase || s.usuario === window.usuarioSesion) {
                 const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas", "DEVOLUCION": "st-devolucion"};
@@ -206,15 +207,13 @@
         });
     }
 
-    // --- FUNCION GUARDAR ---
+    // --- FUNCIONES DE ACCIÓN (CONFIRMAR, GUARDAR, ETC) ---
     window.guardarSolicitud = async () => {
         const emp = document.getElementById("empresa").value;
         const zon = document.getElementById("zona").value;
         const suc = document.getElementById("sucursal").value;
         const arc = document.getElementById("archivo").files[0];
-
         if (!emp || !zon || !suc || !arc) return Swal.fire("Error", "Campos incompletos", "error");
-
         window.mostrarCargando();
         const reader = new FileReader();
         reader.onload = async () => {
@@ -224,7 +223,6 @@
             let n = sFolio.exists() ? sFolio.val() + 1 : 1;
             await set(rFolio, n);
             const fol = `TEC-${emp}-${zon}-${n.toString().padStart(4, "0")}`.toUpperCase();
-
             await push(solicitudesRef, {
                 folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
                 soporte: window.nombreSesion, sucursal: suc.toUpperCase(),
@@ -232,7 +230,6 @@
                 fechaEnvio: new Date().toLocaleString(), fechaISO: new Date().toISOString(),
                 usuario: window.usuarioSesion, eliminado: false
             });
-
             window.ocultarCargando();
             Swal.fire("Éxito", "Solicitud Guardada", "success");
             document.getElementById("formTec").reset();
@@ -240,12 +237,10 @@
         reader.readAsDataURL(arc);
     };
 
-    // --- FUNCION CONFIRMAR ENTREGA ---
     window.confirmarEntrega = async (fol) => {
         const snap = await get(solicitudesRef);
         let idPrincipal = null;
         snap.forEach(d => { if(d.val().folio === fol) idPrincipal = d.key; });
-
         const { value: formValues } = await Swal.fire({
             title: 'Confirmar Entrega',
             html: '<input type="file" id="swal-img-ent" class="form-control mb-2" accept="image/*"><textarea id="swal-com-ent" class="form-control" placeholder="Comentarios..."></textarea>',
@@ -256,7 +251,6 @@
                 return { i, c };
             }
         });
-
         if (formValues) {
             window.mostrarCargando();
             const reader = new FileReader();
@@ -266,47 +260,39 @@
                     fotoEvidencia: reader.result, fechaRegistro: new Date().toLocaleString(), 
                     usuario: window.nombreSesion 
                 });
+                // Importante: Actualizamos el nodo principal para que el filtro de renderTable lo detecte
                 await update(ref(database, `tecnologia/${idPrincipal}`), { status: "CONFIRMADO" });
                 window.ocultarCargando();
-                Swal.fire("Entregado", "Folio cerrado", "success");
+                Swal.fire("Entregado", "La solicitud se ha movido al historial de cerradas", "success");
             };
             reader.readAsDataURL(formValues.i);
         }
     };
 
-    // --- FUNCION DEVOLUCION ---
     window.enviarDevolucion = async (fol) => {
         const snap = await get(solicitudesRef);
         let idPrincipal = null;
         snap.forEach(d => { if(d.val().folio === fol) idPrincipal = d.key; });
-
-        const { value: formValues } = await Swal.fire({
+        const { value: fv } = await Swal.fire({
             title: 'Motivo de Devolución',
-            html: `<textarea id="swal-motivo" class="form-control mb-2" placeholder="Escriba el motivo..."></textarea>
-                   <label class="small fw-bold">Evidencia (Imagen):</label>
-                   <input type="file" id="swal-img" class="form-control" accept="image/*">`,
+            html: `<textarea id="swal-motivo" class="form-control mb-2"></textarea><input type="file" id="swal-img" class="form-control" accept="image/*">`,
             preConfirm: () => {
                 const m = document.getElementById('swal-motivo').value;
                 const i = document.getElementById('swal-img').files[0];
-                if(!m || !i) return Swal.showValidationMessage('Motivo e imagen obligatorios');
+                if(!m || !i) return Swal.showValidationMessage('Requerido');
                 return { m, i };
             }
         });
-
-        if (formValues) {
+        if (fv) {
             window.mostrarCargando();
             const reader = new FileReader();
             reader.onload = async () => {
-                await push(seguimientoRef, { 
-                    folio: fol, status: "DEVOLUCION", comentarios: formValues.m.toUpperCase(), 
-                    fotoEvidencia: reader.result, fechaRegistro: new Date().toLocaleString(), 
-                    usuario: window.nombreSesion 
-                });
+                await push(seguimientoRef, { folio: fol, status: "DEVOLUCION", comentarios: fv.m.toUpperCase(), fotoEvidencia: reader.result, fechaRegistro: new Date().toLocaleString(), usuario: window.nombreSesion });
                 await update(ref(database, `tecnologia/${idPrincipal}`), { status: "DEVOLUCION" });
                 window.ocultarCargando();
                 Swal.fire("Devuelto", "Estatus actualizado", "success");
             };
-            reader.readAsDataURL(formValues.i);
+            reader.readAsDataURL(fv.i);
         }
     };
 
@@ -322,23 +308,17 @@
 
     window.verPDF = d => { const w = window.open(); w.document.write(`<iframe src="${d}" style="width:100%;height:100%;"></iframe>`); };
     window.irSeguimiento = f => location.href = "seguimiento.html?folio=" + encodeURIComponent(f);
-    
     window.verHistorialFolio = fol => {
         const segs = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
-        let html = `<div class="table-responsive"><table class="table table-sm swal-table mt-3">
-            <thead><tr class="table-dark"><th>Fecha</th><th>Status</th><th>Usuario</th><th>Comentarios</th><th>Evidencia</th></tr></thead>
-            <tbody>${segs.map(h => `<tr><td>${h.fechaRegistro}</td><td>${h.status}</td><td>${h.usuario}</td><td>${h.comentarios||''}</td><td>${h.fotoEvidencia ? `<button class="btn btn-sm btn-info" onclick="window.verPDF('${h.fotoEvidencia}')">📸</button>` : '-'}</td></tr>`).join('')}</tbody>
-            </table></div>`;
+        let html = `<div class="table-responsive"><table class="table table-sm mt-3"><thead><tr class="table-dark"><th>Fecha</th><th>Status</th><th>Usuario</th><th>Comentarios</th><th>Evidencia</th></tr></thead><tbody>${segs.map(h => `<tr><td>${h.fechaRegistro}</td><td>${h.status}</td><td>${h.usuario}</td><td>${h.comentarios||''}</td><td>${h.fotoEvidencia ? `<button class="btn btn-sm btn-info" onclick="window.verPDF('${h.fotoEvidencia}')">📸</button>` : '-'}</td></tr>`).join('')}</tbody></table></div>`;
         Swal.fire({ title: `Historial: ${fol}`, html: html, width: '850px' });
     };
 
     function calcularTranscurrido(f) {
         const d = new Date(f); if (isNaN(d)) return "N/A";
         const dif = new Date() - d;
-        const horas = Math.floor(dif / 3600000);
-        return `${horas}h`;
+        return `${Math.floor(dif / 3600000)}h`;
     }
 </script>
 </body>
 </html>
-
