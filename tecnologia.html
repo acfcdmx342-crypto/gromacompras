@@ -33,10 +33,17 @@
         .st-default { background-color: #6c757d !important; color: white; }   
         .tiempo-badge { font-size: 0.75rem; font-weight: bold; color: #555; }
         
+        /* Modificado para que inicie visible */
         #loader { 
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            display: flex; /* Cambiado de none a flex */
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(255,255,255,0.9); z-index: 9999; justify-content: center; 
             align-items: center; flex-direction: column; 
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
         }
     </style>
 </head>
@@ -48,7 +55,7 @@
     </div>
     <div class="mt-3">
         <div class="spinner-border text-primary" role="status"></div>
-        <span class="ms-2 fw-bold">Procesando...</span>
+        <span class="ms-2 fw-bold">Procesando información...</span>
     </div>
 </div>
 
@@ -144,58 +151,130 @@
     const seguimientoRef = ref(database, "seguimiento");
     let globalSeguimientos = [];
 
+    // Cargamos los seguimientos y luego las solicitudes
     onValue(seguimientoRef, snap => {
         globalSeguimientos = [];
         snap.forEach(c => { globalSeguimientos.push({ ...c.val(), id: c.key }); });
-        renderTable(); 
+        
+        // Una vez cargado el seguimiento, escuchamos las solicitudes
+        onValue(solicitudesRef, snapSolicitudes => {
+            renderTable(snapSolicitudes);
+            window.ocultarCargando(); // Ocultamos el loader cuando todo cargó por primera vez
+        });
     });
 
-    function renderTable() {
-        onValue(solicitudesRef, snap => {
-            const tbody = document.getElementById("tablaTecBody");
-            tbody.innerHTML = "";
-            snap.forEach(c => {
-                const s = c.val();
-                const idKey = c.key;
-                const segsDelFolio = globalSeguimientos.filter(x => x.folio === s.folio).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
-                const statusActual = segsDelFolio.length > 0 ? segsDelFolio[0].status : (s.status || "PENDIENTE");
+    function renderTable(snap) {
+        const tbody = document.getElementById("tablaTecBody");
+        tbody.innerHTML = "";
+        snap.forEach(c => {
+            const s = c.val();
+            const idKey = c.key;
+            const segsDelFolio = globalSeguimientos.filter(x => x.folio === s.folio).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
+            const statusActual = segsDelFolio.length > 0 ? segsDelFolio[0].status : (s.status || "PENDIENTE");
 
-                if (s.eliminado || statusActual === "CONFIRMADO") return;
+            if (s.eliminado || statusActual === "CONFIRMADO") return;
 
-                if(window.puedeVerBase || s.usuario === window.usuarioSesion) {
-                    const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas", "DEVOLUCION": "st-devolucion"};
-                    const claseColor = colores[statusActual] || "st-default";
+            if(window.puedeVerBase || s.usuario === window.usuarioSesion) {
+                const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas", "DEVOLUCION": "st-devolucion"};
+                const claseColor = colores[statusActual] || "st-default";
 
-                    tbody.innerHTML += `
-                        <tr>
-                            <td><small class="fw-bold">${s.folio}</small></td>
-                            <td>${s.empresa}</td>
-                            <td>${s.zona}</td>
-                            <td>${s.soporte}</td>
-                            <td>${s.sucursal}</td>
-                            <td><button class="btn btn-sm btn-success" onclick="window.verPDF('${s.archivoData}')">👁️</button></td>
-                            <td><span class="badge ${claseColor} p-2 w-100">${statusActual}</span></td>
-                            <td class="tiempo-badge">${calcularTranscurrido(s.fechaISO || s.fechaEnvio)}</td>
-                            <td><small>${s.fechaEnvio}</small></td>
-                            <td>
-                                <div class="acciones">
-                                    <span class="action-btn" onclick="window.verHistorialFolio('${s.folio}')" title="Historial">📜</span>
-                                    ${window.esSoporteJR && statusActual === "ENVIADO A ZONA" ? `
-                                        <span class="action-btn text-success" onclick="window.confirmarEntrega('${s.folio}')">✅</span>
-                                        <span class="action-btn text-warning" onclick="window.enviarDevolucion('${s.folio}')">🔄</span>
-                                    ` : `
-                                        <span class="action-btn ${window.esSoporteJR ? 'action-disabled' : ''}" onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}">📋</span>
-                                    `}
-                                    ${window.puedeVerBase ? `<span class="action-btn" onclick="window.eliminarSolicitud('${idKey}')">🗑️</span>` : ``}
-                                </div>
-                            </td>
-                        </tr>`;
-                }
-            });
+                tbody.innerHTML += `
+                    <tr>
+                        <td><small class="fw-bold">${s.folio}</small></td>
+                        <td>${s.empresa}</td>
+                        <td>${s.zona}</td>
+                        <td>${s.soporte}</td>
+                        <td>${s.sucursal}</td>
+                        <td><button class="btn btn-sm btn-success" onclick="window.verPDF('${s.archivoData}')">👁️</button></td>
+                        <td><span class="badge ${claseColor} p-2 w-100">${statusActual}</span></td>
+                        <td class="tiempo-badge">${calcularTranscurrido(s.fechaISO || s.fechaEnvio)}</td>
+                        <td><small>${s.fechaEnvio}</small></td>
+                        <td>
+                            <div class="acciones">
+                                <span class="action-btn" onclick="window.verHistorialFolio('${s.folio}')" title="Historial">📜</span>
+                                ${window.esSoporteJR && statusActual === "ENVIADO A ZONA" ? `
+                                    <span class="action-btn text-success" onclick="window.confirmarEntrega('${s.folio}')">✅</span>
+                                    <span class="action-btn text-warning" onclick="window.enviarDevolucion('${s.folio}')">🔄</span>
+                                ` : `
+                                    <span class="action-btn ${window.esSoporteJR ? 'action-disabled' : ''}" onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}">📋</span>
+                                `}
+                                ${window.puedeVerBase ? `<span class="action-btn" onclick="window.eliminarSolicitud('${idKey}')">🗑️</span>` : ``}
+                            </div>
+                        </td>
+                    </tr>`;
+            }
         });
     }
 
-    // --- FUNCION DE DEVOLUCION SOLICITADA ---
+    // --- FUNCION GUARDAR ---
+    window.guardarSolicitud = async () => {
+        const emp = document.getElementById("empresa").value;
+        const zon = document.getElementById("zona").value;
+        const suc = document.getElementById("sucursal").value;
+        const arc = document.getElementById("archivo").files[0];
+
+        if (!emp || !zon || !suc || !arc) return Swal.fire("Error", "Campos incompletos", "error");
+
+        window.mostrarCargando();
+        const reader = new FileReader();
+        reader.onload = async () => {
+            const key = `TEC_${emp}_${zon}`.toUpperCase();
+            const rFolio = ref(database, "folios/" + key);
+            const sFolio = await get(rFolio);
+            let n = sFolio.exists() ? sFolio.val() + 1 : 1;
+            await set(rFolio, n);
+            const fol = `TEC-${emp}-${zon}-${n.toString().padStart(4, "0")}`.toUpperCase();
+
+            await push(solicitudesRef, {
+                folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
+                soporte: window.nombreSesion, sucursal: suc.toUpperCase(),
+                archivoData: reader.result, status: "PENDIENTE", 
+                fechaEnvio: new Date().toLocaleString(), fechaISO: new Date().toISOString(),
+                usuario: window.usuarioSesion, eliminado: false
+            });
+
+            window.ocultarCargando();
+            Swal.fire("Éxito", "Solicitud Guardada", "success");
+            document.getElementById("formTec").reset();
+        };
+        reader.readAsDataURL(arc);
+    };
+
+    // --- FUNCION CONFIRMAR ENTREGA ---
+    window.confirmarEntrega = async (fol) => {
+        const snap = await get(solicitudesRef);
+        let idPrincipal = null;
+        snap.forEach(d => { if(d.val().folio === fol) idPrincipal = d.key; });
+
+        const { value: formValues } = await Swal.fire({
+            title: 'Confirmar Entrega',
+            html: '<input type="file" id="swal-img-ent" class="form-control mb-2" accept="image/*"><textarea id="swal-com-ent" class="form-control" placeholder="Comentarios..."></textarea>',
+            preConfirm: () => {
+                const i = document.getElementById('swal-img-ent').files[0];
+                const c = document.getElementById('swal-com-ent').value;
+                if(!i || !c) return Swal.showValidationMessage('Imagen y comentario obligatorios');
+                return { i, c };
+            }
+        });
+
+        if (formValues) {
+            window.mostrarCargando();
+            const reader = new FileReader();
+            reader.onload = async () => {
+                await push(seguimientoRef, { 
+                    folio: fol, status: "CONFIRMADO", comentarios: formValues.c.toUpperCase(), 
+                    fotoEvidencia: reader.result, fechaRegistro: new Date().toLocaleString(), 
+                    usuario: window.nombreSesion 
+                });
+                await update(ref(database, `tecnologia/${idPrincipal}`), { status: "CONFIRMADO" });
+                window.ocultarCargando();
+                Swal.fire("Entregado", "Folio cerrado", "success");
+            };
+            reader.readAsDataURL(formValues.i);
+        }
+    };
+
+    // --- FUNCION DEVOLUCION ---
     window.enviarDevolucion = async (fol) => {
         const snap = await get(solicitudesRef);
         let idPrincipal = null;
@@ -203,11 +282,9 @@
 
         const { value: formValues } = await Swal.fire({
             title: 'Motivo de Devolución',
-            html: `
-                <textarea id="swal-motivo" class="form-control mb-2" placeholder="Escriba el motivo..."></textarea>
-                <label class="small fw-bold">Evidencia (Imagen):</label>
-                <input type="file" id="swal-img" class="form-control" accept="image/*">
-            `,
+            html: `<textarea id="swal-motivo" class="form-control mb-2" placeholder="Escriba el motivo..."></textarea>
+                   <label class="small fw-bold">Evidencia (Imagen):</label>
+                   <input type="file" id="swal-img" class="form-control" accept="image/*">`,
             preConfirm: () => {
                 const m = document.getElementById('swal-motivo').value;
                 const i = document.getElementById('swal-img').files[0];
@@ -227,14 +304,25 @@
                 });
                 await update(ref(database, `tecnologia/${idPrincipal}`), { status: "DEVOLUCION" });
                 window.ocultarCargando();
-                Swal.fire("Devuelto", "Estatus actualizado a devolución", "success");
+                Swal.fire("Devuelto", "Estatus actualizado", "success");
             };
             reader.readAsDataURL(formValues.i);
         }
     };
 
-    // Funciones de apoyo
+    window.eliminarSolicitud = async (id) => {
+        const { value: motivo } = await Swal.fire({ title: 'Motivo de eliminación', input: 'textarea', showCancelButton: true });
+        if (motivo) {
+            window.mostrarCargando();
+            await update(ref(database, `tecnologia/${id}`), { eliminado: true, motivoEliminacion: motivo.toUpperCase() });
+            window.ocultarCargando();
+            Swal.fire("Eliminado", "", "success");
+        }
+    };
+
     window.verPDF = d => { const w = window.open(); w.document.write(`<iframe src="${d}" style="width:100%;height:100%;"></iframe>`); };
+    window.irSeguimiento = f => location.href = "seguimiento.html?folio=" + encodeURIComponent(f);
+    
     window.verHistorialFolio = fol => {
         const segs = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
         let html = `<div class="table-responsive"><table class="table table-sm swal-table mt-3">
