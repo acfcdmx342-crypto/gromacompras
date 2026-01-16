@@ -151,6 +151,7 @@
                     <option>PENDIENTE POR AUTORIZAR</option>
                     <option>EN SISTEMAS</option>
                     <option>DEVOLUCIÓN</option>
+                    <option>CONFIRMADO</option>
                 </select>
             </div>
             <div class="col-md-8">
@@ -165,7 +166,7 @@
     </div>
 
     <div class="card shadow p-4">
-        <h4 class="fw-bold mb-4 text-secondary"><i class="fa-solid fa-layer-group me-2"></i>Historial de Seguimientos</h4>
+        <h4 class="fw-bold mb-4 text-secondary"><i class="fa-solid fa-layer-group me-2"></i>Historial de Seguimientos Activos</h4>
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead class="table-light">
@@ -230,14 +231,12 @@
         if(data.eliminado) return;
         const campos = ["fechaCompras", "descripcion", "fechaCot", "folioCot", "autoriza", "fechaAuto", "fechaEntrega", "recibe", "folioFactura", "fechaEnvio", "envia", "adonde", "status", "comentarios"];
         
-        // Asignar Folio primero
         selectFolio.value = data.folio;
 
         campos.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
             el.value = data[id] || "";
-            // Desbloquear campos para edición, pero marcarlos visualmente si ya tenían datos
             el.readOnly = false;
             el.disabled = false;
             el.classList.remove("field-locked");
@@ -252,7 +251,8 @@
         selectFolio.innerHTML = '<option value="">Seleccione un folio</option>';
         snap.forEach(child => {
             const d = child.val();
-            if (d.eliminado) return;
+            // Solo mostramos folios que no estén eliminados y que NO estén confirmados
+            if (d.eliminado || d.status === "CONFIRMADO") return;
             const option = document.createElement("option");
             option.value = d.folio; option.textContent = d.folio;
             selectFolio.appendChild(option);
@@ -309,10 +309,8 @@
                 eliminado: false
             };
 
-            // 1. Guardar en seguimiento
             await push(ref(database, "seguimiento"), dataGuardar);
 
-            // 2. Sincronizar estatus en la tabla principal de tecnología
             const q = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(selectFolio.value));
             const snap = await get(q);
             if (snap.exists()) {
@@ -321,7 +319,8 @@
             }
 
             window.ocultarCargando();
-            Swal.fire("Éxito", "Seguimiento guardado y estatus actualizado", "success").then(() => location.reload());
+            let msg = dataGuardar.status === "CONFIRMADO" ? "Folio confirmado y movido al historial" : "Seguimiento guardado correctamente";
+            Swal.fire("Éxito", msg, "success").then(() => location.reload());
         } catch (error) {
             window.ocultarCargando();
             Swal.fire("Error", "No se pudo guardar", "error");
@@ -345,6 +344,9 @@
             const ultimo = historial[0];
             const collapseId = `coll_${idx}`;
             
+            // Lógica de Viaje: Si el último registro del folio es CONFIRMADO, no se muestra en esta tabla
+            if (ultimo.status === "CONFIRMADO" && !ultimo.eliminado) return;
+
             tbody.innerHTML += `
                 <tr class="group-header" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
                     <td class="text-center"><i class="fa-solid fa-chevron-down chevron-icon"></i></td>
@@ -410,7 +412,6 @@
 </script>
 
 <script>
-  // Seguridad básica
   document.addEventListener('contextmenu', (e) => e.preventDefault());
   document.onkeydown = function(e) {
     if(e.keyCode == 123) return false;
