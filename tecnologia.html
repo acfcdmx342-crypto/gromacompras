@@ -5,17 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Solicitud de Tecnología</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <script type="text/javascript">
         (function(){
-            emailjs.init("0aHlArLgvHrj2Xbk8"); // Tu Public Key
+            emailjs.init("0aHlArLgvHrj2Xbk8"); 
         })();
     </script>
     <style>
         body { background:#f2f4f7; }
         .card { border-radius:20px; }
-        .action-btn { cursor:pointer; font-size:22px; transition: 0.2s; display: inline-block; }
+        .action-btn { cursor:pointer; font-size:22px; transition: 0.2s; display: inline-block; text-decoration: none; }
         .action-btn:hover { transform: scale(1.2); }
         .action-disabled { color:#adb5bd; cursor:not-allowed; opacity: 0.5; filter: grayscale(1); }
         .table thead { background:#0d6efd; color:white; }
@@ -29,6 +30,7 @@
         .st-zona { background-color: #ffc107 !important; color: black; }    
         .st-pendiente { background-color: #dc3545 !important; color: white; } 
         .st-sistemas { background-color: #198754 !important; color: white; }  
+        .st-devolucion { background-color: #6f42c1 !important; color: white; }
         .st-default { background-color: #6c757d !important; color: white; }   
         .tiempo-badge { font-size: 0.75rem; font-weight: bold; color: #555; }
         .swal-table { font-size: 0.85rem; }
@@ -68,7 +70,6 @@
 </div>
 
 <script>
-    // --- LÓGICA DE SESIÓN Y SEGURIDAD ---
     const sesionRaw = localStorage.getItem("usuarioLogueado");
     if (!sesionRaw) {
         alert("Sesión no válida");
@@ -79,26 +80,21 @@
         window.nombreSesion = sesion.nombre;
         window.puestoSesion = (sesion.puesto || "").toUpperCase();
         const puestosPrivilegiados = [
-            "GERENTE DE SISTEMAS", 
-            "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", 
-            "COORDINADOR DE SOPORTE TECNICO", 
-            "SOPORTE TECNICO", 
-            "SOPORTE TECNICO SR",
-            "BECARIO DE SISTEMAS",
-            "BECARIO"
+            "GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", 
+            "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO", 
+            "SOPORTE TECNICO SR", "BECARIO DE SISTEMAS", "BECARIO"
         ];
         window.esSoporteJR = window.puestoSesion === "SOPORTE TECNICO JR";
         window.puedeVerBase = puestosPrivilegiados.includes(window.puestoSesion);
     }
 
-    // --- LÓGICA DE INACTIVIDAD (10 MINUTOS) ---
     let tiempoInactividad;
     const reiniciarTemporizador = () => {
         clearTimeout(tiempoInactividad);
         tiempoInactividad = setTimeout(async () => {
             await Swal.fire({
                 title: 'Sesión expirada',
-                text: 'Has estado inactivo por más de 10 minutos. Por seguridad, debes iniciar sesión de nuevo.',
+                text: 'Inactividad detectada.',
                 icon: 'warning',
                 confirmButtonText: 'Entendido'
             });
@@ -109,9 +105,6 @@
     window.onload = reiniciarTemporizador;
     document.onmousemove = reiniciarTemporizador;
     document.onkeypress = reiniciarTemporizador;
-    document.onclick = reiniciarTemporizador;
-    document.onscroll = reiniciarTemporizador;
-
     window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
     window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
     window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
@@ -141,7 +134,7 @@
         </div>
     </div>
 
-   <h2 class="text-center fw-bold mb-4">Solicitud de Tecnología</h2>
+    <h2 class="text-center fw-bold mb-4">Solicitud de Tecnología</h2>
 
     <div class="card shadow p-4 mb-4 border-0">
         <h5 class="fw-bold mb-3 border-bottom pb-2 text-secondary">Registrar Solicitud</h5>
@@ -150,7 +143,7 @@
             <div class="col-md-3"><label class="small fw-bold">Zona</label><input id="zona" class="form-control text-uppercase"></div>
             <div class="col-md-3"><label class="small fw-bold">Soporte Zona</label><input id="soporte" class="form-control text-uppercase" readonly></div>
             <div class="col-md-3"><label class="small fw-bold">Sucursal</label><input id="sucursal" class="form-control text-uppercase"></div>
-            <div class="col-md-6"><label class="small fw-bold">Requisición</label><input id="archivo" type="file" class="form-control"></div>
+            <div class="col-md-6"><label class="small fw-bold">Requisición (PDF/Imagen)</label><input id="archivo" type="file" class="form-control"></div>
             <div class="col-12 mt-4">
                 <button type="button" class="btn btn-primary btn-rounded px-5 shadow" onclick="guardarSolicitud()">💾 Guardar Solicitud</button>
             </div>
@@ -172,8 +165,6 @@
         </div>
     </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script type="module">
     import { database, ref, push, set, get, onValue, update } from "./firebase.js";
@@ -199,7 +190,6 @@
     let globalSeguimientos = [];
     let solicitudesActualesParaExportar = []; 
 
-    // Escuchar cambios en seguimientos primero
     onValue(seguimientoRef, snap => {
         globalSeguimientos = [];
         snap.forEach(c => { globalSeguimientos.push({ ...c.val(), id: c.key }); });
@@ -216,15 +206,13 @@
                 const s = c.val();
                 const idKey = c.key;
                 
-                // Obtener el último estatus de la tabla de seguimiento para este folio
                 const segsDelFolio = globalSeguimientos
                     .filter(x => x.folio === s.folio)
                     .sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
                 
                 const statusActual = segsDelFolio.length > 0 ? segsDelFolio[0].status : (s.status || "PENDIENTE");
 
-                // Filtrar eliminados o ya confirmados
-                if (s.eliminado || statusActual === "CONFIRMADO" || s.status === "CONFIRMADO") return;
+                if (s.eliminado || statusActual === "CONFIRMADO") return;
 
                 const puedeVerTodo = window.puedeVerBase;
                 const esDueno = s.usuario === window.usuarioSesion;
@@ -232,9 +220,8 @@
                 if(puedeVerTodo || esDueno) {
                     solicitudesActualesParaExportar.push({ ...s, statusActual });
 
-                    const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas"};
+                    const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas", "DEVOLUCIÓN":"st-devolucion"};
                     const claseColor = colores[statusActual] || "st-default";
-                    const tieneSeguimientos = segsDelFolio.length > 0;
 
                     tbody.innerHTML += `
                         <tr>
@@ -252,8 +239,13 @@
                                     <span class="action-btn" onclick="window.verHistorialFolio('${s.folio}')" title="Historial">📜</span>
                                     <span class="action-btn ${window.esSoporteJR ? 'action-disabled' : ''}" 
                                           onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}" title="Seguimiento">📋</span>
-                                    ${window.esSoporteJR && statusActual === "ENVIADO A ZONA" ? `<span class="action-btn text-success" onclick="window.confirmarEntrega('${s.folio}')">✅</span>` : ''}
-                                    ${puedeVerTodo ? `<span class="action-btn" onclick="window.eliminarSolicitud('${idKey}')">🗑️</span>` : ``}
+                                    
+                                    ${window.esSoporteJR && statusActual === "ENVIADO A ZONA" ? `
+                                        <span class="action-btn text-success" onclick="window.confirmarEntrega('${s.folio}')" title="Confirmar Entrega">✅</span>
+                                        <span class="action-btn text-warning" onclick="window.enviarDevolucion('${s.folio}')" title="Enviar a Devolución">🔄</span>
+                                    ` : ''}
+
+                                    ${puedeVerTodo ? `<span class="action-btn" onclick="window.eliminarSolicitud('${idKey}')" title="Eliminar">🗑️</span>` : ``}
                                 </div>
                             </td>
                         </tr>`;
@@ -262,26 +254,9 @@
         });
     }
 
-    // Función corregida para visualizar PDF o imagen en nueva pestaña
     window.verPDF = (data) => {
         const win = window.open();
         win.document.write(`<iframe src="${data}" frameborder="0" style="width:100%; height:100%;" allowfullscreen></iframe>`);
-    };
-
-    window.exportarExcel = () => {
-        if (solicitudesActualesParaExportar.length === 0) return Swal.fire("Sin datos", "No hay solicitudes en proceso", "info");
-        let csvContent = "\uFEFF"; 
-        csvContent += "Folio,Empresa,Zona,Soporte,Sucursal,Status Actual,Fecha de Solicitud,Tiempo Abierta\n";
-        solicitudesActualesParaExportar.forEach(s => {
-            const tiempo = calcularTranscurrido(s.fechaISO || s.fechaEnvio);
-            const fila = [s.folio, s.empresa, s.zona, s.soporte, s.sucursal, s.statusActual, s.fechaEnvio, tiempo];
-            csvContent += fila.map(f => `"${f}"`).join(",") + "\n";
-        });
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = `Reporte_Tecnologia.csv`;
-        link.click();
     };
 
     window.guardarSolicitud = async () => {
@@ -313,7 +288,6 @@
                     usuario: window.usuarioSesion, eliminado: false
                 });
 
-                // EmailJS Logic
                 emailjs.send('service_mya4ogg', 'template_apg1whs', {
                     folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
                     sucursal: suc.toUpperCase(), soporte: window.nombreSesion
@@ -336,11 +310,19 @@
             .sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
         
         let tablaHTML = `<div class="table-responsive"><table class="table table-sm table-striped swal-table mt-3">
-            <thead><tr class="table-dark"><th>Fecha</th><th>Status</th><th>Usuario</th><th>Comentarios</th></tr></thead>
-            <tbody>${segs.map(h => `<tr><td><small>${h.fechaRegistro}</small></td><td><span class="badge bg-secondary">${h.status}</span></td><td>${h.usuario || 'Sistemas'}</td><td class="text-start">${h.comentarios || ''}</td></tr>`).join('')}</tbody>
+            <thead><tr class="table-dark"><th>Fecha</th><th>Status</th><th>Usuario</th><th>Comentarios</th><th>Evidencia</th></tr></thead>
+            <tbody>${segs.map(h => `
+                <tr>
+                    <td><small>${h.fechaRegistro}</small></td>
+                    <td><span class="badge bg-secondary">${h.status}</span></td>
+                    <td>${h.usuario || 'Sistemas'}</td>
+                    <td class="text-start">${h.comentarios || ''}</td>
+                    <td>${h.fotoEvidencia ? `<button class="btn btn-xs btn-primary" onclick="window.verPDF('${h.fotoEvidencia}')">📸</button>` : '-'}</td>
+                </tr>`).join('')}
+            </tbody>
             </table></div>`;
         
-        Swal.fire({ title: `Historial: ${folio}`, html: tablaHTML, width: '800px', confirmButtonText: 'Cerrar' });
+        Swal.fire({ title: `Historial: ${folio}`, html: tablaHTML, width: '900px', confirmButtonText: 'Cerrar' });
     };
 
     function calcularTranscurrido(f) {
@@ -352,16 +334,6 @@
     }
 
     window.irSeguimiento = f => location.href = "seguimiento.html?folio=" + encodeURIComponent(f);
-
-    window.eliminarSolicitud = async (id) => {
-        const { value: motivo } = await Swal.fire({ title: 'Motivo de eliminación', input: 'textarea', showCancelButton: true });
-        if (motivo) {
-            window.mostrarCargando();
-            await update(ref(database, `tecnologia/${id}`), { eliminado: true, motivoEliminacion: motivo });
-            window.ocultarCargando();
-            Swal.fire("Eliminado", "La solicitud ha sido removida", "success");
-        }
-    };
 
     window.confirmarEntrega = async (fol) => {
         const snap = await get(solicitudesRef);
@@ -384,7 +356,7 @@
             const reader = new FileReader();
             reader.onload = async () => {
                 await push(seguimientoRef, { 
-                    folio: fol, status: "CONFIRMADO", comentarios: formValues.c, 
+                    folio: fol, status: "CONFIRMADO", comentarios: formValues.c.toUpperCase(), 
                     fotoEvidencia: reader.result, fechaRegistro: new Date().toLocaleString(), 
                     usuario: window.nombreSesion 
                 });
@@ -395,17 +367,98 @@
             reader.readAsDataURL(formValues.f);
         }
     };
+
+    // --- NUEVA FUNCIÓN DE DEVOLUCIÓN ---
+    window.enviarDevolucion = async (fol) => {
+        const snap = await get(solicitudesRef);
+        let idKeyPrincipal = null;
+        snap.forEach(doc => { if (doc.val().folio === fol) idKeyPrincipal = doc.key; });
+
+        const { value: formValues } = await Swal.fire({
+            title: 'Enviar a Devolución',
+            html: `
+                <div class="text-start">
+                    <label class="small fw-bold">Motivo de la devolución:</label>
+                    <textarea id="dev-motivo" class="form-control mb-3" placeholder="Explique por qué se devuelve el equipo..."></textarea>
+                    <label class="small fw-bold">Imagen de evidencia (empaque/equipo):</label>
+                    <input type="file" id="dev-foto" class="form-control" accept="image/*">
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Procesar Devolución',
+            confirmButtonColor: '#6f42c1',
+            preConfirm: () => {
+                const motivo = document.getElementById('dev-motivo').value;
+                const foto = document.getElementById('dev-foto').files[0];
+                if (!motivo || !foto) return Swal.showValidationMessage('El motivo y la imagen son obligatorios');
+                return { motivo, foto };
+            }
+        });
+
+        if (formValues) {
+            window.mostrarCargando();
+            const reader = new FileReader();
+            reader.onload = async () => {
+                try {
+                    // Agregar al historial de seguimiento
+                    await push(seguimientoRef, { 
+                        folio: fol, 
+                        status: "DEVOLUCIÓN", 
+                        comentarios: formValues.motivo.toUpperCase(), 
+                        fotoEvidencia: reader.result, 
+                        fechaRegistro: new Date().toLocaleString(), 
+                        usuario: window.nombreSesion 
+                    });
+                    
+                    // Actualizar estatus principal
+                    await update(ref(database, `tecnologia/${idKeyPrincipal}`), { status: "DEVOLUCIÓN" });
+                    
+                    window.ocultarCargando();
+                    Swal.fire("Procesado", "El equipo ha sido marcado para devolución", "success");
+                } catch (error) {
+                    window.ocultarCargando();
+                    Swal.fire("Error", "Hubo un problema al procesar la devolución", "error");
+                }
+            };
+            reader.readAsDataURL(formValues.foto);
+        }
+    };
+
+    window.exportarExcel = () => {
+        if (solicitudesActualesParaExportar.length === 0) return Swal.fire("Sin datos", "No hay solicitudes en proceso", "info");
+        let csvContent = "\uFEFF"; 
+        csvContent += "Folio,Empresa,Zona,Soporte,Sucursal,Status Actual,Fecha de Solicitud,Tiempo Abierta\n";
+        solicitudesActualesParaExportar.forEach(s => {
+            const tiempo = calcularTranscurrido(s.fechaISO || s.fechaEnvio);
+            const fila = [s.folio, s.empresa, s.zona, s.soporte, s.sucursal, s.statusActual, s.fechaEnvio, tiempo];
+            csvContent += fila.map(f => `"${f}"`).join(",") + "\n";
+        });
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `Reporte_Tecnologia.csv`;
+        link.click();
+    };
+
+    window.eliminarSolicitud = async (id) => {
+        const { value: motivo } = await Swal.fire({ title: 'Motivo de eliminación', input: 'textarea', showCancelButton: true });
+        if (motivo) {
+            window.mostrarCargando();
+            await update(ref(database, `tecnologia/${id}`), { eliminado: true, motivoEliminacion: motivo.toUpperCase() });
+            window.ocultarCargando();
+            Swal.fire("Eliminado", "La solicitud ha sido removida", "success");
+        }
+    };
 </script>
 
 <script>
-  // Bloqueo de inspección
-  document.addEventListener('contextmenu', (e) => e.preventDefault());
-  document.onkeydown = function(e) {
-    if(e.keyCode == 123) return false;
-    if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
-    if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
-    if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
-  };
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
+    document.onkeydown = function(e) {
+        if(e.keyCode == 123) return false;
+        if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
+        if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
+        if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+    };
 </script>
 </body>
 </html>
