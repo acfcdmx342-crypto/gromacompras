@@ -232,8 +232,9 @@
                     folio: fol, 
                     status: "CONFIRMADO", 
                     comentarios: formValues.c.toUpperCase(), 
+                    descripcion:"ENTREGA CONFIRMADA POR SOPORTE JR"
                     fotoEvidencia: reader.result, 
-                    fechaRegistro: new Date().toLocaleString(), 
+                  fechaRegistro: new Date().toISOString(), // CAMBIO CLAVE: .toISOString()
                     usuario: window.nombreSesion 
                 });
 
@@ -357,6 +358,7 @@
 </script>
 </body>
 </html>
+
 
 
 
