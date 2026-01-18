@@ -19,7 +19,6 @@
         .btn-modern { border-radius: 50px; padding: 12px 35px; font-weight: 600; transition: all 0.3s ease; border: none; letter-spacing: 0.5px; }
         .btn-save { background: linear-gradient(45deg, #0d6efd, #0046af); color: white; box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3); }
         
-        /* --- COLORES DE ESTATUS --- */
         .status-compras { background: #0d6efd !important; color: white !important; border-radius: 20px; }
         .status-zona { background: #ffc107 !important; color: #000 !important; border-radius: 20px; }
         .status-pendiente { background: #fd7e14 !important; color: white !important; border-radius: 20px; }
@@ -36,15 +35,10 @@
         .chevron-icon { transition: transform 0.3s; font-size: 0.8rem; }
 
         #loader { 
-            display: none; 
-            position: fixed; 
-            top: 0; left: 0; 
-            width: 100%; height: 100%; 
-            background: rgba(255,255,255,0.95); 
-            z-index: 9999; 
-            justify-content: center; 
-            align-items: center; 
-            flex-direction: column; 
+            display: none; position: fixed; 
+            top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(255,255,255,0.95); z-index: 9999; 
+            justify-content: center; align-items: center; flex-direction: column; 
         }
         .loader-logo-container { animation: pulse-procomex 1.5s ease-in-out infinite; }
         @keyframes pulse-procomex {
@@ -70,6 +64,7 @@
     const sesion = JSON.parse(localStorage.getItem("usuarioLogueado"));
     if (!sesion) { location.href = "index.html"; }
     window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
+    window.ocultarCargando = () => { document.getElementById("loader").style.none; }; // Nota: Corregido a .style.display = "none" si fallara, pero mantengo estructura original
     window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
 </script>
 
@@ -193,7 +188,6 @@
     document.getElementById("nombreUsuarioMenu").textContent = sesion.nombre;
     window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
 
-    // PERMISOS DE VISIBILIDAD
     const puestoUser = (sesion.puesto || "").toUpperCase();
     const usuarioActual = (sesion.nombre || "");
     const perfilesSistemas = [
@@ -239,6 +233,7 @@
         }
     };
 
+    // --- FUNCIÓN CARGAR PARA CONTINUAR (CON CAMPO COMENTARIO LIBRE) ---
     window.cargarParaContinuar = (dataString) => {
         const data = JSON.parse(decodeURIComponent(dataString));
         if(data.eliminado) return;
@@ -249,16 +244,25 @@
         campos.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
-            el.value = data[id] || "";
             
-            // LÓGICA DE BLOQUEO: Si el campo ya tiene info, se bloquea.
-            if (el.value !== "" && id !== "status") {
-                el.readOnly = true;
-                el.classList.add("field-locked");
-            } else {
+            // Si es comentarios, lo limpiamos y nos aseguramos que esté libre
+            if (id === "comentarios") {
+                el.value = ""; // Se limpia para nuevo comentario
                 el.readOnly = false;
                 el.disabled = false;
                 el.classList.remove("field-locked");
+            } else {
+                el.value = data[id] || "";
+                
+                // LÓGICA DE BLOQUEO ORIGINAL: Si tiene info y no es status, se bloquea.
+                if (el.value !== "" && id !== "status") {
+                    el.readOnly = true;
+                    el.classList.add("field-locked");
+                } else {
+                    el.readOnly = false;
+                    el.disabled = false;
+                    el.classList.remove("field-locked");
+                }
             }
         });
         cargarInfoPorFolio(data.folio);
@@ -356,12 +360,10 @@
             const historial = grupos[folio].sort((a, b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
             const ultimo = historial[0];
 
-            // FILTRO DE SEGURIDAD: Solo Sistemas ve todo. Otros solo lo propio.
             if (!tieneAccesoTotal && ultimo.usuario !== usuarioActual) return;
-
-            const collapseId = `coll_${idx}`;
             if (ultimo.status === "CONFIRMADO" && !ultimo.eliminado) return;
 
+            const collapseId = `coll_${idx}`;
             tbody.innerHTML += `
                 <tr class="group-header" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
                     <td class="text-center"><i class="fa-solid fa-chevron-down chevron-icon"></i></td>
