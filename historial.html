@@ -71,19 +71,22 @@ const sesion = JSON.parse(sesionRaw);
 
 // --- LÓGICA DE PERMISOS ---
 const puestoUser = (sesion.puesto || "").toUpperCase();
-const nombreSesion = (sesion.nombre || sesion.usuario || "").toUpperCase();
+const nombreSesion = (sesion.nombre || "").toUpperCase();
+const usuarioSesion = (sesion.usuario || "").toUpperCase();
 
 const superPuestos = [
     "GERENTE DE SISTEMAS", 
     "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", 
     "COORDINADOR DE SOPORTE TECNICO", 
     "SOPORTE TECNICO", 
-    "BECARIOS SISTEMAS"
+    "SOPORTE TECNICO SR",
+    "BECARIOS SISTEMAS",
+    "BECARIO"
 ];
 
 const puedeVerTodo = superPuestos.includes(puestoUser);
-
 window.esSoporteJR = puestoUser === "SOPORTE TECNICO JR";
+
 if (window.esSoporteJR) {
     const btnExp = document.getElementById("btnExportar");
     if(btnExp) btnExp.style.display = "none";
@@ -128,23 +131,23 @@ async function cargarHistorial() {
         snapPerm.forEach(c => {
             const s = c.val();
             
-            // --- CORRECCIÓN FILTRO DE PRIVACIDAD (Basado en campo 'soporte' de tu BD) ---
-            const creador = (s.soporte || s.usuario || s.nombreUsuario || "").toUpperCase();
+            // --- FILTRO DE PRIVACIDAD MEJORADO ---
+            const soporteAsignado = (s.soporte || "").toUpperCase();
+            const usuarioCreador = (s.usuario || "").toUpperCase();
             
-            if (!puedeVerTodo && creador !== nombreSesion && creador !== "") {
+            // Si no es jefe, y no es el soporte asignado ni el creador, se oculta
+            if (!puedeVerTodo && soporteAsignado !== nombreSesion && usuarioCreador !== usuarioSesion) {
                 return; 
             }
 
-            // Normalización de seguimientos (Firebase puede devolver objeto o array)
             const segsRaw = s.seguimientos || [];
             const segs = Array.isArray(segsRaw) ? segsRaw : Object.values(segsRaw);
             
             const estaEliminado = s.status === "ELIMINADO" || s.eliminado === true;
             const segConf = segs.find(x => x.status === "CONFIRMADO");
             
-            // Lógica de Motivo y Fecha de Cierre alineada a tu BD ('fechaDepuracion')
-            let motivo = estaEliminado ? (s.motivoEliminacion || "Registro Eliminado") : (segConf?.comentarios || s.comentarios || "Finalizado");
-            let fechaCierreRaw = segConf?.fechaRegistro || s.fechaDepuracion || s.fechaEliminacion || s.fechaArchivo || "---";
+            let motivo = estaEliminado ? (s.motivoEliminacion || "Registro Eliminado") : (segConf?.comentarios || s.comentarios || "ENTREGA REALIZADA");
+            let fechaCierreRaw = segConf?.fechaRegistro || s.fechaCierre || s.fechaDepuracion || "---";
             
             let fInicio = s.fechaISO ? new Date(s.fechaISO) : limpiarFecha(s.fechaEnvio);
             let fFin = limpiarFecha(fechaCierreRaw);
@@ -179,7 +182,7 @@ async function cargarHistorial() {
                     <td>${badge}</td>
                     <td class="small text-start">${motivo}</td>
                     <td>${fotoBtn}</td>
-                    <td><a href="${s.archivoData || '#'}" download="REQ_${s.folio}" class="btn btn-sm btn-secondary ${!s.archivoData ? 'disabled' : ''}">📥</a></td>
+                    <td><button onclick="window.verPDF('${s.archivoData}')" class="btn btn-sm btn-secondary ${!s.archivoData ? 'disabled' : ''}">📥</button></td>
                     <td><small>${s.fechaEnvio || s.fechaRegistro || '---'}</small></td>
                     <td><small class="fw-bold">${fechaCierreRaw.includes('T') ? fechaCierreRaw.split('T')[0] : fechaCierreRaw}</small></td>
                     <td class="fw-bold text-primary">${tiempoEntrega}</td>
@@ -188,25 +191,22 @@ async function cargarHistorial() {
         });
 
         if (body.innerHTML === "") {
-            body.innerHTML = `<tr><td colspan='10'>No se encontraron registros finalizados para: ${nombreSesion}</td></tr>`;
+            body.innerHTML = `<tr><td colspan='10'>No se encontraron registros finalizados para su usuario.</td></tr>`;
         }
 
     } catch (error) {
         console.error("Error cargando historial:", error);
-        Swal.fire("Error", "No se pudo sincronizar el historial con la base de datos.", "error");
+        Swal.fire("Error", "No se pudo sincronizar el historial.", "error");
     } finally { 
         window.ocultarCargando(); 
     }
 }
 
-// --- FUNCIONES MANTENIDAS ---
+window.verPDF = d => { if(d && d !== '#') { const w = window.open(); w.document.write(`<iframe src="${d}" style="width:100%;height:100%;"></iframe>`); } };
 window.verFoto = (url, folio) => Swal.fire({ title: `Evidencia - ${folio}`, imageUrl: url, imageAlt: 'Evidencia', width: '600px' });
 
 window.descargarExcel = () => {
-    if (window.esSoporteJR) {
-        Swal.fire("Acceso Denegado", "No tienes permisos para exportar datos.", "error");
-        return;
-    }
+    if (window.esSoporteJR) return;
     let csvContent = "\uFEFF"; 
     csvContent += "Folio,Empresa,Sucursal,Status Final,Motivo,Tiempo de Entrega\n";
     datosParaExportar.forEach(d => {
@@ -215,7 +215,7 @@ window.descargarExcel = () => {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `Historial_Finalizadas_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `Historial_Tecnologia_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
 };
 
