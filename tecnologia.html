@@ -3,23 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solicitud de Tecnología | Panel de Control</title>
+    <title>Solicitud de Tecnología</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-    <script type="text/javascript">
-        (function(){ emailjs.init("0aHlArLgvHrj2Xbk8"); })();
-    </script>
     <style>
         body { background:#f2f4f7; }
         .card { border-radius:20px; border: none; }
         .action-btn { cursor:pointer; font-size:22px; transition: 0.2s; display: inline-block; margin: 0 5px; }
         .action-btn:hover { transform: scale(1.2); }
-        .action-disabled { color:#adb5bd; cursor:not-allowed; opacity: 0.5; filter: grayscale(1); }
         .table thead { background:#0d6efd; color:white; }
-        .btn-rounded { border-radius:50px; }
-        .user-info-box { background: white; padding: 10px 20px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        
+        /* El loader ahora inicia oculto por seguridad o se maneja estrictamente por JS */
         #loader { 
             display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(255,255,255,0.9); z-index: 9999; justify-content: center; 
@@ -40,227 +33,111 @@
 </div>
 
 <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-        <div class="user-info-box border-start border-primary border-4">
-            <div class="fw-bold text-primary">👤 <span id="usuarioActivo">Cargando...</span></div>
-            <div class="text-muted small">Puesto: <span id="puestoActivo">---</span></div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="p-3 bg-white rounded shadow-sm border-start border-primary border-4">
+            <div class="fw-bold text-primary">👤 <span id="usuarioActivo"></span></div>
+            <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
         </div>
-        
-        <div class="dropdown">
-            <button class="btn btn-primary btn-rounded dropdown-toggle fw-bold px-4 shadow-sm" type="button" data-bs-toggle="dropdown">
-                ☰ Menú
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow">
-                <li><a class="dropdown-item" href="historial.html">📜 Ver Historial</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item text-danger" href="#" onclick="window.cerrarSesion()">🚪 Cerrar Sesión</a></li>
-            </ul>
+        <div>
+            <a href="historial.html" class="btn btn-outline-dark fw-bold">📜 Historial</a>
+            <button onclick="window.cerrarSesion()" class="btn btn-danger fw-bold">Cerrar Sesión</button>
         </div>
     </div>
 
     <div class="card shadow p-4 mb-4">
-        <h5 class="fw-bold mb-3 border-bottom pb-2 text-secondary">Registrar Nueva Solicitud</h5>
+        <h5 class="fw-bold mb-3 border-bottom pb-2">Nueva Solicitud</h5>
         <form id="formTec" class="row g-3">
-            <div class="col-md-3"><label class="small fw-bold">Empresa</label><input id="empresa" class="form-control text-uppercase" placeholder="Ej: PROCOMEX"></div>
-            <div class="col-md-3"><label class="small fw-bold">Zona</label><input id="zona" class="form-control text-uppercase" placeholder="CENTRO / SUR"></div>
-            <div class="col-md-3"><label class="small fw-bold">Sucursal</label><input id="sucursal" class="form-control text-uppercase" placeholder="Sucursal destino"></div>
-            <div class="col-md-3"><label class="small fw-bold">Requisición (PDF/IMG)</label><input id="archivo" type="file" class="form-control" accept="image/*,application/pdf"></div>
-            <div class="col-12 mt-4 text-center">
-                <button type="button" class="btn btn-primary btn-rounded px-5 shadow" onclick="window.guardarSolicitud()">💾 Guardar Solicitud</button>
-            </div>
+            <div class="col-md-4"><label class="small fw-bold">Empresa</label><input id="empresa" class="form-control text-uppercase"></div>
+            <div class="col-md-4"><label class="small fw-bold">Sucursal</label><input id="sucursal" class="form-control text-uppercase"></div>
+            <div class="col-md-4"><label class="small fw-bold">Requisición (Archivo)</label><input id="archivo" type="file" class="form-control"></div>
+            <div class="col-12 mt-3"><button type="button" class="btn btn-primary w-100 fw-bold" onclick="window.guardarSolicitud()">💾 GUARDAR</button></div>
         </form>
     </div>
 
     <div class="card shadow p-4">
-        <h5 class="fw-bold mb-3 text-secondary">Solicitudes en Proceso</h5>
         <div class="table-responsive">
-            <table class="table table-hover align-middle text-center border">
-                <thead class="table-primary">
-                    <tr>
-                        <th>Folio</th>
-                        <th>Empresa</th>
-                        <th>Zona</th>
-                        <th>Sucursal</th>
-                        <th>Status</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
+            <table class="table table-hover align-middle text-center">
+                <thead><tr><th>Folio</th><th>Empresa</th><th>Sucursal</th><th>Status</th><th>Acciones</th></tr></thead>
                 <tbody id="tablaTecBody"></tbody>
             </table>
         </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script type="module">
-    import { database, ref, push, set, get, onValue, remove, update } from "./firebase.js";
+    import { database, ref, push, set, get, onValue, remove } from "./firebase.js";
 
-    // --- SESIÓN Y PERMISOS ---
+    // Manejo de Sesión
     const sesionRaw = localStorage.getItem("usuarioLogueado");
-    if (!sesionRaw) {
-        location.href = "index.html";
-    } else {
-        const sesion = JSON.parse(sesionRaw);
-        document.getElementById("usuarioActivo").innerText = sesion.nombre;
-        document.getElementById("puestoActivo").innerText = sesion.puesto;
-        window.nombreSesion = sesion.nombre;
-        window.puestoSesion = (sesion.puesto || "").toUpperCase();
-    }
+    if (!sesionRaw) { location.href = "index.html"; }
+    const sesion = JSON.parse(sesionRaw);
+    document.getElementById("usuarioActivo").innerText = sesion.nombre;
+    document.getElementById("puestoActivo").innerText = sesion.puesto;
 
-    const puestosPrivilegiados = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO", "SOPORTE TECNICO SR", "BECARIO DE SISTEMAS"];
-    window.esSoporteJR = window.puestoSesion === "SOPORTE TECNICO JR";
-    window.puedeGestionar = puestosPrivilegiados.includes(window.puestoSesion);
-
-    window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
-    window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
+    // Funciones Globales
+    window.mostrarCargando = () => document.getElementById("loader").style.display = "flex";
+    window.ocultarCargando = () => document.getElementById("loader").style.display = "none";
     window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
 
-    let globalSeguimientos = [];
-    onValue(ref(database, "seguimiento"), snap => {
-        globalSeguimientos = [];
-        snap.forEach(c => { globalSeguimientos.push(c.val()); });
-    });
-
-    // --- RENDERIZADO DE TABLA ---
+    // CARGA DE DATOS (Aquí es donde se quita el loader)
     onValue(ref(database, "tecnologia"), snap => {
         const tbody = document.getElementById("tablaTecBody");
         tbody.innerHTML = "";
         
-        if(!snap.exists()) {
-            tbody.innerHTML = `<tr><td colspan="6" class="text-muted">No hay solicitudes activas</td></tr>`;
-        } else {
+        if (snap.exists()) {
             snap.forEach(child => {
                 const s = child.val();
-                const id = child.key;
-                
-                const canEdit = window.puedeGestionar;
-                const canConfirm = window.esSoporteJR && s.status === "POR ENTREGAR";
-
                 tbody.innerHTML += `
                     <tr>
-                        <td class="fw-bold text-primary">${s.folio}</td>
+                        <td class="fw-bold">${s.folio}</td>
                         <td>${s.empresa}</td>
-                        <td>${s.zona || '---'}</td>
                         <td>${s.sucursal}</td>
-                        <td><span class="badge bg-${s.status === 'PENDIENTE' ? 'warning' : 'info'}">${s.status}</span></td>
+                        <td><span class="badge bg-warning">${s.status}</span></td>
                         <td>
-                            <span class="action-btn" onclick="window.verSeguimiento('${s.folio}')" title="Ver Seguimiento">👁️</span>
-                            <span class="action-btn ${canEdit ? '' : 'action-disabled'}" onclick="${canEdit ? `window.eliminarSolicitud('${id}')` : ''}" title="Eliminar y Archivar">🗑️</span>
-                            <span class="action-btn ${canConfirm ? '' : 'action-disabled'}" onclick="${canConfirm ? `window.confirmarEntrega('${s.folio}')` : ''}" title="Confirmar Entrega">✅</span>
+                            <button class="btn btn-sm btn-light" onclick="window.location.href='seguimiento.html?folio=${s.folio}'">👁️</button>
+                            <button class="btn btn-sm btn-danger" onclick="window.eliminarSolicitud('${child.key}')">🗑️</button>
                         </td>
-                    </tr>
-                `;
+                    </tr>`;
             });
+        } else {
+            tbody.innerHTML = "<tr><td colspan='5'>No hay solicitudes pendientes</td></tr>";
         }
-        window.ocultarCargando();
+        window.ocultarCargando(); // SE OCULTA AL TERMINAR DE LEER FIREBASE
+    }, error => {
+        console.error(error);
+        window.ocultarCargando(); // SE OCULTA INCLUSO SI HAY ERROR
     });
-
-    // --- FUNCIONES DE LÓGICA ---
 
     window.guardarSolicitud = async () => {
         const emp = document.getElementById("empresa").value;
-        const zon = document.getElementById("zona").value;
         const suc = document.getElementById("sucursal").value;
         const file = document.getElementById("archivo").files[0];
 
-        if (!emp || !suc || !file) return Swal.fire("Atención", "Empresa, Sucursal y Requisición son obligatorios", "warning");
+        if(!emp || !suc || !file) return Swal.fire("Error", "Faltan datos", "error");
 
         window.mostrarCargando();
         const reader = new FileReader();
         reader.onload = async (e) => {
-            const folio = "TEC-" + Math.floor(Math.random() * 9000 + 1000);
-            const nueva = {
-                folio, empresa: emp.toUpperCase(), zona: zon.toUpperCase(), sucursal: suc.toUpperCase(),
-                status: "PENDIENTE", fechaEnvio: new Date().toLocaleString(), fechaISO: new Date().toISOString(),
-                archivoData: e.target.result, usuario: window.nombreSesion
-            };
-            await push(ref(database, "tecnologia"), nueva);
+            const folio = "TEC-" + Math.floor(Math.random()*9000+1000);
+            await push(ref(database, "tecnologia"), {
+                folio, empresa: emp.toUpperCase(), sucursal: suc.toUpperCase(),
+                status: "PENDIENTE", fechaEnvio: new Date().toLocaleString(),
+                archivoData: e.target.result, usuario: sesion.nombre
+            });
             document.getElementById("formTec").reset();
-            Swal.fire("Guardado", `Folio generado: ${folio}`, "success");
+            Swal.fire("Éxito", "Registrado", "success");
             window.ocultarCargando();
         };
         reader.readAsDataURL(file);
     };
 
     window.eliminarSolicitud = async (id) => {
-        const snap = await get(ref(database, `tecnologia/${id}`));
-        const datos = snap.val();
-        
-        const { value: motivo } = await Swal.fire({ 
-            title: 'Eliminar y Archivar', 
-            input: 'textarea', 
-            inputPlaceholder: 'Indique motivo de la cancelación...',
-            showCancelButton: true,
-            inputValidator: (v) => !v && 'El motivo es necesario'
-        });
-
-        if (motivo) {
+        if(confirm("¿Eliminar registro?")) {
             window.mostrarCargando();
-            const segsRelacionados = globalSeguimientos.filter(x => x.folio === datos.folio);
-            
-            // Mover a Permanente como ELIMINADO
-            await set(ref(database, `historial_permanente/${id}`), {
-                ...datos, status: "ELIMINADO", motivoEliminacion: motivo.toUpperCase(),
-                fechaEliminacion: new Date().toISOString(), seguimientos: segsRelacionados
-            });
-
-            // Limpiar activos
             await remove(ref(database, `tecnologia/${id}`));
-            const snapSegs = await get(ref(database, "seguimiento"));
-            snapSegs.forEach(c => { if(c.val().folio === datos.folio) remove(ref(database, `seguimiento/${c.key}`)); });
-            
-            Swal.fire("Archivado", "La solicitud se movió al historial como eliminada", "info");
             window.ocultarCargando();
         }
     };
-
-    window.confirmarEntrega = async (fol) => {
-        const snap = await get(ref(database, "tecnologia"));
-        let idPrincipal = null, datosCompletos = null;
-        snap.forEach(d => { if(d.val().folio === fol) { idPrincipal = d.key; datosCompletos = d.val(); } });
-
-        const { value: formValues } = await Swal.fire({
-            title: 'Confirmar Entrega Final',
-            html: `
-                <input type="file" id="swal-img" class="form-control mb-2" accept="image/*">
-                <textarea id="swal-com" class="form-control" placeholder="Comentarios finales..."></textarea>
-            `,
-            preConfirm: () => {
-                const i = document.getElementById('swal-img').files[0];
-                const c = document.getElementById('swal-com').value;
-                if(!i || !c) return Swal.showValidationMessage('Foto y comentario obligatorios');
-                return { i, c };
-            }
-        });
-
-        if (formValues) {
-            window.mostrarCargando();
-            const reader = new FileReader();
-            reader.onload = async () => {
-                const nuevoSeg = { 
-                    folio: fol, status: "CONFIRMADO", comentarios: formValues.c.toUpperCase(), 
-                    fotoEvidencia: reader.result, fechaRegistro: new Date().toISOString(), usuario: window.nombreSesion 
-                };
-                const segsRelacionados = globalSeguimientos.filter(x => x.folio === fol);
-                segsRelacionados.push(nuevoSeg);
-
-                await set(ref(database, `historial_permanente/${idPrincipal}`), {
-                    ...datosCompletos, status: "CONFIRMADO", seguimientos: segsRelacionados, fechaArchivo: new Date().toISOString()
-                });
-
-                await remove(ref(database, `tecnologia/${idPrincipal}`));
-                const snapSegs = await get(ref(database, "seguimiento"));
-                snapSegs.forEach(c => { if(c.val().folio === fol) remove(ref(database, `seguimiento/${c.key}`)); });
-
-                Swal.fire("Éxito", "Entrega finalizada y archivada", "success");
-                window.ocultarCargando();
-            };
-            reader.readAsDataURL(formValues.i);
-        }
-    };
-
-    window.verSeguimiento = (fol) => { location.href = `seguimiento.html?folio=${encodeURIComponent(fol)}`; };
-
 </script>
 <script>
   // Seguridad de código fuente
@@ -274,6 +151,3 @@
 </script>
 </body>
 </html>
-
-
-
