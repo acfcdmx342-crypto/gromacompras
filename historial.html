@@ -11,78 +11,32 @@
         .card { border-radius:20px; border:none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .st-eliminado { background-color: #f8d7da !important; color: #721c24; }
         .st-confirmado { background-color: #d1e7dd !important; color: #0f5132; }
-        .st-archivado { background-color: #e2e3e5 !important; color: #383d41; } /* Nuevo estilo para archivados */
         .badge-del { background: #dc3545; color: white; }
         .badge-ok { background: #198754; color: white; }
-        .badge-arch { background: #6c757d; color: white; }
         .img-preview { cursor: pointer; border-radius: 8px; transition: 0.2s; border: 1px solid #ddd; }
         .img-preview:hover { transform: scale(1.1); }
         .btn-rounded { border-radius: 50px; }
-
         #loader { 
-            display: none; 
-            position: fixed; 
-            top: 0; left: 0; 
-            width: 100%; height: 100%; 
-            background: rgba(255,255,255,0.95); 
-            z-index: 9999; 
-            justify-content: center; 
-            align-items: center; 
-            flex-direction: column; 
-        }
-        .loader-logo-container { animation: pulse-procomex 1.5s ease-in-out infinite; }
-        @keyframes pulse-procomex {
-            0% { transform: scale(0.95); opacity: 0.8; }
-            50% { transform: scale(1.05); opacity: 1; }
-            100% { transform: scale(0.95); opacity: 0.8; }
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(255,255,255,0.95); z-index: 9999; justify-content: center; 
+            align-items: center; flex-direction: column; 
         }
     </style>
 </head>
 <body>
 
 <div id="loader">
-    <div class="loader-logo-container">
-        <img src="https://gruporoma.com/wp-content/uploads/2023/06/cropped-cropped-procomex-pachuca-logo-350-%C3%97-100-px-1.png" 
-             alt="Cargando..." style="width: 250px; height: auto;">
-    </div>
-    <div class="mt-3">
-        <div class="spinner-border text-primary" role="status" style="width: 1.2rem; height: 1.2rem; vertical-align: middle;"></div>
-        <span class="ms-2 fw-bold text-dark">Procesando historial...</span>
-    </div>
+    <div class="spinner-border text-primary" role="status"></div>
+    <span class="ms-2 fw-bold">Cargando Historial...</span>
 </div>
-
-<script>
-    const sesionRaw = localStorage.getItem("usuarioLogueado");
-    if (!sesionRaw) {
-        location.href = "index.html";
-    } else {
-        const sesion = JSON.parse(sesionRaw);
-        window.usuarioSesion = sesion.usuario;
-        window.puestoSesion = (sesion.puesto || "").toUpperCase();
-
-        const puestosPrivilegiados = [
-            "GERENTE DE SISTEMAS", 
-            "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", 
-            "COORDINADOR DE SOPORTE TECNICO", 
-            "SOPORTE TECNICO", 
-            "SOPORTE TECNICO SR",
-            "BECARIO DE SISTEMAS"
-        ];
-        window.puedeVerTodo = puestosPrivilegiados.includes(window.puestoSesion);
-        window.esSoporteJR = window.puestoSesion === "SOPORTE TECNICO JR";
-    }
-
-    window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
-    window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
-</script>
 
 <div class="container-fluid">
     <div class="card p-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="fw-bold m-0 text-primary">📜 Historial de Solicitudes (Cerradas)</h3>
+            <h3 class="fw-bold m-0 text-primary">📜 Historial de Solicitudes Finalizadas</h3>
             <div class="d-flex gap-2">
-                <div id="contenedorExportar"></div>
-                <a href="tecnologia.html" class="btn btn-outline-primary btn-rounded">⬅️ Volver al Panel</a>
+                <button class="btn btn-success btn-rounded fw-bold" onclick="window.descargarExcel()">Exportar Excel</button>
+                <a href="tecnologia.html" class="btn btn-outline-primary btn-rounded">⬅️ Panel</a>
             </div>
         </div>
         
@@ -92,15 +46,14 @@
                     <tr>
                         <th>Folio</th>
                         <th>Empresa</th>
-                        <th>Zona</th>
                         <th>Sucursal</th>
                         <th>Status Final</th>
                         <th>Motivo/Comentario</th>
                         <th>Evidencia</th> 
                         <th>Archivo</th>
                         <th>Fecha Reg.</th>
-                        <th>Fecha Confirmación</th>
-                        <th>Tiempo de Entrega</th> 
+                        <th>Fecha Cierre</th>
+                        <th>Tiempo</th> 
                     </tr>
                 </thead>
                 <tbody id="historialBody"></tbody>
@@ -112,9 +65,10 @@
 <script type="module">
 import { database, ref, onValue, get } from "./firebase.js";
 
-const solicitudesRef = ref(database,"tecnologia");
-const seguimientoRef = ref(database,"seguimiento");
-const historialPermanenteRef = ref(database,"historial_permanente"); // NUEVA REFERENCIA
+const sesionRaw = localStorage.getItem("usuarioLogueado");
+if (!sesionRaw) location.href = "index.html";
+const sesion = JSON.parse(sesionRaw);
+window.usuarioSesion = sesion.usuario;
 
 let datosParaExportar = [];
 
@@ -124,155 +78,85 @@ const limpiarFecha = (str) => {
         let s = str.replace(/\./g, '').replace(/([ap])\s*m/i, '$1M');
         let partes = s.split(/[\/\s,:]+/);
         if(partes.length < 3) return null;
-        let dia = parseInt(partes[0]);
-        let mes = parseInt(partes[1]) - 1; 
-        let anio = parseInt(partes[2]);
-        let hora = parseInt(partes[3] || 0);
-        let min = parseInt(partes[4] || 0);
-        let seg = parseInt(partes[5] || 0);
+        let dia = parseInt(partes[0]), mes = parseInt(partes[1]) - 1, anio = parseInt(partes[2]);
+        let hora = parseInt(partes[3] || 0), min = parseInt(partes[4] || 0);
         if (s.toUpperCase().includes("PM") && hora < 12) hora += 12;
         if (s.toUpperCase().includes("AM") && hora === 12) hora = 0;
-        return new Date(anio, mes, dia, hora, min, seg);
+        return new Date(anio, mes, dia, hora, min);
     } catch(e) { return null; }
 };
 
-if (!window.esSoporteJR) {
-    document.getElementById("contenedorExportar").innerHTML = `
-        <button class="btn btn-success btn-rounded shadow-sm fw-bold" onclick="window.descargarExcelHistorial()">
-            <i class="fas fa-file-excel me-2"></i>Exportar Excel
-        </button>
-    `;
-}
+window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
+window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
 
-window.mostrarCargando();
-
-// Escuchar cambios en las 3 colecciones
-onValue(solicitudesRef, () => cargarHistorial());
-onValue(seguimientoRef, () => cargarHistorial());
-onValue(historialPermanenteRef, () => cargarHistorial());
+onValue(ref(database, "historial_permanente"), () => cargarHistorial());
 
 async function cargarHistorial() {
+    window.mostrarCargando();
     try {
-        const snapSolicitudes = await get(solicitudesRef);
-        const snapSeguimientos = await get(seguimientoRef);
-        const snapPermanente = await get(historialPermanenteRef);
-        
-        const globalSegs = [];
-        snapSeguimientos.forEach(c => { globalSegs.push(c.val()); });
-
+        const snapPerm = await get(ref(database, "historial_permanente"));
         const body = document.getElementById("historialBody");
         body.innerHTML = "";
         datosParaExportar = [];
 
-        // 1. PROCESAR REGISTROS ACTIVOS (TECNOLOGIA)
-        snapSolicitudes.forEach(c => {
-            procesarRegistro(c.val(), globalSegs, body, false);
-        });
-
-        // 2. PROCESAR REGISTROS ARCHIVADOS (HISTORIAL_PERMANENTE)
-        snapPermanente.forEach(c => {
-            const datosArchivados = c.val();
-            // Los archivados traen sus propios seguimientos dentro del nodo
-            procesarRegistro(datosArchivados, datosArchivados.seguimientos || [], body, true);
-        });
-
-    } catch (error) {
-        console.error("Error:", error);
-    } finally {
-        window.ocultarCargando();
-    }
-}
-
-function procesarRegistro(s, segsDelFolio, body, esArchivado) {
-    const esSuPropioRegistro = s.usuario === window.usuarioSesion;
-    if (!window.puedeVerTodo && !esSuPropioRegistro) return;
-
-    const estaConfirmado = s.status === "CONFIRMADO";
-    const estaEliminado = s.eliminado === true;
-
-    // Solo mostramos si está Confirmado, Eliminado o si es un registro Archivador
-    if (estaEliminado || estaConfirmado || esArchivado) {
-        let segConfirmado = segsDelFolio.find(x => x.status === "CONFIRMADO");
-        let motivo = estaEliminado ? (s.motivoEliminacion || "Sin motivo") : (segConfirmado?.comentarios || "Entregado");
-        let fechaCierre = segConfirmado ? (segConfirmado.fechaRegistro) : (s.fechaEliminacion || "---");
-        
-        let fInicio = s.fechaISO ? new Date(s.fechaISO) : limpiarFecha(s.fechaEnvio);
-        let fFin = limpiarFecha(fechaCierre) || (fechaCierre.includes('T') ? new Date(fechaCierre) : null);
-        
-        let tiempoEntrega = "N/A";
-        if (fInicio && fFin && !isNaN(fInicio) && !isNaN(fFin)) {
-            const difMs = fFin - fInicio;
-            if (difMs > 0) {
-                const totalMinutos = Math.floor(difMs / 60000);
-                const dias = Math.floor(totalMinutos / 1440);
-                const horas = Math.floor((totalMinutos % 1440) / 60);
-                const mins = totalMinutos % 60;
+        snapPerm.forEach(c => {
+            const s = c.val();
+            const segs = s.seguimientos || [];
+            
+            const estaEliminado = s.status === "ELIMINADO" || s.eliminado === true;
+            const segConf = segs.find(x => x.status === "CONFIRMADO");
+            
+            let motivo = estaEliminado ? (s.motivoEliminacion || "Sin motivo") : (segConf?.comentarios || "Entregado");
+            let fechaCierre = segConf ? segConf.fechaRegistro : (s.fechaEliminacion || s.fechaArchivo || "---");
+            
+            // Cálculo de tiempo
+            let fInicio = s.fechaISO ? new Date(s.fechaISO) : limpiarFecha(s.fechaEnvio);
+            let fFin = (fechaCierre.includes('T')) ? new Date(fechaCierre) : limpiarFecha(fechaCierre);
+            let tiempoEntrega = "N/A";
+            if (fInicio && fFin && !isNaN(fInicio) && !isNaN(fFin)) {
+                const totalMin = Math.floor((fFin - fInicio) / 60000);
+                const dias = Math.floor(totalMin / 1440), horas = Math.floor((totalMin % 1440) / 60), mins = totalMin % 60;
                 tiempoEntrega = dias > 0 ? `${dias}d ${horas}h` : horas > 0 ? `${horas}h ${mins}m` : `${mins}m`;
-            } else { tiempoEntrega = "Instante"; }
-        }
+            }
 
-        // Definir badges y estilos según tipo
-        let claseFila = "";
-        let statusBadge = "";
-        if (esArchivado) {
-            claseFila = "st-archivado";
-            statusBadge = `<span class="badge badge-arch">ARCHIVADO</span>`;
-        } else {
-            claseFila = estaEliminado ? "st-eliminado" : "st-confirmado";
-            statusBadge = estaEliminado ? `<span class="badge badge-del">ELIMINADO</span>` : `<span class="badge badge-ok">CONFIRMADO</span>`;
-        }
+            let claseFila = estaEliminado ? "st-eliminado" : "st-confirmado";
+            let badge = estaEliminado ? `<span class="badge badge-del">ELIMINADO</span>` : `<span class="badge badge-ok">CONFIRMADO</span>`;
+            let fotoBtn = segConf?.fotoEvidencia ? `<img src="${segConf.fotoEvidencia}" width="40" height="40" class="img-preview shadow-sm" onclick="window.verFoto('${segConf.fotoEvidencia}', '${s.folio}')">` : "---";
 
-        datosParaExportar.push({
-            folio: s.folio,
-            empresa: s.empresa,
-            zona: s.zona,
-            sucursal: s.sucursal,
-            statusFinal: esArchivado ? "ARCHIVADO" : (estaEliminado ? "ELIMINADO" : "CONFIRMADO"),
-            motivo: motivo,
-            fechaReg: s.fechaEnvio,
-            fechaConf: fechaCierre,
-            tiempo: tiempoEntrega
+            datosParaExportar.push({ folio: s.folio, status: estaEliminado ? "ELIMINADO" : "CONFIRMADO", motivo, tiempo: tiempoEntrega });
+
+            body.innerHTML += `
+                <tr class="${claseFila}">
+                    <td class="fw-bold">${s.folio}</td>
+                    <td>${s.empresa}</td>
+                    <td>${s.sucursal}</td>
+                    <td>${badge}</td>
+                    <td class="small text-start">${motivo}</td>
+                    <td>${fotoBtn}</td>
+                    <td><a href="${s.archivoData}" download="REQ_${s.folio}" class="btn btn-sm btn-secondary">📥</a></td>
+                    <td><small>${s.fechaEnvio}</small></td>
+                    <td><small class="fw-bold">${fechaCierre.includes('T') ? fechaCierre.split('T')[0] : fechaCierre}</small></td>
+                    <td class="fw-bold text-primary">${tiempoEntrega}</td>
+                </tr>
+            `;
         });
-
-        let fotoBtn = segConfirmado?.fotoEvidencia ? `<img src="${segConfirmado.fotoEvidencia}" width="40" height="40" class="img-preview shadow-sm" onclick="window.verFoto('${segConfirmado.fotoEvidencia}', '${s.folio}')">` : "---";
-
-        body.innerHTML += `
-            <tr class="${claseFila}">
-                <td class="fw-bold">${s.folio}</td>
-                <td>${s.empresa}</td>
-                <td>${s.zona}</td>
-                <td>${s.sucursal}</td>
-                <td>${statusBadge}</td>
-                <td class="small text-start">${motivo}</td>
-                <td>${fotoBtn}</td>
-                <td><a href="${s.archivoData}" download="REQ_${s.folio}" class="btn btn-sm btn-secondary">📥</a></td>
-                <td><small>${s.fechaEnvio}</small></td>
-                <td><small class="fw-bold">${fechaCierre.split('T')[0]}</small></td>
-                <td class="fw-bold text-primary">${tiempoEntrega}</td>
-            </tr>
-        `;
-    }
+    } finally { window.ocultarCargando(); }
 }
 
-window.descargarExcelHistorial = () => {
-    if (datosParaExportar.length === 0) return Swal.fire("Aviso", "No hay datos", "info");
+window.verFoto = (url, folio) => Swal.fire({ title: `Evidencia - ${folio}`, imageUrl: url, imageAlt: 'Evidencia' });
+
+window.descargarExcel = () => {
     let csvContent = "\uFEFF"; 
-    csvContent += "Folio,Empresa,Zona,Sucursal,Status Final,Motivo/Comentario,Fecha de Registro,Fecha de Confirmación,Tiempo de Entrega\n";
+    csvContent += "Folio,Status Final,Motivo,Tiempo de Entrega\n";
     datosParaExportar.forEach(d => {
-        const fila = [d.folio, d.empresa, d.zona, d.sucursal, d.statusFinal, d.motivo.replace(/,/g, "."), d.fechaReg, d.fechaConf, d.tiempo];
-        csvContent += fila.map(campo => `"${campo}"`).join(",") + "\n";
+        csvContent += `"${d.folio}","${d.status}","${d.motivo.replace(/"/g, '""')}","${d.tiempo}"\n`;
     });
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `Historial_Completo_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`;
+    link.download = `Historial_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
 };
-
-window.verFoto = (url, folio) => {
-    Swal.fire({ title: `Evidencia - ${folio}`, imageUrl: url, imageAlt: 'Evidencia', confirmButtonText: 'Cerrar' });
-};
-
 // Bloqueo de inspección
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 document.onkeydown = function(e) {
