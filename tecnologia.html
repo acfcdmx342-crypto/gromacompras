@@ -197,13 +197,13 @@
                             <div class="acciones">
                                 <span class="action-btn" onclick="window.verHistorialFolio('${s.folio}')" title="Historial">📜</span>
                                 ${window.esSoporteJR && statusActual === "ENVIADO A ZONA" ? `
-                                    <span class="action-btn text-success" onclick="window.confirmarEntrega('${s.folio}')">✅</span>
-                                    <span class="action-btn text-warning" onclick="window.enviarDevolucion('${s.folio}')">🔄</span>
+                                    <span class="action-btn text-success" onclick="window.confirmarEntrega('${s.folio}')" title="Confirmar Solicitud">✅</span>
+                                    <span class="action-btn text-warning" onclick="window.enviarDevolucion('${s.folio}')" title="Devolucion">🔄</span>
                                 ` : `
-                                    <span class="action-btn ${window.esSoporteJR ? 'action-disabled' : ''}" onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}">📋</span>
+                                    <span class="action-btn ${window.esSoporteJR ? 'action-disabled' : ''}" onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}" title="Dar Seguimiento">📋</span>
                                 `}
                                 ${window.puedeVerBase ? `
-                                    <span class="action-btn text-danger" onclick="window.eliminarSolicitud('${idKey}')">🗑️</span>
+                                    <span class="action-btn text-danger" onclick="window.eliminarSolicitud('${idKey}')" title="Eliminar">🗑️</span>
                                     <span class="action-btn text-secondary" onclick="window.depurarRegistroPermanente('${idKey}', '${s.folio}')" title="Archivar Permanente">📦</span>
                                 ` : ``}
                             </div>
@@ -410,3 +410,4 @@
 </script>
 </body>
 </html>
+
