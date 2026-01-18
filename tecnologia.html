@@ -8,25 +8,42 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <script type="text/javascript">
-        (function(){ emailjs.init("0aHlArLgvHrj2Xbk8"); })();
+        (function(){
+            emailjs.init("0aHlArLgvHrj2Xbk8"); 
+        })();
     </script>
     <style>
         body { background:#f2f4f7; }
         .card { border-radius:20px; }
-        .action-btn { cursor:pointer; font-size:22px; transition: 0.2s; display: inline-block; margin: 0 5px; }
+        .action-btn { cursor:pointer; font-size:22px; transition: 0.2s; display: inline-block; }
         .action-btn:hover { transform: scale(1.2); }
         .action-disabled { color:#adb5bd; cursor:not-allowed; opacity: 0.5; filter: grayscale(1); }
         .table thead { background:#0d6efd; color:white; }
         .btn-rounded { border-radius:50px; }
         .user-info-box { background: white; padding: 10px 20px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: inline-block; }
         .aviso-devolucion { background: #fff3cd; border-left: 5px solid #ffc107; padding: 10px 15px; border-radius: 10px; font-size: 0.85rem; color: #856404; max-width: 600px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .acciones { display:flex; justify-content:center; gap:10px; }
+        .dropdown-menu { border-radius: 15px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1); padding: 10px; z-index: 1050; }
+        .dropdown-item { border-radius: 8px; margin-bottom: 2px; font-weight: 500; }
+        .st-compras { background-color: #0d6efd !important; color: white; } 
+        .st-zona { background-color: #ffc107 !important; color: black; }    
+        .st-pendiente { background-color: #dc3545 !important; color: white; } 
+        .st-sistemas { background-color: #198754 !important; color: white; }  
+        .st-devolucion { background-color: #6f42c1 !important; color: white; }
+        .st-default { background-color: #6c757d !important; color: white; }   
+        .tiempo-badge { font-size: 0.75rem; font-weight: bold; color: #555; }
         
         #loader { 
-            display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            display: flex; 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(255,255,255,0.9); z-index: 9999; justify-content: center; 
             align-items: center; flex-direction: column; 
         }
-        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.8; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
     </style>
 </head>
 <body class="p-4">
@@ -35,11 +52,29 @@
     <div style="animation: pulse 1.5s infinite;">
         <img src="https://gruporoma.com/wp-content/uploads/2023/06/cropped-cropped-procomex-pachuca-logo-350-%C3%97-100-px-1.png" style="width: 250px;">
     </div>
-    <div class="mt-3 text-center">
+    <div class="mt-3">
         <div class="spinner-border text-primary" role="status"></div>
-        <p class="mt-2 fw-bold">Procesando información...</p>
+        <span class="ms-2 fw-bold">Procesando información...</span>
     </div>
 </div>
+
+<script>
+    const sesionRaw = localStorage.getItem("usuarioLogueado");
+    if (!sesionRaw) {
+        location.href = "index.html";
+    } else {
+        const sesion = JSON.parse(sesionRaw);
+        window.usuarioSesion = sesion.usuario;
+        window.nombreSesion = sesion.nombre;
+        window.puestoSesion = (sesion.puesto || "").toUpperCase();
+        const puestosPrivilegiados = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO", "SOPORTE TECNICO SR", "BECARIO DE SISTEMAS", "BECARIO"];
+        window.esSoporteJR = window.puestoSesion === "SOPORTE TECNICO JR";
+        window.puedeVerBase = puestosPrivilegiados.includes(window.puestoSesion);
+    }
+    window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
+    window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
+    window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
+</script>
 
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
@@ -54,13 +89,14 @@
         </div>
         
         <div class="dropdown">
-            <button class="btn btn-primary btn-rounded dropdown-toggle fw-bold px-4 shadow-sm" type="button" id="menuBtn" data-bs-toggle="dropdown">
+            <button class="btn btn-primary btn-rounded dropdown-toggle fw-bold px-4 shadow-sm" type="button" id="menuBtn" data-bs-toggle="dropdown" aria-expanded="false">
                 ☰ Menú
             </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow">
+            <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="menuBtn">
                 <li><a class="dropdown-item" href="historial.html">📜 Ver Historial</a></li>
+                <li id="liBase"></li>
                 <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item text-danger" href="#" onclick="window.cerrarSesion()">🚪 Cerrar Sesión</a></li>
+                <li><a class="dropdown-item text-danger" href="#" onclick="cerrarSesion()">🚪 Cerrar Sesión</a></li>
             </ul>
         </div>
     </div>
@@ -76,18 +112,20 @@
             <div class="col-md-3"><label class="small fw-bold">Sucursal</label><input id="sucursal" class="form-control text-uppercase"></div>
             <div class="col-md-6"><label class="small fw-bold">Requisición</label><input id="archivo" type="file" class="form-control"></div>
             <div class="col-12 mt-4">
-                <button type="button" class="btn btn-primary btn-rounded px-5 shadow" onclick="window.guardarSolicitud()">💾 Guardar Solicitud</button>
+                <button type="button" class="btn btn-primary btn-rounded px-5 shadow" onclick="guardarSolicitud()">💾 Guardar Solicitud</button>
             </div>
         </form>
     </div>
 
     <div class="card shadow p-4 border-0">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold m-0 text-secondary">Solicitudes en Proceso</h5>
+            <div id="contenerdorExportar"></div>
+        </div>
         <div class="table-responsive">
             <table class="table table-bordered align-middle text-center bg-white">
                 <thead class="table-primary">
-                    <tr>
-                        <th>Folio</th><th>Empresa</th><th>Zona</th><th>Soporte</th><th>Sucursal</th><th>Status</th><th>Acciones</th>
-                    </tr>
+                    <tr><th>Folio</th><th>Empresa</th><th>Zona</th><th>Soporte</th><th>Sucursal</th><th>Archivo</th><th>Status</th><th>Tiempo</th><th>Fecha</th><th>Acciones</th></tr>
                 </thead>
                 <tbody id="tablaTecBody"></tbody>
             </table>
@@ -97,99 +135,270 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script type="module">
-    import { database, ref, push, set, get, onValue, remove, update } from "./firebase.js";
+    import { database, ref, push, set, get, onValue, update, remove } from "./firebase.js";
 
-    // --- SESIÓN Y PERMISOS ---
-    const sesionRaw = localStorage.getItem("usuarioLogueado");
-    if (!sesionRaw) {
-        location.href = "index.html";
-    } else {
-        const sesion = JSON.parse(sesionRaw);
-        document.getElementById("usuarioActivo").innerText = sesion.nombre;
-        document.getElementById("puestoActivo").innerText = sesion.puesto;
-        window.nombreSesion = sesion.nombre;
-        window.puestoSesion = (sesion.puesto || "").toUpperCase();
-        
-        // Autollenar Soporte Zona si el usuario es Soporte
-        if(window.puestoSesion.includes("SOPORTE")) {
-            document.getElementById("soporte").value = window.nombreSesion;
-        }
+    document.getElementById("usuarioActivo").textContent = window.nombreSesion;
+    document.getElementById("puestoActivo").textContent = window.puestoSesion;
+    document.getElementById("soporte").value = window.nombreSesion;
+
+    if (window.puedeVerBase) {
+        document.getElementById("liBase").innerHTML = '<a class="dropdown-item" href="base.html">🏠 Página Base (Usuarios)</a>';
     }
 
-    window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
-    window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
-    window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
+    const solicitudesRef = ref(database, "tecnologia");
+    const seguimientoRef = ref(database, "seguimiento");
+    let globalSeguimientos = [];
 
-    // --- CARGA DE TABLA (SOLUCIÓN LOADER INFINITO) ---
-    onValue(ref(database, "tecnologia"), snap => {
+    // Listener de Seguimientos
+    onValue(seguimientoRef, snap => {
+        globalSeguimientos = [];
+        snap.forEach(c => { globalSeguimientos.push({ ...c.val(), id: c.key }); });
+        
+        // Listener de Solicitudes (Anidado para asegurar datos de seguimiento)
+        onValue(solicitudesRef, snapSolicitudes => {
+            try {
+                renderTable(snapSolicitudes);
+            } catch (e) {
+                console.error("Error al renderizar:", e);
+            } finally {
+                window.ocultarCargando();
+            }
+        });
+    }, () => window.ocultarCargando());
+
+    function renderTable(snap) {
         const tbody = document.getElementById("tablaTecBody");
         tbody.innerHTML = "";
-        
-        if (snap.exists()) {
-            snap.forEach(child => {
-                const s = child.val();
-                const id = child.key;
+        snap.forEach(c => {
+            const s = c.val();
+            const idKey = c.key;
+            
+            const segsDelFolio = globalSeguimientos.filter(x => x.folio === s.folio).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
+            const statusActual = segsDelFolio.length > 0 ? segsDelFolio[0].status : (s.status || "PENDIENTE");
+
+            if (s.eliminado === true || statusActual === "CONFIRMADO") return;
+
+            if(window.puedeVerBase || s.usuario === window.usuarioSesion) {
+                const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas", "DEVOLUCION": "st-devolucion"};
+                const claseColor = colores[statusActual] || "st-default";
+
                 tbody.innerHTML += `
                     <tr>
-                        <td>${s.folio}</td>
+                        <td><small class="fw-bold">${s.folio}</small></td>
                         <td>${s.empresa}</td>
                         <td>${s.zona}</td>
-                        <td>${s.soporte || '---'}</td>
+                        <td>${s.soporte}</td>
                         <td>${s.sucursal}</td>
-                        <td><span class="badge bg-info">${s.status}</span></td>
+                        <td><button class="btn btn-sm btn-success" onclick="window.verPDF('${s.archivoData}')">👁️</button></td>
+                        <td><span class="badge ${claseColor} p-2 w-100">${statusActual}</span></td>
+                        <td class="tiempo-badge">${calcularTranscurrido(s.fechaISO || s.fechaEnvio)}</td>
+                        <td><small>${s.fechaEnvio}</small></td>
                         <td>
-                            <span class="action-btn" onclick="window.verSeguimiento('${s.folio}')">👁️</span>
-                            <span class="action-btn" onclick="window.eliminarSolicitud('${id}')">🗑️</span>
+                            <div class="acciones">
+                                <span class="action-btn" onclick="window.verHistorialFolio('${s.folio}')" title="Historial">📜</span>
+                                ${window.esSoporteJR && statusActual === "ENVIADO A ZONA" ? `
+                                    <span class="action-btn text-success" onclick="window.confirmarEntrega('${s.folio}')" title="Confirmar Solicitud">✅</span>
+                                    <span class="action-btn text-warning" onclick="window.enviarDevolucion('${s.folio}')" title="Devolucion">🔄</span>
+                                ` : `
+                                    <span class="action-btn ${window.esSoporteJR ? 'action-disabled' : ''}" onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}" title="Dar Seguimiento">📋</span>
+                                `}
+                                ${window.puedeVerBase ? `
+                                    <span class="action-btn text-danger" onclick="window.eliminarSolicitud('${idKey}')" title="Eliminar">🗑️</span>
+                                    <span class="action-btn text-secondary" onclick="window.depurarRegistroPermanente('${idKey}', '${s.folio}')" title="Archivar Permanente">📦</span>
+                                ` : ``}
+                            </div>
                         </td>
                     </tr>`;
-            });
-        } else {
-            tbody.innerHTML = "<tr><td colspan='7'>No hay registros</td></tr>";
-        }
-        window.ocultarCargando(); // <--- Aquí se apaga el loader
-    }, error => {
-        window.ocultarCargando();
-    });
+            }
+        });
+    }
 
-    // --- FUNCIONES GLOBALES ---
+    window.confirmarEntrega = async (fol) => {
+        const snap = await get(solicitudesRef);
+        let idPrincipal = null;
+        snap.forEach(d => { if(d.val().folio === fol) idPrincipal = d.key; });
+
+        const { value: formValues } = await Swal.fire({
+            title: 'Confirmar Entrega',
+            html: '<label class="small fw-bold">Evidencia Fotográfica</label><input type="file" id="swal-img-ent" class="form-control mb-2" accept="image/*"><textarea id="swal-com-ent" class="form-control" placeholder="Comentarios de entrega..."></textarea>',
+            preConfirm: () => {
+                const i = document.getElementById('swal-img-ent').files[0];
+                const c = document.getElementById('swal-com-ent').value;
+                if(!i || !c) return Swal.showValidationMessage('Imagen y comentario obligatorios');
+                return { i, c };
+            }
+        });
+
+        if (formValues) {
+            window.mostrarCargando();
+            const reader = new FileReader();
+            reader.onload = async () => {
+                try {
+                    await push(seguimientoRef, { 
+                        folio: fol, 
+                        status: "CONFIRMADO", 
+                        comentarios: formValues.c.toUpperCase(), 
+                        descripcion: "ENTREGA CONFIRMADA POR SOPORTE JR",
+                        fotoEvidencia: reader.result, 
+                        fechaRegistro: new Date().toISOString(), 
+                        usuario: window.nombreSesion 
+                    });
+
+                    if (idPrincipal) {
+                        await update(ref(database, `tecnologia/${idPrincipal}`), { status: "CONFIRMADO" });
+                    }
+                    Swal.fire("Entregado", "Solicitud cerrada correctamente", "success");
+                } catch (e) {
+                    Swal.fire("Error", "No se pudo guardar la confirmación", "error");
+                } finally {
+                    window.ocultarCargando();
+                }
+            };
+            reader.readAsDataURL(formValues.i);
+        }
+    };
+
+    window.depurarRegistroPermanente = async (idPrincipal, folio) => {
+        const { isConfirmed } = await Swal.fire({
+            title: '¿Archivar Permanentemente?',
+            text: "El registro se moverá al historial permanente y se borrará de la base activa para liberar espacio.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#0d6efd',
+            confirmButtonText: 'Sí, archivar y borrar'
+        });
+
+        if (isConfirmed) {
+            window.mostrarCargando();
+            try {
+                const snapSolicitud = await get(ref(database, `tecnologia/${idPrincipal}`));
+                const datos = snapSolicitud.val();
+                
+                const segsRelacionados = globalSeguimientos.filter(x => x.folio === folio);
+                
+                // Mover a Historial Permanente
+                await set(ref(database, `historial_permanente/${idPrincipal}`), {
+                    ...datos,
+                    seguimientos: segsRelacionados,
+                    fechaDepuracion: new Date().toISOString()
+                });
+
+                // Borrar de Tecnologia
+                await remove(ref(database, `tecnologia/${idPrincipal}`));
+                
+                // Borrar Seguimientos
+                const snapSegs = await get(seguimientoRef);
+                snapSegs.forEach(child => {
+                    if(child.val().folio === folio) remove(ref(database, `seguimiento/${child.key}`));
+                });
+
+                Swal.fire("Depurado", "Espacio liberado con éxito", "success");
+            } catch (e) {
+                Swal.fire("Error", "No se pudo depurar el registro", "error");
+            } finally {
+                window.ocultarCargando();
+            }
+        }
+    };
+
+    window.enviarDevolucion = async (fol) => {
+        const snap = await get(solicitudesRef);
+        let idPrincipal = null;
+        snap.forEach(d => { if(d.val().folio === fol) idPrincipal = d.key; });
+
+        const { value: fv } = await Swal.fire({
+            title: 'Motivo de Devolución',
+            html: `<textarea id="swal-motivo" class="form-control mb-2" placeholder="Explique el motivo..."></textarea><input type="file" id="swal-img" class="form-control" accept="image/*">`,
+            preConfirm: () => {
+                const m = document.getElementById('swal-motivo').value;
+                const i = document.getElementById('swal-img').files[0];
+                if(!m || !i) return Swal.showValidationMessage('Todos los campos son requeridos');
+                return { m, i };
+            }
+        });
+
+        if (fv) {
+            window.mostrarCargando();
+            const reader = new FileReader();
+            reader.onload = async () => {
+                await push(seguimientoRef, { 
+                    folio: fol, 
+                    status: "DEVOLUCION", 
+                    comentarios: fv.m.toUpperCase(), 
+                    fotoEvidencia: reader.result, 
+                    fechaRegistro: new Date().toISOString(), 
+                    usuario: window.nombreSesion 
+                });
+                if (idPrincipal) {
+                    await update(ref(database, `tecnologia/${idPrincipal}`), { status: "DEVOLUCION" });
+                }
+                window.ocultarCargando();
+                Swal.fire("Devuelto", "Estatus actualizado", "success");
+            };
+            reader.readAsDataURL(fv.i);
+        }
+    };
+
     window.guardarSolicitud = async () => {
         const emp = document.getElementById("empresa").value;
         const zon = document.getElementById("zona").value;
-        const sop = document.getElementById("soporte").value;
         const suc = document.getElementById("sucursal").value;
-        const file = document.getElementById("archivo").files[0];
-
-        if(!emp || !suc || !file) return Swal.fire("Error", "Campos obligatorios faltantes", "error");
-
+        const arc = document.getElementById("archivo").files[0];
+        if (!emp || !zon || !suc || !arc) return Swal.fire("Error", "Campos incompletos", "error");
+        
         window.mostrarCargando();
         const reader = new FileReader();
-        reader.onload = async (e) => {
-            const folio = "TEC-" + Math.floor(Math.random()*9000+1000);
-            await push(ref(database, "tecnologia"), {
-                folio, empresa: emp.toUpperCase(), zona: zon.toUpperCase(), 
-                soporte: sop.toUpperCase(), sucursal: suc.toUpperCase(),
-                status: "PENDIENTE", fechaEnvio: new Date().toLocaleString(),
-                archivoData: e.target.result, usuario: window.nombreSesion
-            });
-            document.getElementById("formTec").reset();
-            window.ocultarCargando();
-            Swal.fire("Éxito", "Registrado correctamente", "success");
+        reader.onload = async () => {
+            try {
+                const key = `TEC_${emp}_${zon}`.toUpperCase();
+                const rFolio = ref(database, "folios/" + key);
+                const sFolio = await get(rFolio);
+                let n = sFolio.exists() ? sFolio.val() + 1 : 1;
+                await set(rFolio, n);
+                const fol = `TEC-${emp}-${zon}-${n.toString().padStart(4, "0")}`.toUpperCase();
+                await push(solicitudesRef, {
+                    folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
+                    soporte: window.nombreSesion, sucursal: suc.toUpperCase(),
+                    archivoData: reader.result, status: "PENDIENTE", 
+                    fechaEnvio: new Date().toLocaleString(), fechaISO: new Date().toISOString(),
+                    usuario: window.usuarioSesion, eliminado: false
+                });
+                Swal.fire("Éxito", "Solicitud Guardada", "success");
+                document.getElementById("formTec").reset();
+            } catch (e) {
+                Swal.fire("Error", "No se pudo guardar", "error");
+            } finally {
+                window.ocultarCargando();
+            }
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(arc);
     };
-
-    window.verSeguimiento = (fol) => { location.href = `seguimiento.html?folio=${encodeURIComponent(fol)}`; };
 
     window.eliminarSolicitud = async (id) => {
-        // Lógica de archivado que ya tenías...
-        if(confirm("¿Eliminar registro?")) {
+        const { value: motivo } = await Swal.fire({ title: 'Motivo de eliminación', input: 'textarea', showCancelButton: true });
+        if (motivo) {
             window.mostrarCargando();
-            await remove(ref(database, `tecnologia/${id}`));
+            await update(ref(database, `tecnologia/${id}`), { eliminado: true, motivoEliminacion: motivo.toUpperCase() });
             window.ocultarCargando();
+            Swal.fire("Eliminado", "", "success");
         }
     };
+
+    window.verPDF = d => { const w = window.open(); w.document.write(`<iframe src="${d}" style="width:100%;height:100%;"></iframe>`); };
+    window.irSeguimiento = f => location.href = "seguimiento.html?folio=" + encodeURIComponent(f);
+    window.verHistorialFolio = fol => {
+        const segs = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
+        let html = `<div class="table-responsive"><table class="table table-sm mt-3"><thead><tr class="table-dark"><th>Fecha</th><th>Status</th><th>Usuario</th><th>Comentarios</th><th>Evidencia</th></tr></thead><tbody>${segs.map(h => `<tr><td>${h.fechaRegistro}</td><td>${h.status}</td><td>${h.usuario}</td><td>${h.comentarios||''}</td><td>${h.fotoEvidencia ? `<button class="btn btn-sm btn-info" onclick="window.verPDF('${h.fotoEvidencia}')">📸</button>` : '-'}</td></tr>`).join('')}</tbody></table></div>`;
+        Swal.fire({ title: `Historial: ${fol}`, html: html, width: '850px' });
+    };
+
+    function calcularTranscurrido(f) {
+        const d = new Date(f); if (isNaN(d)) return "N/A";
+        const dif = new Date() - d;
+        return `${Math.floor(dif / 3600000)}h`;
+    }
 </script>
-<script>
+    <script>
   // Seguridad de código fuente
   document.addEventListener('contextmenu', (e) => e.preventDefault());
   document.onkeydown = function(e) {
@@ -201,5 +410,3 @@
 </script>
 </body>
 </html>
-
-
