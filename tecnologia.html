@@ -149,12 +149,10 @@
     const seguimientoRef = ref(database, "seguimiento");
     let globalSeguimientos = [];
 
-    // Listener de Seguimientos
     onValue(seguimientoRef, snap => {
         globalSeguimientos = [];
         snap.forEach(c => { globalSeguimientos.push({ ...c.val(), id: c.key }); });
         
-        // Listener de Solicitudes (Anidado para asegurar datos de seguimiento)
         onValue(solicitudesRef, snapSolicitudes => {
             try {
                 renderTable(snapSolicitudes);
@@ -203,7 +201,6 @@
                                     <span class="action-btn ${window.esSoporteJR ? 'action-disabled' : ''}" onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}" title="Dar Seguimiento">📋</span>
                                 `}
                                 ${window.puedeVerBase ? `
-                                    <span class="action-btn text-danger" onclick="window.eliminarSolicitud('${idKey}')" title="Eliminar">🗑️</span>
                                     <span class="action-btn text-secondary" onclick="window.depurarRegistroPermanente('${idKey}', '${s.folio}')" title="Archivar Permanente">📦</span>
                                 ` : ``}
                             </div>
@@ -211,6 +208,24 @@
                     </tr>`;
             }
         });
+    }
+
+    // FUNCIÓN PARA ENVIAR CORREO
+    async function enviarCorreo(datos) {
+        const params = {
+            to_name: "Admin / Sistemas",
+            from_name: window.nombreSesion,
+            folio: datos.folio,
+            empresa: datos.empresa,
+            zona: datos.zona,
+            sucursal: datos.sucursal,
+            status: "PENDIENTE",
+            message: `Se ha generado una nueva solicitud de tecnología con Folio: ${datos.folio}`
+        };
+
+        emailjs.send("service_xsn721p", "template_dsk906g", params)
+            .then(() => console.log("Correo enviado con éxito"))
+            .catch((err) => console.error("Error al enviar correo:", err));
     }
 
     window.confirmarEntrega = async (fol) => {
@@ -273,20 +288,16 @@
             try {
                 const snapSolicitud = await get(ref(database, `tecnologia/${idPrincipal}`));
                 const datos = snapSolicitud.val();
-                
                 const segsRelacionados = globalSeguimientos.filter(x => x.folio === folio);
                 
-                // Mover a Historial Permanente
                 await set(ref(database, `historial_permanente/${idPrincipal}`), {
                     ...datos,
                     seguimientos: segsRelacionados,
                     fechaDepuracion: new Date().toISOString()
                 });
 
-                // Borrar de Tecnologia
                 await remove(ref(database, `tecnologia/${idPrincipal}`));
                 
-                // Borrar Seguimientos
                 const snapSegs = await get(seguimientoRef);
                 snapSegs.forEach(child => {
                     if(child.val().folio === folio) remove(ref(database, `seguimiento/${child.key}`));
@@ -356,13 +367,20 @@
                 let n = sFolio.exists() ? sFolio.val() + 1 : 1;
                 await set(rFolio, n);
                 const fol = `TEC-${emp}-${zon}-${n.toString().padStart(4, "0")}`.toUpperCase();
-                await push(solicitudesRef, {
+                
+                const nuevaSolicitud = {
                     folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
                     soporte: window.nombreSesion, sucursal: suc.toUpperCase(),
                     archivoData: reader.result, status: "PENDIENTE", 
                     fechaEnvio: new Date().toLocaleString(), fechaISO: new Date().toISOString(),
                     usuario: window.usuarioSesion, eliminado: false
-                });
+                };
+
+                await push(solicitudesRef, nuevaSolicitud);
+                
+                // Enviar Correo
+                await enviarCorreo(nuevaSolicitud);
+
                 Swal.fire("Éxito", "Solicitud Guardada", "success");
                 document.getElementById("formTec").reset();
             } catch (e) {
@@ -372,16 +390,6 @@
             }
         };
         reader.readAsDataURL(arc);
-    };
-
-    window.eliminarSolicitud = async (id) => {
-        const { value: motivo } = await Swal.fire({ title: 'Motivo de eliminación', input: 'textarea', showCancelButton: true });
-        if (motivo) {
-            window.mostrarCargando();
-            await update(ref(database, `tecnologia/${id}`), { eliminado: true, motivoEliminacion: motivo.toUpperCase() });
-            window.ocultarCargando();
-            Swal.fire("Eliminado", "", "success");
-        }
     };
 
     window.verPDF = d => { const w = window.open(); w.document.write(`<iframe src="${d}" style="width:100%;height:100%;"></iframe>`); };
@@ -398,15 +406,15 @@
         return `${Math.floor(dif / 3600000)}h`;
     }
 </script>
-    <script>
-  // Seguridad de código fuente
-  document.addEventListener('contextmenu', (e) => e.preventDefault());
-  document.onkeydown = function(e) {
-    if(e.keyCode == 123) return false;
-    if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
-    if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
-    if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
-  };
+//bloqueo seguridad codigo
+<script>
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
+    document.onkeydown = function(e) {
+        if(e.keyCode == 123) return false;
+        if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
+        if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
+        if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+    };
 </script>
 </body>
 </html>
