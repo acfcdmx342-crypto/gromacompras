@@ -61,6 +61,7 @@
         </div>
     </div>
 </div>
+
 <script type="module">
 import { database, ref, onValue, get } from "./firebase.js";
 
@@ -68,11 +69,11 @@ const sesionRaw = localStorage.getItem("usuarioLogueado");
 if (!sesionRaw) location.href = "index.html";
 const sesion = JSON.parse(sesionRaw);
 
-// --- LÓGICA DE PERMISOS Y VISIBILIDAD ---
+// --- LÓGICA DE PERMISOS ---
 const puestoUser = (sesion.puesto || "").toUpperCase();
-const usuarioActual = (sesion.usuario || "");
+// Obtenemos el nombre/usuario de la sesión para comparar
+const nombreSesion = (sesion.nombre || sesion.usuario || "").toUpperCase();
 
-// 1. Definir quiénes pueden ver TODO
 const superPuestos = [
     "GERENTE DE SISTEMAS", 
     "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", 
@@ -83,7 +84,6 @@ const superPuestos = [
 
 const puedeVerTodo = superPuestos.includes(puestoUser);
 
-// 2. Refuerzo de visibilidad para botón de exportar (Soporte Técnico JR no ve)
 window.esSoporteJR = puestoUser === "SOPORTE TECNICO JR";
 if (window.esSoporteJR) {
     const btnExp = document.getElementById("btnExportar");
@@ -92,7 +92,6 @@ if (window.esSoporteJR) {
 
 let datosParaExportar = [];
 
-// --- FUNCIONES DE APOYO ---
 const limpiarFecha = (str) => {
     if(!str || str === "---") return null;
     if(str.includes('T')) return new Date(str);
@@ -130,39 +129,43 @@ async function cargarHistorial() {
         snapPerm.forEach(c => {
             const s = c.val();
             
-            // --- FILTRO DE PRIVACIDAD POR PERFIL ---
-            // Si no es SuperUsuario, solo ve lo que él mismo registró
-            if (!puedeVerTodo && s.usuario !== usuarioActual) {
-                return; // Saltar este registro
+            // --- CORRECCIÓN FILTRO DE PRIVACIDAD ---
+            // Buscamos coincidencia en cualquier campo que guarde quién lo hizo
+            const creador = (s.usuario || s.soporte || s.nombreUsuario || "").toUpperCase();
+            
+            if (!puedeVerTodo && creador !== nombreSesion && creador !== "") {
+                return; 
             }
-            // ---------------------------------------
 
             const segs = s.seguimientos || [];
             const estaEliminado = s.status === "ELIMINADO" || s.eliminado === true;
             const segConf = segs.find(x => x.status === "CONFIRMADO");
             
-            let motivo = estaEliminado ? (s.motivoEliminacion || "Registro Eliminado") : (segConf?.comentarios || "Entregado");
+            // Si está en historial_permanente pero no tiene seguimiento CONFIRMADO, tomamos datos del objeto raíz
+            let motivo = estaEliminado ? (s.motivoEliminacion || "Registro Eliminado") : (segConf?.comentarios || s.comentarios || "Finalizado");
             let fechaCierreRaw = segConf?.fechaRegistro || s.fechaEliminacion || s.fechaDepuracion || s.fechaArchivo || "---";
             
             let fInicio = s.fechaISO ? new Date(s.fechaISO) : limpiarFecha(s.fechaEnvio);
             let fFin = limpiarFecha(fechaCierreRaw);
             let tiempoEntrega = "N/A";
 
-            if (fInicio && fFin && !isNaN(fInicio) && !isNaN(fFin)) {
+            if (fInicio && fFin && !isNaN(fInicio.getTime()) && !isNaN(fFin.getTime())) {
                 const totalMin = Math.floor((fFin - fInicio) / 60000);
                 const dias = Math.floor(totalMin / 1440), horas = Math.floor((totalMin % 1440) / 60), mins = totalMin % 60;
                 tiempoEntrega = dias > 0 ? `${dias}d ${horas}h` : horas > 0 ? `${horas}h ${mins}m` : `${mins}m`;
             }
 
             let claseFila = estaEliminado ? "st-eliminado" : "st-confirmado";
-            let badge = estaEliminado ? `<span class="badge badge-del">ELIMINADO</span>` : `<span class="badge badge-ok">CONFIRMADO</span>`;
+            let badgeTexto = estaEliminado ? "ELIMINADO" : (s.status || "CONFIRMADO");
+            let badge = `<span class="badge ${estaEliminado ? 'badge-del' : 'badge-ok'}">${badgeTexto}</span>`;
+            
             let fotoBtn = segConf?.fotoEvidencia ? `<img src="${segConf.fotoEvidencia}" width="40" height="40" class="img-preview shadow-sm" onclick="window.verFoto('${segConf.fotoEvidencia}', '${s.folio}')">` : "---";
 
             datosParaExportar.push({ 
                 folio: s.folio, 
                 empresa: s.empresa,
                 sucursal: s.sucursal,
-                status: estaEliminado ? "ELIMINADO" : "CONFIRMADO", 
+                status: badgeTexto, 
                 motivo, 
                 tiempo: tiempoEntrega 
             });
@@ -170,13 +173,13 @@ async function cargarHistorial() {
             body.innerHTML += `
                 <tr class="${claseFila}">
                     <td class="fw-bold">${s.folio}</td>
-                    <td>${s.empresa}</td>
-                    <td>${s.sucursal}</td>
+                    <td>${s.empresa || '---'}</td>
+                    <td>${s.sucursal || '---'}</td>
                     <td>${badge}</td>
                     <td class="small text-start">${motivo}</td>
                     <td>${fotoBtn}</td>
-                    <td><a href="${s.archivoData}" download="REQ_${s.folio}" class="btn btn-sm btn-secondary">📥</a></td>
-                    <td><small>${s.fechaEnvio || '---'}</small></td>
+                    <td><a href="${s.archivoData || '#'}" download="REQ_${s.folio}" class="btn btn-sm btn-secondary ${!s.archivoData ? 'disabled' : ''}">📥</a></td>
+                    <td><small>${s.fechaEnvio || s.fechaRegistro || '---'}</small></td>
                     <td><small class="fw-bold">${fechaCierreRaw.includes('T') ? fechaCierreRaw.split('T')[0] : fechaCierreRaw}</small></td>
                     <td class="fw-bold text-primary">${tiempoEntrega}</td>
                 </tr>
@@ -184,17 +187,17 @@ async function cargarHistorial() {
         });
 
         if (body.innerHTML === "") {
-            body.innerHTML = "<tr><td colspan='10'>No tienes registros finalizados para mostrar.</td></tr>";
+            body.innerHTML = "<tr><td colspan='10'>No se encontraron registros para tu usuario.</td></tr>";
         }
 
     } catch (error) {
-        console.error("Error:", error);
+        console.error("Error cargando historial:", error);
     } finally { 
         window.ocultarCargando(); 
     }
 }
 
-// --- VER FOTO Y EXPORTAR ---
+// --- FUNCIONES MANTENIDAS ---
 window.verFoto = (url, folio) => Swal.fire({ title: `Evidencia - ${folio}`, imageUrl: url, imageAlt: 'Evidencia', width: '600px' });
 
 window.descargarExcel = () => {
@@ -202,7 +205,6 @@ window.descargarExcel = () => {
         Swal.fire("Acceso Denegado", "No tienes permisos para exportar datos.", "error");
         return;
     }
-
     let csvContent = "\uFEFF"; 
     csvContent += "Folio,Empresa,Sucursal,Status Final,Motivo,Tiempo de Entrega\n";
     datosParaExportar.forEach(d => {
@@ -211,11 +213,10 @@ window.descargarExcel = () => {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `Historial_Compras_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `Historial_Finalizadas_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
 };
 
-// Bloqueo de inspección
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 document.onkeydown = function(e) {
     if(e.keyCode == 123) return false;
