@@ -27,7 +27,6 @@
         .status-confirmado { background: #6f42c1 !important; color: white !important; border-radius: 20px; }
         
         .registro-eliminado { background-color: #ffe5e5 !important; color: #b00000 !important; }
-        .texto-eliminado { text-decoration: line-through; opacity: 0.7; }
         
         input[type="text"], input[type="date"], textarea, .form-select { border-radius: 10px; border: 1px solid #dee2e6; padding: 10px; text-transform: uppercase; }
         .field-locked { background-color: #e9ecef !important; cursor: not-allowed; pointer-events: none; border: 1px solid #cbd5e0 !important; }
@@ -64,7 +63,6 @@
     const sesion = JSON.parse(localStorage.getItem("usuarioLogueado"));
     if (!sesion) { location.href = "index.html"; }
     window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
-    window.ocultarCargando = () => { document.getElementById("loader").style.none; }; // Nota: Corregido a .style.display = "none" si fallara, pero mantengo estructura original
     window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
 </script>
 
@@ -183,11 +181,10 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script type="module">
-    import { database, ref, get, push, update, onValue, query, orderByChild, equalTo } from "./firebase.js";
+    import { database, ref, get, push, update, onValue, query, orderByChild, equalTo, remove } from "./firebase.js";
 
-    // 1. Obtener el folio de la URL al cargar la página
-const urlParams = new URLSearchParams(window.location.search);
-const folioDesdeURL = urlParams.get('folio');
+    const urlParams = new URLSearchParams(window.location.search);
+    const folioDesdeURL = urlParams.get('folio');
     
     document.getElementById("nombreUsuarioMenu").textContent = sesion.nombre;
     window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
@@ -237,7 +234,6 @@ const folioDesdeURL = urlParams.get('folio');
         }
     };
 
-    // --- FUNCIÓN CARGAR PARA CONTINUAR (CON CAMPO COMENTARIO LIBRE) ---
     window.cargarParaContinuar = (dataString) => {
         const data = JSON.parse(decodeURIComponent(dataString));
         if(data.eliminado) return;
@@ -248,17 +244,13 @@ const folioDesdeURL = urlParams.get('folio');
         campos.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
-            
-            // Si es comentarios, lo limpiamos y nos aseguramos que esté libre
             if (id === "comentarios") {
-                el.value = ""; // Se limpia para nuevo comentario
+                el.value = ""; 
                 el.readOnly = false;
                 el.disabled = false;
                 el.classList.remove("field-locked");
             } else {
                 el.value = data[id] || "";
-                
-                // LÓGICA DE BLOQUEO ORIGINAL: Si tiene info y no es status, se bloquea.
                 if (el.value !== "" && id !== "status") {
                     el.readOnly = true;
                     el.classList.add("field-locked");
@@ -282,17 +274,15 @@ const folioDesdeURL = urlParams.get('folio');
             if (d.eliminado || d.status === "CONFIRMADO") return;
             const option = document.createElement("option");
             option.value = d.folio; option.textContent = d.folio;
-            // --- NUEVA LÓGICA: Auto-seleccionar si coincide con la URL ---
-        if (folioDesdeURL && d.folio === folioDesdeURL) {
-            option.selected=true;
-        }
+            if (folioDesdeURL && d.folio === folioDesdeURL) {
+                option.selected=true;
+            }
             selectFolio.appendChild(option);
         });
-// --- NUEVA LÓGICA: Si se seleccionó uno, cargar su info de inmediato ---
-    if (folioDesdeURL) {
-        cargarInfoPorFolio(folioDesdeURL);
-    }
-   });
+        if (folioDesdeURL) {
+            cargarInfoPorFolio(folioDesdeURL);
+        }
+    });
 
     async function cargarInfoPorFolio(fol) {
         if (!fol) return;
@@ -308,6 +298,51 @@ const folioDesdeURL = urlParams.get('folio');
     }
 
     selectFolio.addEventListener("change", (e) => cargarInfoPorFolio(e.target.value));
+
+    // --- FUNCIÓN ELIMINAR PERMANENTE ---
+    window.eliminarPermanente = async (fol) => {
+        const { value: motivo } = await Swal.fire({
+            title: '¿Eliminar Solicitud Permanente?',
+            text: "Esta acción borrará la solicitud de la base de datos activa.",
+            icon: 'warning',
+            input: 'textarea',
+            inputPlaceholder: 'Indique el motivo de la eliminación...',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminar todo',
+            inputValidator: (value) => { if (!value) return 'El motivo es obligatorio' }
+        });
+
+        if (motivo) {
+            window.mostrarCargando();
+            try {
+                // 1. Guardar rastro en historial de seguimiento antes de borrar
+                const registroBaja = {
+                    folio: fol,
+                    status: "ELIMINADO",
+                    comentarios: `ELIMINACIÓN PERMANENTE: ${motivo.toUpperCase()}`,
+                    usuario: sesion.nombre,
+                    fechaRegistro: new Date().toISOString(),
+                    eliminado: true
+                };
+                await push(ref(database, "seguimiento"), registroBaja);
+
+                // 2. Buscar en tecnología y eliminar
+                const qTec = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(fol));
+                const snapTec = await get(qTec);
+                if(snapTec.exists()){
+                    const keyTec = Object.keys(snapTec.val())[0];
+                    await remove(ref(database, `tecnologia/${keyTec}`));
+                }
+
+                window.ocultarCargando();
+                Swal.fire("Eliminado", "La solicitud ha sido borrada exitosamente.", "success");
+            } catch (error) {
+                window.ocultarCargando();
+                Swal.fire("Error", "No se pudo completar la eliminación.", "error");
+            }
+        }
+    };
 
     document.getElementById("btnGuardar").onclick = async () => {
         if (!selectFolio.value) return Swal.fire("Error", "Seleccione un folio", "error");
@@ -377,13 +412,16 @@ const folioDesdeURL = urlParams.get('folio');
 
             const collapseId = `coll_${idx}`;
             tbody.innerHTML += `
-                <tr class="group-header" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
-                    <td class="text-center"><i class="fa-solid fa-chevron-down chevron-icon"></i></td>
+                <tr class="group-header">
+                    <td class="text-center" data-bs-toggle="collapse" data-bs-target="#${collapseId}"><i class="fa-solid fa-chevron-down chevron-icon"></i></td>
                     <td class="fw-bold text-primary">${folio}</td>
                     <td class="small">${(ultimo.descripcion || "").substring(0, 40)}...</td>
                     <td><span class="px-3 py-1 fw-bold small ${ultimo.eliminado ? 'bg-danger text-white' : obtenerClaseEstatus(ultimo.status)}">${ultimo.eliminado ? 'ELIMINADO' : ultimo.status}</span></td>
                     <td><span class="badge bg-light text-dark">${historial.length} reg.</span></td>
-                    <td><button class="btn btn-sm btn-outline-primary">Historial</button></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#${collapseId}">Historial</button>
+                        <i class="fa-solid fa-trash-can text-danger ms-2 fs-5" style="cursor:pointer" title="Eliminar Permanente" onclick="window.eliminarPermanente('${folio}')"></i>
+                    </td>
                 </tr>
                 <tr>
                     <td colspan="6" class="p-0">
@@ -400,11 +438,10 @@ const folioDesdeURL = urlParams.get('folio');
                                                 <td>${new Date(h.fechaRegistro).toLocaleString()}</td>
                                                 <td><span class="badge ${isEliminado ? 'bg-danger' : obtenerClaseEstatus(h.status)}">${isEliminado ? 'ELIMINADO' : h.status}</span></td>
                                                 <td class="small fw-bold">${h.usuario || 'SISTEMA'}</td>
-                                                <td class="small">${isEliminado ? `<b>MOTIVO:</b> ${h.motivoEliminacion}` : (h.comentarios || '-')}</td>
+                                                <td class="small">${h.comentarios || '-'}</td>
                                                 <td>
                                                     ${!isEliminado ? `
-                                                        <i class="fa-solid fa-pen-to-square text-primary me-2" style="cursor:pointer" onclick="window.cargarParaContinuar('${encodeURIComponent(JSON.stringify(h))}')"></i>
-                                                        <i class="fa-solid fa-trash-can text-danger" style="cursor:pointer" onclick="window.eliminarLogico('${h.key}')"></i>
+                                                        <i class="fa-solid fa-pen-to-square text-primary me-2 fs-6" style="cursor:pointer" onclick="window.cargarParaContinuar('${encodeURIComponent(JSON.stringify(h))}')"></i>
                                                     ` : '<i class="fa-solid fa-ban text-muted"></i>'}
                                                 </td>
                                             </tr>
@@ -418,27 +455,6 @@ const folioDesdeURL = urlParams.get('folio');
         });
         window.ocultarCargando();
     });
-
-    window.eliminarLogico = async (key) => {
-        const { value: motivo } = await Swal.fire({
-            title: '¿Eliminar registro?',
-            input: 'textarea',
-            inputPlaceholder: 'Escriba el motivo...',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            inputValidator: (value) => { if (!value) return 'El motivo es obligatorio' }
-        });
-        if (motivo) {
-            window.mostrarCargando();
-            await update(ref(database, `seguimiento/${key}`), { 
-                eliminado: true, 
-                motivoEliminacion: motivo.toUpperCase(),
-                fechaEliminacion: new Date().toISOString()
-            });
-            window.ocultarCargando();
-            Swal.fire('Actualizado', 'Registro marcado como eliminado.', 'success');
-        }
-    };
 </script>
 
 <script>
@@ -452,4 +468,3 @@ const folioDesdeURL = urlParams.get('folio');
 </script>
 </body>
 </html>
-
