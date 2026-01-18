@@ -185,6 +185,10 @@
 <script type="module">
     import { database, ref, get, push, update, onValue, query, orderByChild, equalTo } from "./firebase.js";
 
+    // 1. Obtener el folio de la URL al cargar la página
+const urlParams = new URLSearchParams(window.location.search);
+const folioDesdeURL = urlParams.get('folio');
+    
     document.getElementById("nombreUsuarioMenu").textContent = sesion.nombre;
     window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
 
@@ -278,9 +282,17 @@
             if (d.eliminado || d.status === "CONFIRMADO") return;
             const option = document.createElement("option");
             option.value = d.folio; option.textContent = d.folio;
+            // --- NUEVA LÓGICA: Auto-seleccionar si coincide con la URL ---
+        if (folioDesdeURL && d.folio === folioDesdeURL) {
+            option.selected=true;
+        }
             selectFolio.appendChild(option);
         });
-    });
+// --- NUEVA LÓGICA: Si se seleccionó uno, cargar su info de inmediato ---
+    if (folioDesdeURL) {
+        cargarInfoPorFolio(folioDesdeURL);
+    }
+   });
 
     async function cargarInfoPorFolio(fol) {
         if (!fol) return;
@@ -440,3 +452,4 @@
 </script>
 </body>
 </html>
+
