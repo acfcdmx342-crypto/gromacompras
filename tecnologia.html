@@ -165,17 +165,13 @@
         snap.forEach(c => {
             const s = c.val();
             const idKey = c.key;
-            
             const segsDelFolio = globalSeguimientos.filter(x => x.folio === s.folio).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
             const statusActual = segsDelFolio.length > 0 ? segsDelFolio[0].status : (s.status || "PENDIENTE");
-
             // REGLA: Si está eliminado O el estatus es CONFIRMADO, desaparece de esta vista
             if (s.eliminado === true || statusActual === "CONFIRMADO") return;
-
             if(window.puedeVerBase || s.usuario === window.usuarioSesion) {
                 const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas", "DEVOLUCION": "st-devolucion"};
                 const claseColor = colores[statusActual] || "st-default";
-
                 tbody.innerHTML += `
                     <tr>
                         <td><small class="fw-bold">${s.folio}</small></td>
@@ -232,7 +228,7 @@
                     folio: fol, 
                     status: "CONFIRMADO", 
                     comentarios: formValues.c.toUpperCase(), 
-                    descripcion:"ENTREGA CONFIRMADA POR SOPORTE JR"
+                    descripcion:"ENTREGA CONFIRMADA POR SOPORTE JR",
                     fotoEvidencia: reader.result, 
                   fechaRegistro: new Date().toISOString(), // CAMBIO CLAVE: .toISOString()
                     usuario: window.nombreSesion 
@@ -358,6 +354,7 @@
 </script>
 </body>
 </html>
+
 
 
 
