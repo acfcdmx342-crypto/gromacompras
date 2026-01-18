@@ -17,7 +17,7 @@
         .img-preview:hover { transform: scale(1.1); }
         .btn-rounded { border-radius: 50px; }
         #loader { 
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(255,255,255,0.95); z-index: 9999; justify-content: center; 
             align-items: center; flex-direction: column; 
         }
@@ -68,12 +68,13 @@ import { database, ref, onValue, get } from "./firebase.js";
 const sesionRaw = localStorage.getItem("usuarioLogueado");
 if (!sesionRaw) location.href = "index.html";
 const sesion = JSON.parse(sesionRaw);
-window.usuarioSesion = sesion.usuario;
 
 let datosParaExportar = [];
 
+// Limpiador de fechas mejorado para soportar formatos mixtos
 const limpiarFecha = (str) => {
     if(!str || str === "---") return null;
+    if(str.includes('T')) return new Date(str); // Si ya es ISO
     try {
         let s = str.replace(/\./g, '').replace(/([ap])\s*m/i, '$1M');
         let partes = s.split(/[\/\s,:]+/);
@@ -89,6 +90,7 @@ const limpiarFecha = (str) => {
 window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
 window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
 
+// Escuchar cambios en historial_permanente
 onValue(ref(database, "historial_permanente"), () => cargarHistorial());
 
 async function cargarHistorial() {
@@ -99,20 +101,30 @@ async function cargarHistorial() {
         body.innerHTML = "";
         datosParaExportar = [];
 
+        if (!snapPerm.exists()) {
+            body.innerHTML = "<tr><td colspan='10'>No hay registros en el historial</td></tr>";
+            return;
+        }
+
         snapPerm.forEach(c => {
             const s = c.val();
             const segs = s.seguimientos || [];
             
+            // Lógica de detección de status
             const estaEliminado = s.status === "ELIMINADO" || s.eliminado === true;
             const segConf = segs.find(x => x.status === "CONFIRMADO");
             
-            let motivo = estaEliminado ? (s.motivoEliminacion || "Sin motivo") : (segConf?.comentarios || "Entregado");
-            let fechaCierre = segConf ? segConf.fechaRegistro : (s.fechaEliminacion || s.fechaArchivo || "---");
+            // Recuperar motivo: Si fue eliminado usamos motivoEliminacion, si no, el comentario del último seguimiento
+            let motivo = estaEliminado ? (s.motivoEliminacion || "Registro Eliminado") : (segConf?.comentarios || "Entregado");
             
-            // Cálculo de tiempo
+            // Fecha de cierre: Prioridad a fecha de confirmación, luego eliminación, luego fecha de archivo
+            let fechaCierreRaw = segConf?.fechaRegistro || s.fechaEliminacion || s.fechaDepuracion || s.fechaArchivo || "---";
+            
+            // Cálculo de tiempo de respuesta
             let fInicio = s.fechaISO ? new Date(s.fechaISO) : limpiarFecha(s.fechaEnvio);
-            let fFin = (fechaCierre.includes('T')) ? new Date(fechaCierre) : limpiarFecha(fechaCierre);
+            let fFin = limpiarFecha(fechaCierreRaw);
             let tiempoEntrega = "N/A";
+
             if (fInicio && fFin && !isNaN(fInicio) && !isNaN(fFin)) {
                 const totalMin = Math.floor((fFin - fInicio) / 60000);
                 const dias = Math.floor(totalMin / 1440), horas = Math.floor((totalMin % 1440) / 60), mins = totalMin % 60;
@@ -121,9 +133,18 @@ async function cargarHistorial() {
 
             let claseFila = estaEliminado ? "st-eliminado" : "st-confirmado";
             let badge = estaEliminado ? `<span class="badge badge-del">ELIMINADO</span>` : `<span class="badge badge-ok">CONFIRMADO</span>`;
+            
+            // Evidencia: Buscar foto en el seguimiento confirmado
             let fotoBtn = segConf?.fotoEvidencia ? `<img src="${segConf.fotoEvidencia}" width="40" height="40" class="img-preview shadow-sm" onclick="window.verFoto('${segConf.fotoEvidencia}', '${s.folio}')">` : "---";
 
-            datosParaExportar.push({ folio: s.folio, status: estaEliminado ? "ELIMINADO" : "CONFIRMADO", motivo, tiempo: tiempoEntrega });
+            datosParaExportar.push({ 
+                folio: s.folio, 
+                empresa: s.empresa,
+                sucursal: s.sucursal,
+                status: estaEliminado ? "ELIMINADO" : "CONFIRMADO", 
+                motivo, 
+                tiempo: tiempoEntrega 
+            });
 
             body.innerHTML += `
                 <tr class="${claseFila}">
@@ -134,29 +155,39 @@ async function cargarHistorial() {
                     <td class="small text-start">${motivo}</td>
                     <td>${fotoBtn}</td>
                     <td><a href="${s.archivoData}" download="REQ_${s.folio}" class="btn btn-sm btn-secondary">📥</a></td>
-                    <td><small>${s.fechaEnvio}</small></td>
-                    <td><small class="fw-bold">${fechaCierre.includes('T') ? fechaCierre.split('T')[0] : fechaCierre}</small></td>
+                    <td><small>${s.fechaEnvio || '---'}</small></td>
+                    <td><small class="fw-bold">${fechaCierreRaw.includes('T') ? fechaCierreRaw.split('T')[0] : fechaCierreRaw}</small></td>
                     <td class="fw-bold text-primary">${tiempoEntrega}</td>
                 </tr>
             `;
         });
-    } finally { window.ocultarCargando(); }
+    } catch (error) {
+        console.error("Error cargando historial:", error);
+    } finally { 
+        window.ocultarCargando(); 
+    }
 }
 
-window.verFoto = (url, folio) => Swal.fire({ title: `Evidencia - ${folio}`, imageUrl: url, imageAlt: 'Evidencia' });
+window.verFoto = (url, folio) => Swal.fire({ 
+    title: `Evidencia - ${folio}`, 
+    imageUrl: url, 
+    imageAlt: 'Evidencia',
+    width: '600px'
+});
 
 window.descargarExcel = () => {
     let csvContent = "\uFEFF"; 
-    csvContent += "Folio,Status Final,Motivo,Tiempo de Entrega\n";
+    csvContent += "Folio,Empresa,Sucursal,Status Final,Motivo,Tiempo de Entrega\n";
     datosParaExportar.forEach(d => {
-        csvContent += `"${d.folio}","${d.status}","${d.motivo.replace(/"/g, '""')}","${d.tiempo}"\n`;
+        csvContent += `"${d.folio}","${d.empresa}","${d.sucursal}","${d.status}","${d.motivo.replace(/"/g, '""')}","${d.tiempo}"\n`;
     });
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `Historial_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `Historial_Tecnologia_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
 };
+
 // Bloqueo de inspección
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 document.onkeydown = function(e) {
