@@ -71,7 +71,6 @@ const sesion = JSON.parse(sesionRaw);
 
 // --- LÓGICA DE PERMISOS ---
 const puestoUser = (sesion.puesto || "").toUpperCase();
-// Obtenemos el nombre/usuario de la sesión para comparar
 const nombreSesion = (sesion.nombre || sesion.usuario || "").toUpperCase();
 
 const superPuestos = [
@@ -129,21 +128,23 @@ async function cargarHistorial() {
         snapPerm.forEach(c => {
             const s = c.val();
             
-            // --- CORRECCIÓN FILTRO DE PRIVACIDAD ---
-            // Buscamos coincidencia en cualquier campo que guarde quién lo hizo
-            const creador = (s.usuario || s.soporte || s.nombreUsuario || "").toUpperCase();
+            // --- CORRECCIÓN FILTRO DE PRIVACIDAD (Basado en campo 'soporte' de tu BD) ---
+            const creador = (s.soporte || s.usuario || s.nombreUsuario || "").toUpperCase();
             
             if (!puedeVerTodo && creador !== nombreSesion && creador !== "") {
                 return; 
             }
 
-            const segs = s.seguimientos || [];
+            // Normalización de seguimientos (Firebase puede devolver objeto o array)
+            const segsRaw = s.seguimientos || [];
+            const segs = Array.isArray(segsRaw) ? segsRaw : Object.values(segsRaw);
+            
             const estaEliminado = s.status === "ELIMINADO" || s.eliminado === true;
             const segConf = segs.find(x => x.status === "CONFIRMADO");
             
-            // Si está en historial_permanente pero no tiene seguimiento CONFIRMADO, tomamos datos del objeto raíz
+            // Lógica de Motivo y Fecha de Cierre alineada a tu BD ('fechaDepuracion')
             let motivo = estaEliminado ? (s.motivoEliminacion || "Registro Eliminado") : (segConf?.comentarios || s.comentarios || "Finalizado");
-            let fechaCierreRaw = segConf?.fechaRegistro || s.fechaEliminacion || s.fechaDepuracion || s.fechaArchivo || "---";
+            let fechaCierreRaw = segConf?.fechaRegistro || s.fechaDepuracion || s.fechaEliminacion || s.fechaArchivo || "---";
             
             let fInicio = s.fechaISO ? new Date(s.fechaISO) : limpiarFecha(s.fechaEnvio);
             let fFin = limpiarFecha(fechaCierreRaw);
@@ -187,11 +188,12 @@ async function cargarHistorial() {
         });
 
         if (body.innerHTML === "") {
-            body.innerHTML = "<tr><td colspan='10'>No se encontraron registros para tu usuario.</td></tr>";
+            body.innerHTML = `<tr><td colspan='10'>No se encontraron registros finalizados para: ${nombreSesion}</td></tr>`;
         }
 
     } catch (error) {
         console.error("Error cargando historial:", error);
+        Swal.fire("Error", "No se pudo sincronizar el historial con la base de datos.", "error");
     } finally { 
         window.ocultarCargando(); 
     }
