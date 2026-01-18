@@ -193,7 +193,90 @@
     document.getElementById("nombreUsuarioMenu").textContent = sesion.nombre;
     window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
 
-    // ... (Mantener funciones auxiliares como obtenerClaseEstatus y toBase64 igual) ...
+    const selectFolio = document.getElementById("folio");
+    const solInput = document.getElementById("solicito");
+    const sucInput = document.getElementById("sucursal");
+    const btnArc = document.getElementById("btnArchivo");
+    let dataArchivoActual = null;
+
+    const obtenerClaseEstatus = (status) => {
+        switch(status) {
+            case 'ENVIADO A COMPRAS': return 'status-compras';
+            case 'ENVIADO A ZONA': return 'status-zona';
+            case 'PENDIENTE POR AUTORIZAR': return 'status-pendiente';
+            case 'EN SISTEMAS': return 'status-sistemas';
+            case 'DEVOLUCIÓN': return 'status-devolucion';
+            case 'CONFIRMADO': return 'status-confirmado';
+            default: return 'bg-secondary text-white';
+        }
+    };
+
+    const toBase64 = file => new Promise((resolve, reject) => {
+        if (!file) resolve(null);
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
+
+    window.verArchivoOrigen = () => {
+        if (dataArchivoActual) {
+            const win = window.open();
+            win.document.write(`<iframe src="${dataArchivoActual}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+        }
+    };
+
+    window.cargarParaContinuar = (dataString) => {
+        const data = JSON.parse(decodeURIComponent(dataString));
+        if(data.eliminado) return;
+        const campos = ["fechaCompras", "descripcion", "fechaCot", "folioCot", "autoriza", "fechaAuto", "fechaEntrega", "recibe", "folioFactura", "fechaEnvio", "envia", "adonde", "status", "comentarios"];
+        
+        selectFolio.value = data.folio;
+
+        campos.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.value = data[id] || "";
+            el.readOnly = false;
+            el.disabled = false;
+            el.classList.remove("field-locked");
+        });
+        cargarInfoPorFolio(data.folio);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.mostrarCargando();
+
+    onValue(ref(database, "tecnologia"), (snap) => {
+        selectFolio.innerHTML = '<option value="">Seleccione un folio</option>';
+        snap.forEach(child => {
+            const d = child.val();
+            if (d.eliminado || d.status === "CONFIRMADO") return;
+            const option = document.createElement("option");
+            option.value = d.folio; option.textContent = d.folio;
+            selectFolio.appendChild(option);
+        });
+        const urlParams = new URLSearchParams(window.location.search);
+        if(urlParams.has('folio')) {
+            selectFolio.value = urlParams.get('folio');
+            cargarInfoPorFolio(selectFolio.value);
+        }
+    });
+
+    async function cargarInfoPorFolio(fol) {
+        if (!fol) return;
+        const q = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(fol));
+        const snap = await get(q);
+        if (snap.exists()) {
+            const item = Object.values(snap.val())[0];
+            solInput.value = item.soporte || "";
+            sucInput.value = item.sucursal || "";
+            dataArchivoActual = item.archivoData || null;
+            btnArc.disabled = !dataArchivoActual;
+        }
+    }
+
+    selectFolio.addEventListener("change", (e) => cargarInfoPorFolio(e.target.value));
 
     document.getElementById("btnGuardar").onclick = async () => {
         if (!selectFolio.value) return Swal.fire("Error", "Seleccione un folio", "error");
@@ -221,8 +304,8 @@
                 status: document.getElementById("status").value,
                 comentarios: document.getElementById("comentarios").value.toUpperCase(),
                 fechaRegistro: new Date().toISOString(),
-                // CAMBIO AQUÍ: Usamos sesion.nombre para que aparezca en la tabla
-                usuario: sesion.nombre, 
+                // CORRECCIÓN: Se usa sesion.nombre para evitar el 'undefined'
+                usuario: sesion.nombre,
                 eliminado: false
             };
 
@@ -305,6 +388,27 @@
         });
         window.ocultarCargando();
     });
+
+    window.eliminarLogico = async (key) => {
+        const { value: motivo } = await Swal.fire({
+            title: '¿Eliminar registro?',
+            input: 'textarea',
+            inputPlaceholder: 'Escriba el motivo...',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            inputValidator: (value) => { if (!value) return 'El motivo es obligatorio' }
+        });
+        if (motivo) {
+            window.mostrarCargando();
+            await update(ref(database, `seguimiento/${key}`), { 
+                eliminado: true, 
+                motivoEliminacion: motivo.toUpperCase(),
+                fechaEliminacion: new Date().toISOString()
+            });
+            window.ocultarCargando();
+            Swal.fire('Actualizado', 'Registro marcado como eliminado.', 'success');
+        }
+    };
 </script>
 
 <script>
@@ -318,4 +422,3 @@
 </script>
 </body>
 </html>
-
