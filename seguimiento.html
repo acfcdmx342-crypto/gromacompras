@@ -31,7 +31,7 @@
         .texto-eliminado { text-decoration: line-through; opacity: 0.7; }
         
         input[type="text"], input[type="date"], textarea, .form-select { border-radius: 10px; border: 1px solid #dee2e6; padding: 10px; text-transform: uppercase; }
-        .field-locked { background-color: #e9ecef !important; cursor: not-allowed; pointer-events: none; }
+        .field-locked { background-color: #e9ecef !important; cursor: not-allowed; pointer-events: none; border: 1px solid #cbd5e0 !important; }
         .group-header { cursor: pointer; transition: background 0.2s; }
         .chevron-icon { transition: transform 0.3s; font-size: 0.8rem; }
 
@@ -193,6 +193,19 @@
     document.getElementById("nombreUsuarioMenu").textContent = sesion.nombre;
     window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
 
+    // PERMISOS DE VISIBILIDAD
+    const puestoUser = (sesion.puesto || "").toUpperCase();
+    const usuarioActual = (sesion.nombre || "");
+    const perfilesSistemas = [
+        "GERENTE DE SISTEMAS", 
+        "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", 
+        "COORDINADOR DE SOPORTE TECNICO", 
+        "SOPORTE TECNICO", 
+        "SOPORTE TECNICO JR", 
+        "BECARIOS SISTEMAS"
+    ];
+    const tieneAccesoTotal = perfilesSistemas.includes(puestoUser);
+
     const selectFolio = document.getElementById("folio");
     const solInput = document.getElementById("solicito");
     const sucInput = document.getElementById("sucursal");
@@ -237,9 +250,16 @@
             const el = document.getElementById(id);
             if (!el) return;
             el.value = data[id] || "";
-            el.readOnly = false;
-            el.disabled = false;
-            el.classList.remove("field-locked");
+            
+            // LÓGICA DE BLOQUEO: Si el campo ya tiene info, se bloquea.
+            if (el.value !== "" && id !== "status") {
+                el.readOnly = true;
+                el.classList.add("field-locked");
+            } else {
+                el.readOnly = false;
+                el.disabled = false;
+                el.classList.remove("field-locked");
+            }
         });
         cargarInfoPorFolio(data.folio);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -256,11 +276,6 @@
             option.value = d.folio; option.textContent = d.folio;
             selectFolio.appendChild(option);
         });
-        const urlParams = new URLSearchParams(window.location.search);
-        if(urlParams.has('folio')) {
-            selectFolio.value = urlParams.get('folio');
-            cargarInfoPorFolio(selectFolio.value);
-        }
     });
 
     async function cargarInfoPorFolio(fol) {
@@ -304,7 +319,6 @@
                 status: document.getElementById("status").value,
                 comentarios: document.getElementById("comentarios").value.toUpperCase(),
                 fechaRegistro: new Date().toISOString(),
-                // CORRECCIÓN: Se usa sesion.nombre para evitar el 'undefined'
                 usuario: sesion.nombre,
                 eliminado: false
             };
@@ -319,8 +333,7 @@
             }
 
             window.ocultarCargando();
-            let msg = dataGuardar.status === "CONFIRMADO" ? "Folio confirmado y movido al historial" : "Seguimiento guardado correctamente";
-            Swal.fire("Éxito", msg, "success").then(() => location.reload());
+            Swal.fire("Éxito", "Seguimiento guardado correctamente", "success").then(() => location.reload());
         } catch (error) {
             window.ocultarCargando();
             Swal.fire("Error", "No se pudo guardar", "error");
@@ -342,8 +355,11 @@
         Object.keys(grupos).forEach((folio, idx) => {
             const historial = grupos[folio].sort((a, b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
             const ultimo = historial[0];
+
+            // FILTRO DE SEGURIDAD: Solo Sistemas ve todo. Otros solo lo propio.
+            if (!tieneAccesoTotal && ultimo.usuario !== usuarioActual) return;
+
             const collapseId = `coll_${idx}`;
-            
             if (ultimo.status === "CONFIRMADO" && !ultimo.eliminado) return;
 
             tbody.innerHTML += `
