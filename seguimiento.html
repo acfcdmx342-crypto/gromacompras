@@ -19,7 +19,6 @@
         .btn-modern { border-radius: 50px; padding: 12px 35px; font-weight: 600; transition: all 0.3s ease; border: none; letter-spacing: 0.5px; }
         .btn-save { background: linear-gradient(45deg, #0d6efd, #0046af); color: white; box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3); }
         
-        /* --- COLORES DE ESTATUS --- */
         .status-compras { background: #0d6efd !important; color: white !important; border-radius: 20px; }
         .status-zona { background: #ffc107 !important; color: #000 !important; border-radius: 20px; }
         .status-pendiente { background: #fd7e14 !important; color: white !important; border-radius: 20px; }
@@ -28,30 +27,20 @@
         .status-confirmado { background: #6f42c1 !important; color: white !important; border-radius: 20px; }
         
         .registro-eliminado { background-color: #ffe5e5 !important; color: #b00000 !important; }
-        .texto-eliminado { text-decoration: line-through; opacity: 0.7; }
-        
         input[type="text"], input[type="date"], textarea, .form-select { border-radius: 10px; border: 1px solid #dee2e6; padding: 10px; text-transform: uppercase; }
-        .field-locked { background-color: #e9ecef !important; cursor: not-allowed; pointer-events: none; border: 1px solid #cbd5e0 !important; }
+        
+        /* Estilo para campos bloqueados */
+        .field-locked { background-color: #e9ecef !important; cursor: not-allowed; opacity: 0.8; pointer-events: none; }
+        
         .group-header { cursor: pointer; transition: background 0.2s; }
         .chevron-icon { transition: transform 0.3s; font-size: 0.8rem; }
 
         #loader { 
-            display: none; 
-            position: fixed; 
-            top: 0; left: 0; 
-            width: 100%; height: 100%; 
-            background: rgba(255,255,255,0.95); 
-            z-index: 9999; 
-            justify-content: center; 
-            align-items: center; 
-            flex-direction: column; 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(255,255,255,0.95); z-index: 9999; justify-content: center; align-items: center; flex-direction: column; 
         }
         .loader-logo-container { animation: pulse-procomex 1.5s ease-in-out infinite; }
-        @keyframes pulse-procomex {
-            0% { transform: scale(0.95); opacity: 0.8; }
-            50% { transform: scale(1.05); opacity: 1; }
-            100% { transform: scale(0.95); opacity: 0.8; }
-        }
+        @keyframes pulse-procomex { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; } }
     </style>
 </head>
 <body class="p-4">
@@ -193,9 +182,14 @@
     document.getElementById("nombreUsuarioMenu").textContent = sesion.nombre;
     window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
 
-    // PERMISOS DE VISIBILIDAD
+    const selectFolio = document.getElementById("folio");
+    const solInput = document.getElementById("solicito");
+    const sucInput = document.getElementById("sucursal");
+    const btnArc = document.getElementById("btnArchivo");
+    let dataArchivoActual = null;
+
+    // --- LÓGICA DE PERMISOS ---
     const puestoUser = (sesion.puesto || "").toUpperCase();
-    const usuarioActual = (sesion.nombre || "");
     const perfilesSistemas = [
         "GERENTE DE SISTEMAS", 
         "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", 
@@ -205,12 +199,6 @@
         "BECARIOS SISTEMAS"
     ];
     const tieneAccesoTotal = perfilesSistemas.includes(puestoUser);
-
-    const selectFolio = document.getElementById("folio");
-    const solInput = document.getElementById("solicito");
-    const sucInput = document.getElementById("sucursal");
-    const btnArc = document.getElementById("btnArchivo");
-    let dataArchivoActual = null;
 
     const obtenerClaseEstatus = (status) => {
         switch(status) {
@@ -239,30 +227,47 @@
         }
     };
 
+    // --- FUNCIÓN PARA CARGAR Y BLOQUEAR ---
     window.cargarParaContinuar = (dataString) => {
         const data = JSON.parse(decodeURIComponent(dataString));
         if(data.eliminado) return;
-        const campos = ["fechaCompras", "descripcion", "fechaCot", "folioCot", "autoriza", "fechaAuto", "fechaEntrega", "recibe", "folioFactura", "fechaEnvio", "envia", "adonde", "status", "comentarios"];
+        
+        // Todos los campos excepto status y comentarios
+        const camposBloquear = [
+            "fechaCompras", "descripcion", "fechaCot", "folioCot", "fileCot",
+            "autoriza", "fechaAuto", "fechaEntrega", "recibe", "folioFactura", 
+            "fileFactura", "fechaEnvio", "envia", "adonde"
+        ];
         
         selectFolio.value = data.folio;
+        selectFolio.classList.add("field-locked");
 
-        campos.forEach(id => {
+        // Llenar y bloquear campos previos
+        camposBloquear.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
             el.value = data[id] || "";
-            
-            // LÓGICA DE BLOQUEO: Si el campo ya tiene info, se bloquea.
-            if (el.value !== "" && id !== "status") {
-                el.readOnly = true;
-                el.classList.add("field-locked");
-            } else {
-                el.readOnly = false;
-                el.disabled = false;
-                el.classList.remove("field-locked");
-            }
+            el.classList.add("field-locked");
+            el.readOnly = true;
         });
+
+        // Dejar libres solo estos dos
+        document.getElementById("status").value = data.status || "ENVIADO A COMPRAS";
+        document.getElementById("comentarios").value = ""; // Limpiar para nuevo comentario
+        
+        document.getElementById("status").classList.remove("field-locked");
+        document.getElementById("comentarios").classList.remove("field-locked");
+
         cargarInfoPorFolio(data.folio);
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        Swal.fire({
+            icon: 'info',
+            title: 'Modo Seguimiento',
+            text: 'Solo puede actualizar el Estatus y agregar un nuevo Comentario.',
+            timer: 2000,
+            showConfirmButton: false
+        });
     };
 
     window.mostrarCargando();
@@ -333,7 +338,7 @@
             }
 
             window.ocultarCargando();
-            Swal.fire("Éxito", "Seguimiento guardado correctamente", "success").then(() => location.reload());
+            Swal.fire("Éxito", "Movimiento registrado", "success").then(() => location.reload());
         } catch (error) {
             window.ocultarCargando();
             Swal.fire("Error", "No se pudo guardar", "error");
@@ -356,12 +361,12 @@
             const historial = grupos[folio].sort((a, b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
             const ultimo = historial[0];
 
-            // FILTRO DE SEGURIDAD: Solo Sistemas ve todo. Otros solo lo propio.
-            if (!tieneAccesoTotal && ultimo.usuario !== usuarioActual) return;
+            // FILTRO DE VISIBILIDAD: Sistemas ve TODO. Otros solo lo suyo.
+            if (!tieneAccesoTotal && ultimo.usuario !== sesion.nombre) return;
 
-            const collapseId = `coll_${idx}`;
             if (ultimo.status === "CONFIRMADO" && !ultimo.eliminado) return;
 
+            const collapseId = `coll_${idx}`;
             tbody.innerHTML += `
                 <tr class="group-header" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
                     <td class="text-center"><i class="fa-solid fa-chevron-down chevron-icon"></i></td>
@@ -379,23 +384,20 @@
                                     <tr><th>FECHA</th><th>ESTATUS</th><th>USUARIO</th><th>COMENTARIOS</th><th>ACCIONES</th></tr>
                                 </thead>
                                 <tbody>
-                                    ${historial.map(h => {
-                                        const isEliminado = h.eliminado === true;
-                                        return `
-                                            <tr class="${isEliminado ? 'registro-eliminado' : ''}">
-                                                <td>${new Date(h.fechaRegistro).toLocaleString()}</td>
-                                                <td><span class="badge ${isEliminado ? 'bg-danger' : obtenerClaseEstatus(h.status)}">${isEliminado ? 'ELIMINADO' : h.status}</span></td>
-                                                <td class="small fw-bold">${h.usuario || 'SISTEMA'}</td>
-                                                <td class="small">${isEliminado ? `<b>MOTIVO:</b> ${h.motivoEliminacion}` : (h.comentarios || '-')}</td>
-                                                <td>
-                                                    ${!isEliminado ? `
-                                                        <i class="fa-solid fa-pen-to-square text-primary me-2" style="cursor:pointer" onclick="window.cargarParaContinuar('${encodeURIComponent(JSON.stringify(h))}')"></i>
-                                                        <i class="fa-solid fa-trash-can text-danger" style="cursor:pointer" onclick="window.eliminarLogico('${h.key}')"></i>
-                                                    ` : '<i class="fa-solid fa-ban text-muted"></i>'}
-                                                </td>
-                                            </tr>
-                                        `;
-                                    }).join('')}
+                                    ${historial.map(h => `
+                                        <tr class="${h.eliminado ? 'registro-eliminado' : ''}">
+                                            <td>${new Date(h.fechaRegistro).toLocaleString()}</td>
+                                            <td><span class="badge ${h.eliminado ? 'bg-danger' : obtenerClaseEstatus(h.status)}">${h.eliminado ? 'ELIMINADO' : h.status}</span></td>
+                                            <td class="small fw-bold">${h.usuario || 'SISTEMA'}</td>
+                                            <td class="small">${h.eliminado ? `<b>MOTIVO:</b> ${h.motivoEliminacion}` : (h.comentarios || '-')}</td>
+                                            <td>
+                                                ${!h.eliminado ? `
+                                                    <i class="fa-solid fa-pen-to-square text-primary me-2" style="cursor:pointer" onclick="window.cargarParaContinuar('${encodeURIComponent(JSON.stringify(h))}')"></i>
+                                                    <i class="fa-solid fa-trash-can text-danger" style="cursor:pointer" onclick="window.eliminarLogico('${h.key}')"></i>
+                                                ` : '<i class="fa-solid fa-ban text-muted"></i>'}
+                                            </td>
+                                        </tr>
+                                    `).join('')}
                                 </tbody>
                             </table>
                         </div>
@@ -426,6 +428,7 @@
         }
     };
 </script>
+</script>
 
 <script>
   document.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -438,3 +441,4 @@
 </script>
 </body>
 </html>
+
