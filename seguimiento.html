@@ -160,7 +160,12 @@
     </div>
 
     <div class="card shadow p-4">
-        <h4 class="fw-bold mb-4 text-secondary"><i class="fa-solid fa-layer-group me-2"></i>Historial de Seguimientos Activos</h4>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="fw-bold m-0 text-secondary">
+                <i class="fa-solid fa-layer-group me-2"></i>Historial de Seguimientos Activos
+            </h4>
+            <i class="fa-solid fa-broom text-primary fs-4" style="cursor: pointer;" title="Limpiar registros huérfanos" onclick="window.limpiezaAutomatica()"></i>
+        </div>
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead class="table-light">
@@ -282,11 +287,11 @@
 
     selectFolio.addEventListener("change", (e) => cargarInfoPorFolio(e.target.value));
 
-    // --- MEJORA: ELIMINAR Y ARCHIVAR TODO EL OBJETO ---
+    // --- MEJORA: ELIMINACIÓN SEGURA (Incluso si no existe en tecnología) ---
     window.eliminarPermanente = async (fol) => {
         const { value: motivo } = await Swal.fire({
             title: '¿Eliminar Solicitud?',
-            text: "Se moverá al historial permanente con toda su información.",
+            text: "Se archivará el historial y se limpiará de la lista activa.",
             icon: 'warning',
             input: 'textarea',
             inputPlaceholder: 'Motivo de eliminación...',
@@ -299,45 +304,80 @@
         if (motivo) {
             window.mostrarCargando();
             try {
-                // 1. Buscamos en 'tecnologia' para obtener la info completa (Empresa, Sucursal, etc)
                 const qTec = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(fol));
                 const snapTec = await get(qTec);
-                
+                let infoOrig = {};
+                let keyTec = null;
+
                 if(snapTec.exists()){
-                    const keyTec = Object.keys(snapTec.val())[0];
-                    const infoOrig = snapTec.val()[keyTec];
-
-                    // 2. Preparamos el objeto para 'historial_permanente'
-                    const objetoParaHistorial = {
-                        ...infoOrig, // Copiamos TODO lo que tenía originalmente (PDF, Empresa, etc)
-                        status: "ELIMINADO",
-                        motivoEliminacion: motivo.toUpperCase(),
-                        usuarioElimino: sesion.nombre,
-                        fechaDepuracion: new Date().toISOString()
-                    };
-
-                    // 3. Guardamos en historial permanente
-                    await push(ref(database, "historial_permanente"), objetoParaHistorial);
-
-                    // 4. Creamos un registro final en seguimiento (opcional)
-                    await push(ref(database, "seguimiento"), {
-                        folio: fol,
-                        status: "ELIMINADO",
-                        comentarios: `ELIMINADO: ${motivo.toUpperCase()}`,
-                        usuario: sesion.nombre,
-                        fechaRegistro: new Date().toISOString(),
-                        eliminado: true
-                    });
-
-                    // 5. Borramos de tecnología (tabla activa)
-                    await remove(ref(database, `tecnologia/${keyTec}`));
-
-                    window.ocultarCargando();
-                    Swal.fire("Éxito", "Solicitud archivada y eliminada.", "success");
+                    keyTec = Object.keys(snapTec.val())[0];
+                    infoOrig = snapTec.val()[keyTec];
                 }
+
+                const objetoParaHistorial = {
+                    ...infoOrig,
+                    folio: fol,
+                    status: "ELIMINADO",
+                    motivoEliminacion: motivo.toUpperCase(),
+                    usuarioElimino: sesion.nombre,
+                    fechaDepuracion: new Date().toISOString()
+                };
+
+                await push(ref(database, "historial_permanente"), objetoParaHistorial);
+
+                const qSeg = query(ref(database, "seguimiento"), orderByChild("folio"), equalTo(fol));
+                const snapSeg = await get(qSeg);
+                if(snapSeg.exists()){
+                    const updates = {};
+                    Object.keys(snapSeg.val()).forEach(k => updates[`seguimiento/${k}`] = null);
+                    await update(ref(database), updates);
+                }
+
+                if(keyTec) await remove(ref(database, `tecnologia/${keyTec}`));
+
+                window.ocultarCargando();
+                Swal.fire("Éxito", "Registros removidos.", "success");
             } catch (e) {
                 window.ocultarCargando();
                 Swal.fire("Error", "No se pudo eliminar.", "error");
+            }
+        }
+    };
+
+    // --- NUEVA FUNCIÓN: LIMPIEZA AUTOMÁTICA (ICONO ESCOBA) ---
+    window.limpiezaAutomatica = async () => {
+        const confirm = await Swal.fire({
+            title: '¿Limpiar registros huérfanos?',
+            text: "Se borrarán los seguimientos que ya no tienen origen o están marcados como eliminados.",
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: 'Iniciar Limpieza'
+        });
+
+        if (confirm.isConfirmed) {
+            window.mostrarCargando();
+            try {
+                const [snapSeg, snapTec] = await Promise.all([get(ref(database, "seguimiento")), get(ref(database, "tecnologia"))]);
+                const tecData = snapTec.exists() ? snapTec.val() : {};
+                const segData = snapSeg.exists() ? snapSeg.val() : {};
+                const foliosActivos = new Set(Object.values(tecData).map(t => t.folio));
+                
+                const updates = {};
+                let count = 0;
+
+                Object.keys(segData).forEach(key => {
+                    if (segData[key].eliminado === true || !foliosActivos.has(segData[key].folio)) {
+                        updates[`seguimiento/${key}`] = null;
+                        count++;
+                    }
+                });
+
+                if (count > 0) await update(ref(database), updates);
+                window.ocultarCargando();
+                Swal.fire("Limpieza completa", `Se removieron ${count} registros residuales.`, "success");
+            } catch (e) {
+                window.ocultarCargando();
+                Swal.fire("Error", "Error en limpieza masiva.", "error");
             }
         }
     };
