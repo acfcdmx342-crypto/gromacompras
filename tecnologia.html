@@ -7,6 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
     <script type="text/javascript">
         (function(){
             emailjs.init("0aHlArLgvHrj2Xbk8"); 
@@ -113,7 +114,7 @@
     <div class="card shadow p-4 border-0">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="fw-bold m-0 text-secondary">Solicitudes en Proceso</h5>
-            <div id="contenerdorExportar"></div>
+            <div id="contenedorExportar"></div>
         </div>
         <div class="table-responsive">
             <table class="table table-bordered align-middle text-center bg-white">
@@ -131,12 +132,24 @@
     document.getElementById("usuarioActivo").textContent = window.nombreSesion;
     document.getElementById("puestoActivo").textContent = window.puestoSesion;
     document.getElementById("soporte").value = window.nombreSesion;
+    
+    // Lógica de visibilidad del botón Exportar (No visible para SOPORTE TECNICO JR)
+    if (!window.esSoporteJR) {
+        document.getElementById("contenedorExportar").innerHTML = `
+            <button class="btn btn-outline-success btn-sm fw-bold px-3" onclick="window.exportarExcel()">
+                📊 Descargar Reporte
+            </button>
+        `;
+    }
+
     if (window.puedeVerBase) {
         document.getElementById("liBase").innerHTML = '<a class="dropdown-item" href="base.html">🏠 Página Base (Usuarios)</a>';
     }
     const solicitudesRef = ref(database, "tecnologia");
     const seguimientoRef = ref(database, "seguimiento");
     let globalSeguimientos = [];
+    let dataParaExportar = []; // Variable para almacenar lo que se ve en tabla
+
     onValue(seguimientoRef, snap => {
         globalSeguimientos = [];
         snap.forEach(c => { globalSeguimientos.push({ ...c.val(), id: c.key }); });
@@ -154,6 +167,8 @@
     function renderTable(snap) {
         const tbody = document.getElementById("tablaTecBody");
         tbody.innerHTML = "";
+        dataParaExportar = []; 
+        
         snap.forEach(c => {
             const s = c.val();
             const idKey = c.key;
@@ -165,6 +180,10 @@
             if(window.puedeVerBase || s.usuario === window.usuarioSesion) {
                 const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas", "DEVOLUCION": "st-devolucion"};
                 const claseColor = colores[statusActual] || "st-default";
+                
+                // Guardar en array para exportación
+                dataParaExportar.push({ ...s, statusActual, segs: segsDelFolio.reverse() });
+
                 tbody.innerHTML += `
                     <tr>
                         <td><small class="fw-bold">${s.folio}</small></td>
@@ -195,6 +214,76 @@
         });
     }
 
+    // --- FUNCIÓN EXPORTAR EXCEL ---
+    window.exportarExcel = async () => {
+        if(dataParaExportar.length === 0) return Swal.fire("Sin datos", "No hay registros para descargar", "info");
+        
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Solicitudes');
+
+        // Definir columnas base
+        let columns = [
+            { header: 'FOLIO', key: 'folio', width: 20 },
+            { header: 'EMPRESA', key: 'empresa', width: 15 },
+            { header: 'ZONA', key: 'zona', width: 15 },
+            { header: 'SOPORTE', key: 'soporte', width: 25 },
+            { header: 'SUCURSAL', key: 'sucursal', width: 20 },
+            { header: 'STATUS', key: 'status', width: 20 },
+            { header: 'TIEMPO', key: 'tiempo', width: 10 },
+            { header: 'FECHA REGISTRO', key: 'fecha', width: 20 }
+        ];
+
+        // Calcular el máximo de seguimientos para añadir columnas dinámicas
+        let maxSegs = 0;
+        dataParaExportar.forEach(d => { if(d.segs.length > maxSegs) maxSegs = d.segs.length; });
+
+        for(let i=1; i<=maxSegs; i++) {
+            columns.push({ header: `FECHA SEG ${i}`, key: `f_seg_${i}`, width: 20 });
+            columns.push({ header: `USUARIO SEG ${i}`, key: `u_seg_${i}`, width: 20 });
+            columns.push({ header: `COMENTARIO SEG ${i}`, key: `c_seg_${i}`, width: 35 });
+        }
+
+        worksheet.columns = columns;
+
+        // Estilo para el encabezado
+        worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFF' } };
+        worksheet.getRow(1).fill = { type: 'pattern', pattern:'solid', fgColor:{argb:'0d6efd'} };
+
+        // Añadir filas
+        dataParaExportar.forEach(sol => {
+            let rowData = {
+                folio: sol.folio,
+                empresa: sol.empresa,
+                zona: sol.zona,
+                soporte: sol.soporte,
+                sucursal: sol.sucursal,
+                status: sol.statusActual,
+                tiempo: calcularTranscurrido(sol.fechaISO || sol.fechaEnvio),
+                fecha: sol.fechaEnvio
+            };
+
+            // Añadir datos de seguimientos a la fila
+            sol.segs.forEach((sg, index) => {
+                let idx = index + 1;
+                rowData[`f_seg_${idx}`] = sg.fechaRegistro;
+                rowData[`u_seg_${idx}`] = sg.usuario;
+                rowData[`c_seg_${idx}`] = sg.comentarios;
+            });
+
+            worksheet.addRow(rowData);
+        });
+
+        // Descargar
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Reporte_Tecnologia_${new Date().toLocaleDateString()}.xlsx`;
+        a.click();
+    };
+
+    // Funciones originales conservadas...
     async function enviarCorreo(datos) {
         const params = {
             to_name: "Admin / Sistemas",
@@ -256,7 +345,6 @@
                         const segsRelacionados = globalSeguimientos.filter(x => x.folio === fol);
                         segsRelacionados.push(nuevoSeguimiento);
 
-                        // MOVER A HISTORIAL PERMANENTE
                         await set(ref(database, `historial_permanente/${idPrincipal}`), {
                             ...datosSolicitud,
                             status: "CONFIRMADO",
@@ -264,7 +352,6 @@
                             fechaCierre: new Date().toISOString()
                         });
 
-                        // ELIMINAR DE BASE ACTIVA
                         await remove(ref(database, `tecnologia/${idPrincipal}`));
                         
                         const snapSegs = await get(seguimientoRef);
@@ -425,6 +512,3 @@
 </script>
 </body>
 </html>
-
-
-
