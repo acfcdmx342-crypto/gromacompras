@@ -192,14 +192,7 @@
 
     const puestoUser = (sesion.puesto || "").toUpperCase();
     const usuarioActual = (sesion.nombre || "");
-    const perfilesSistemas = [
-        "GERENTE DE SISTEMAS", 
-        "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", 
-        "COORDINADOR DE SOPORTE TECNICO", 
-        "SOPORTE TECNICO", 
-        "SOPORTE TECNICO JR", 
-        "BECARIOS SISTEMAS"
-    ];
+    const perfilesSistemas = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO", "SOPORTE TECNICO JR", "BECARIOS SISTEMAS"];
     const tieneAccesoTotal = perfilesSistemas.includes(puestoUser);
 
     const selectFolio = document.getElementById("folio");
@@ -207,7 +200,6 @@
     const sucInput = document.getElementById("sucursal");
     const btnArc = document.getElementById("btnArchivo");
     let dataArchivoActual = null;
-    let nombreArchivoActual = "";
 
     const obtenerClaseEstatus = (status) => {
         switch(status) {
@@ -242,24 +234,17 @@
         const campos = ["fechaCompras", "descripcion", "fechaCot", "folioCot", "autoriza", "fechaAuto", "fechaEntrega", "recibe", "folioFactura", "fechaEnvio", "envia", "adonde", "status", "comentarios"];
         
         selectFolio.value = data.folio;
-
         campos.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
             if (id === "comentarios") {
-                el.value = ""; 
-                el.readOnly = false;
-                el.disabled = false;
-                el.classList.remove("field-locked");
+                el.value = ""; el.readOnly = false; el.disabled = false; el.classList.remove("field-locked");
             } else {
                 el.value = data[id] || "";
                 if (el.value !== "" && id !== "status") {
-                    el.readOnly = true;
-                    el.classList.add("field-locked");
+                    el.readOnly = true; el.classList.add("field-locked");
                 } else {
-                    el.readOnly = false;
-                    el.disabled = false;
-                    el.classList.remove("field-locked");
+                    el.readOnly = false; el.disabled = false; el.classList.remove("field-locked");
                 }
             }
         });
@@ -276,14 +261,10 @@
             if (d.eliminado || d.status === "CONFIRMADO") return;
             const option = document.createElement("option");
             option.value = d.folio; option.textContent = d.folio;
-            if (folioDesdeURL && d.folio === folioDesdeURL) {
-                option.selected=true;
-            }
+            if (folioDesdeURL && d.folio === folioDesdeURL) option.selected=true;
             selectFolio.appendChild(option);
         });
-        if (folioDesdeURL) {
-            cargarInfoPorFolio(folioDesdeURL);
-        }
+        if (folioDesdeURL) cargarInfoPorFolio(folioDesdeURL);
     });
 
     async function cargarInfoPorFolio(fol) {
@@ -295,89 +276,68 @@
             solInput.value = item.soporte || "";
             sucInput.value = item.sucursal || "";
             dataArchivoActual = item.archivoData || null;
-            nombreArchivoActual = item.archivoNombre || "documento.pdf";
             btnArc.disabled = !dataArchivoActual;
         }
     }
 
     selectFolio.addEventListener("change", (e) => cargarInfoPorFolio(e.target.value));
 
-    // --- FUNCIÓN ELIMINAR Y MOVER A HISTORIAL PERMANENTE ---
+    // --- MEJORA: ELIMINAR Y ARCHIVAR TODO EL OBJETO ---
     window.eliminarPermanente = async (fol) => {
         const { value: motivo } = await Swal.fire({
             title: '¿Eliminar Solicitud?',
-            text: "Se moverá al historial permanente con el motivo indicado.",
+            text: "Se moverá al historial permanente con toda su información.",
             icon: 'warning',
             input: 'textarea',
-            inputPlaceholder: 'Indique el motivo de la eliminación...',
+            inputPlaceholder: 'Motivo de eliminación...',
             showCancelButton: true,
             confirmButtonColor: '#d33',
-            confirmButtonText: 'Sí, eliminar y archivar',
+            confirmButtonText: 'Sí, eliminar',
             inputValidator: (value) => { if (!value) return 'El motivo es obligatorio' }
         });
 
         if (motivo) {
             window.mostrarCargando();
             try {
-                // 1. Obtener la información completa de la tabla 'tecnologia' para el historial
+                // 1. Buscamos en 'tecnologia' para obtener la info completa (Empresa, Sucursal, etc)
                 const qTec = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(fol));
                 const snapTec = await get(qTec);
                 
                 if(snapTec.exists()){
                     const keyTec = Object.keys(snapTec.val())[0];
-                    const infoOriginal = snapTec.val()[keyTec];
+                    const infoOrig = snapTec.val()[keyTec];
 
-                    // 2. Crear el objeto para 'historial_permanente' (Como en tu imagen 1)
-                    const registroHistorial = {
-                        archivoData: infoOriginal.archivoData || "",
-                        archivoNombre: infoOriginal.archivoNombre || "S/N",
-                        eliminado: false, // Se marca false porque ya está en la carpeta de eliminados/finalizados
-                        empresa: infoOriginal.empresa || "N/A",
-                        fechaDepuracion: new Date().toISOString(),
-                        fechaEnvio: new Date().toLocaleString(),
-                        fechaISO: infoOriginal.fechaISO || new Date().toISOString(),
-                        folio: fol,
-                        soporte: infoOriginal.soporte || "N/A",
+                    // 2. Preparamos el objeto para 'historial_permanente'
+                    const objetoParaHistorial = {
+                        ...infoOrig, // Copiamos TODO lo que tenía originalmente (PDF, Empresa, etc)
                         status: "ELIMINADO",
-                        sucursal: infoOriginal.sucursal || "N/A",
                         motivoEliminacion: motivo.toUpperCase(),
-                        usuarioElimino: sesion.nombre
+                        usuarioElimino: sesion.nombre,
+                        fechaDepuracion: new Date().toISOString()
                     };
 
-                    // 3. Enviar a historial_permanente
-                    await push(ref(database, "historial_permanente"), registroHistorial);
+                    // 3. Guardamos en historial permanente
+                    await push(ref(database, "historial_permanente"), objetoParaHistorial);
 
-                    // 4. Registrar el movimiento en la tabla de seguimiento (opcional, para rastro)
-                    const registroSeguimientoBaja = {
+                    // 4. Creamos un registro final en seguimiento (opcional)
+                    await push(ref(database, "seguimiento"), {
                         folio: fol,
                         status: "ELIMINADO",
                         comentarios: `ELIMINADO: ${motivo.toUpperCase()}`,
                         usuario: sesion.nombre,
                         fechaRegistro: new Date().toISOString(),
                         eliminado: true
-                    };
-                    await push(ref(database, "seguimiento"), registroSeguimientoBaja);
+                    });
 
-                    // 5. ELIMINAR de la tabla activa (tecnologia)
+                    // 5. Borramos de tecnología (tabla activa)
                     await remove(ref(database, `tecnologia/${keyTec}`));
-                    
-                    // 6. Opcional: Limpiar también el historial de movimientos activos para ese folio
-                    // Si quieres borrar todos los pasos intermedios de la tabla 'seguimiento' de este folio:
-                    const qSeg = query(ref(database, "seguimiento"), orderByChild("folio"), equalTo(fol));
-                    const snapSeg = await get(qSeg);
-                    if(snapSeg.exists()){
-                        // Aquí podrías recorrer y borrar si quieres limpiar la DB, pero lo dejamos para que se vea en el historial si es necesario.
-                    }
 
                     window.ocultarCargando();
-                    Swal.fire("Eliminado", "La solicitud se ha movido al historial permanente.", "success");
-                } else {
-                    throw new Error("No se encontró el folio en tecnología");
+                    Swal.fire("Éxito", "Solicitud archivada y eliminada.", "success");
                 }
-            } catch (error) {
-                console.error(error);
+            } catch (e) {
                 window.ocultarCargando();
-                Swal.fire("Error", "No se pudo completar la acción.", "error");
+                Swal.fire("Error", "No se pudo eliminar.", "error");
             }
         }
     };
@@ -388,7 +348,6 @@
         try {
             const fCot = document.getElementById("fileCot").files[0];
             const fFac = document.getElementById("fileFactura").files[0];
-            
             const dataGuardar = {
                 folio: selectFolio.value,
                 fechaCompras: document.getElementById("fechaCompras").value,
@@ -411,31 +370,25 @@
                 usuario: sesion.nombre,
                 eliminado: false
             };
-
             await push(ref(database, "seguimiento"), dataGuardar);
-
             const q = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(selectFolio.value));
             const snap = await get(q);
             if (snap.exists()) {
                 const keyTec = Object.keys(snap.val())[0];
                 await update(ref(database, `tecnologia/${keyTec}`), { status: dataGuardar.status });
             }
-
             window.ocultarCargando();
-            Swal.fire("Éxito", "Seguimiento guardado correctamente", "success").then(() => location.reload());
-        } catch (error) {
-            window.ocultarCargando();
-            Swal.fire("Error", "No se pudo guardar", "error");
-        }
+            Swal.fire("Éxito", "Guardado", "success").then(() => location.reload());
+        } catch (e) { window.ocultarCargando(); Swal.fire("Error", "Error al guardar", "error"); }
     };
 
     onValue(ref(database, "seguimiento"), (snap) => {
         const tbody = document.getElementById("tablaSegBody");
         tbody.innerHTML = "";
-        let registros = [];
-        snap.forEach(child => { registros.push({ key: child.key, ...child.val() }); });
+        let regs = [];
+        snap.forEach(c => { regs.push({ key: c.key, ...c.val() }); });
         
-        const grupos = registros.reduce((acc, item) => {
+        const grupos = regs.reduce((acc, item) => {
             if (!acc[item.folio]) acc[item.folio] = [];
             acc[item.folio].push(item);
             return acc;
@@ -444,49 +397,37 @@
         Object.keys(grupos).forEach((folio, idx) => {
             const historial = grupos[folio].sort((a, b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
             const ultimo = historial[0];
-
             if (!tieneAccesoTotal && ultimo.usuario !== usuarioActual) return;
-            // Si el estatus es CONFIRMADO o está marcado como eliminado, no se muestra en la tabla de activos
-            if ((ultimo.status === "CONFIRMADO" || ultimo.eliminado) && !ultimo.eliminado) return;
-            if (ultimo.eliminado) return; // No mostrar si ya fue procesado como eliminado
+            if (ultimo.status === "CONFIRMADO" || ultimo.eliminado) return;
 
-            const collapseId = `coll_${idx}`;
+            const collId = `coll_${idx}`;
             tbody.innerHTML += `
                 <tr class="group-header">
-                    <td class="text-center" data-bs-toggle="collapse" data-bs-target="#${collapseId}"><i class="fa-solid fa-chevron-down chevron-icon"></i></td>
+                    <td class="text-center" data-bs-toggle="collapse" data-bs-target="#${collId}"><i class="fa-solid fa-chevron-down chevron-icon"></i></td>
                     <td class="fw-bold text-primary">${folio}</td>
                     <td class="small">${(ultimo.descripcion || "").substring(0, 40)}...</td>
                     <td><span class="px-3 py-1 fw-bold small ${obtenerClaseEstatus(ultimo.status)}">${ultimo.status}</span></td>
-                    <td><span class="badge bg-light text-dark">${historial.length} reg.</span></td>
+                    <td><span class="badge bg-light text-dark">${historial.length} mov.</span></td>
                     <td>
-                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#${collapseId}">Historial</button>
-                        <i class="fa-solid fa-trash-can text-danger ms-2 fs-5" style="cursor:pointer" title="Eliminar y Archivar" onclick="window.eliminarPermanente('${folio}')"></i>
+                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#${collId}">Historial</button>
+                        <i class="fa-solid fa-trash-can text-danger ms-2 fs-5" style="cursor:pointer" onclick="window.eliminarPermanente('${folio}')"></i>
                     </td>
                 </tr>
                 <tr>
                     <td colspan="6" class="p-0">
-                        <div id="${collapseId}" class="collapse">
+                        <div id="${collId}" class="collapse">
                             <table class="table table-sm m-0 bg-light">
-                                <thead class="small text-muted">
-                                    <tr><th>FECHA</th><th>ESTATUS</th><th>USUARIO</th><th>COMENTARIOS</th><th>ACCIONES</th></tr>
-                                </thead>
+                                <thead class="small text-muted"><tr><th>FECHA</th><th>ESTATUS</th><th>USUARIO</th><th>ACCIONES</th></tr></thead>
                                 <tbody>
-                                    ${historial.map(h => {
-                                        const isEliminado = h.eliminado === true;
-                                        return `
-                                            <tr class="${isEliminado ? 'registro-eliminado' : ''}">
-                                                <td>${new Date(h.fechaRegistro).toLocaleString()}</td>
-                                                <td><span class="badge ${isEliminado ? 'bg-danger' : obtenerClaseEstatus(h.status)}">${isEliminado ? 'ELIMINADO' : h.status}</span></td>
-                                                <td class="small fw-bold">${h.usuario || 'SISTEMA'}</td>
-                                                <td class="small">${h.comentarios || '-'}</td>
-                                                <td>
-                                                    ${!isEliminado ? `
-                                                        <i class="fa-solid fa-pen-to-square text-primary me-2 fs-6" style="cursor:pointer" onclick="window.cargarParaContinuar('${encodeURIComponent(JSON.stringify(h))}')"></i>
-                                                    ` : '<i class="fa-solid fa-ban text-muted"></i>'}
-                                                </td>
-                                            </tr>
-                                        `;
-                                    }).join('')}
+                                    ${historial.map(h => `
+                                        <tr>
+                                            <td>${new Date(h.fechaRegistro).toLocaleString()}</td>
+                                            <td><span class="badge ${obtenerClaseEstatus(h.status)}">${h.status}</span></td>
+                                            <td class="small">${h.usuario}</td>
+                                            <td>
+                                                <i class="fa-solid fa-pen-to-square text-primary" style="cursor:pointer" onclick="window.cargarParaContinuar('${encodeURIComponent(JSON.stringify(h))}')"></i>
+                                            </td>
+                                        </tr>`).join('')}
                                 </tbody>
                             </table>
                         </div>
@@ -496,15 +437,5 @@
         window.ocultarCargando();
     });
 </script>
-<script>
-  document.addEventListener('contextmenu', (e) => e.preventDefault());
-  document.onkeydown = function(e) {
-    if(e.keyCode == 123) return false;
-    if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
-    if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
-    if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
-  };
-</script>
 </body>
 </html>
-
