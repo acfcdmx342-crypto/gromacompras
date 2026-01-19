@@ -78,6 +78,7 @@
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow border-0">
                 <li><a class="dropdown-item py-2" href="tecnologia.html">Ir a Tecnología</a></li>
+                <li><a class="dropdown-item py-2" href="historial.html">Ver Historial Final</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><button class="dropdown-item py-2 text-danger" onclick="cerrarSesion()">Cerrar Sesión</button></li>
             </ul>
@@ -206,6 +207,7 @@
     const sucInput = document.getElementById("sucursal");
     const btnArc = document.getElementById("btnArchivo");
     let dataArchivoActual = null;
+    let nombreArchivoActual = "";
 
     const obtenerClaseEstatus = (status) => {
         switch(status) {
@@ -293,53 +295,89 @@
             solInput.value = item.soporte || "";
             sucInput.value = item.sucursal || "";
             dataArchivoActual = item.archivoData || null;
+            nombreArchivoActual = item.archivoNombre || "documento.pdf";
             btnArc.disabled = !dataArchivoActual;
         }
     }
 
     selectFolio.addEventListener("change", (e) => cargarInfoPorFolio(e.target.value));
 
-    // --- FUNCIÓN ELIMINAR PERMANENTE ---
+    // --- FUNCIÓN ELIMINAR Y MOVER A HISTORIAL PERMANENTE ---
     window.eliminarPermanente = async (fol) => {
         const { value: motivo } = await Swal.fire({
-            title: '¿Eliminar Solicitud Permanente?',
-            text: "Esta acción borrará la solicitud de la base de datos activa.",
+            title: '¿Eliminar Solicitud?',
+            text: "Se moverá al historial permanente con el motivo indicado.",
             icon: 'warning',
             input: 'textarea',
             inputPlaceholder: 'Indique el motivo de la eliminación...',
             showCancelButton: true,
             confirmButtonColor: '#d33',
-            confirmButtonText: 'Sí, eliminar todo',
+            confirmButtonText: 'Sí, eliminar y archivar',
             inputValidator: (value) => { if (!value) return 'El motivo es obligatorio' }
         });
 
         if (motivo) {
             window.mostrarCargando();
             try {
-                // 1. Guardar rastro en historial de seguimiento antes de borrar
-                const registroBaja = {
-                    folio: fol,
-                    status: "ELIMINADO",
-                    comentarios: `ELIMINACIÓN PERMANENTE: ${motivo.toUpperCase()}`,
-                    usuario: sesion.nombre,
-                    fechaRegistro: new Date().toISOString(),
-                    eliminado: true
-                };
-                await push(ref(database, "seguimiento"), registroBaja);
-
-                // 2. Buscar en tecnología y eliminar
+                // 1. Obtener la información completa de la tabla 'tecnologia' para el historial
                 const qTec = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(fol));
                 const snapTec = await get(qTec);
+                
                 if(snapTec.exists()){
                     const keyTec = Object.keys(snapTec.val())[0];
-                    await remove(ref(database, `tecnologia/${keyTec}`));
-                }
+                    const infoOriginal = snapTec.val()[keyTec];
 
-                window.ocultarCargando();
-                Swal.fire("Eliminado", "La solicitud ha sido borrada exitosamente.", "success");
+                    // 2. Crear el objeto para 'historial_permanente' (Como en tu imagen 1)
+                    const registroHistorial = {
+                        archivoData: infoOriginal.archivoData || "",
+                        archivoNombre: infoOriginal.archivoNombre || "S/N",
+                        eliminado: false, // Se marca false porque ya está en la carpeta de eliminados/finalizados
+                        empresa: infoOriginal.empresa || "N/A",
+                        fechaDepuracion: new Date().toISOString(),
+                        fechaEnvio: new Date().toLocaleString(),
+                        fechaISO: infoOriginal.fechaISO || new Date().toISOString(),
+                        folio: fol,
+                        soporte: infoOriginal.soporte || "N/A",
+                        status: "ELIMINADO",
+                        sucursal: infoOriginal.sucursal || "N/A",
+                        motivoEliminacion: motivo.toUpperCase(),
+                        usuarioElimino: sesion.nombre
+                    };
+
+                    // 3. Enviar a historial_permanente
+                    await push(ref(database, "historial_permanente"), registroHistorial);
+
+                    // 4. Registrar el movimiento en la tabla de seguimiento (opcional, para rastro)
+                    const registroSeguimientoBaja = {
+                        folio: fol,
+                        status: "ELIMINADO",
+                        comentarios: `ELIMINADO: ${motivo.toUpperCase()}`,
+                        usuario: sesion.nombre,
+                        fechaRegistro: new Date().toISOString(),
+                        eliminado: true
+                    };
+                    await push(ref(database, "seguimiento"), registroSeguimientoBaja);
+
+                    // 5. ELIMINAR de la tabla activa (tecnologia)
+                    await remove(ref(database, `tecnologia/${keyTec}`));
+                    
+                    // 6. Opcional: Limpiar también el historial de movimientos activos para ese folio
+                    // Si quieres borrar todos los pasos intermedios de la tabla 'seguimiento' de este folio:
+                    const qSeg = query(ref(database, "seguimiento"), orderByChild("folio"), equalTo(fol));
+                    const snapSeg = await get(qSeg);
+                    if(snapSeg.exists()){
+                        // Aquí podrías recorrer y borrar si quieres limpiar la DB, pero lo dejamos para que se vea en el historial si es necesario.
+                    }
+
+                    window.ocultarCargando();
+                    Swal.fire("Eliminado", "La solicitud se ha movido al historial permanente.", "success");
+                } else {
+                    throw new Error("No se encontró el folio en tecnología");
+                }
             } catch (error) {
+                console.error(error);
                 window.ocultarCargando();
-                Swal.fire("Error", "No se pudo completar la eliminación.", "error");
+                Swal.fire("Error", "No se pudo completar la acción.", "error");
             }
         }
     };
@@ -408,7 +446,9 @@
             const ultimo = historial[0];
 
             if (!tieneAccesoTotal && ultimo.usuario !== usuarioActual) return;
-            if (ultimo.status === "CONFIRMADO" && !ultimo.eliminado) return;
+            // Si el estatus es CONFIRMADO o está marcado como eliminado, no se muestra en la tabla de activos
+            if ((ultimo.status === "CONFIRMADO" || ultimo.eliminado) && !ultimo.eliminado) return;
+            if (ultimo.eliminado) return; // No mostrar si ya fue procesado como eliminado
 
             const collapseId = `coll_${idx}`;
             tbody.innerHTML += `
@@ -416,11 +456,11 @@
                     <td class="text-center" data-bs-toggle="collapse" data-bs-target="#${collapseId}"><i class="fa-solid fa-chevron-down chevron-icon"></i></td>
                     <td class="fw-bold text-primary">${folio}</td>
                     <td class="small">${(ultimo.descripcion || "").substring(0, 40)}...</td>
-                    <td><span class="px-3 py-1 fw-bold small ${ultimo.eliminado ? 'bg-danger text-white' : obtenerClaseEstatus(ultimo.status)}">${ultimo.eliminado ? 'ELIMINADO' : ultimo.status}</span></td>
+                    <td><span class="px-3 py-1 fw-bold small ${obtenerClaseEstatus(ultimo.status)}">${ultimo.status}</span></td>
                     <td><span class="badge bg-light text-dark">${historial.length} reg.</span></td>
                     <td>
                         <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#${collapseId}">Historial</button>
-                        <i class="fa-solid fa-trash-can text-danger ms-2 fs-5" style="cursor:pointer" title="Eliminar Permanente" onclick="window.eliminarPermanente('${folio}')"></i>
+                        <i class="fa-solid fa-trash-can text-danger ms-2 fs-5" style="cursor:pointer" title="Eliminar y Archivar" onclick="window.eliminarPermanente('${folio}')"></i>
                     </td>
                 </tr>
                 <tr>
@@ -456,7 +496,6 @@
         window.ocultarCargando();
     });
 </script>
-
 <script>
   document.addEventListener('contextmenu', (e) => e.preventDefault());
   document.onkeydown = function(e) {
@@ -468,3 +507,4 @@
 </script>
 </body>
 </html>
+
