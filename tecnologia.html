@@ -34,13 +34,12 @@
         .st-default { background-color: #6c757d !important; color: white; }   
         .tiempo-badge { font-size: 0.75rem; font-weight: bold; color: #555; }
         
-        /* Estilos Mejora Vista Previa */
-        #preview-container { border: 2px dashed #ccc; border-radius: 10px; min-height: 100px; display: flex; align-items: center; justify-content: center; background: #fff; overflow: hidden; }
-        #preview-container iframe, #preview-container img { width: 100%; height: 250px; object-fit: contain; }
+        /* Mejora Vista Previa */
+        #preview-container { border: 2px dashed #ccc; border-radius: 10px; min-height: 100px; display: flex; align-items: center; justify-content: center; background: #fff; overflow: hidden; margin-top: 5px; }
+        #preview-container iframe, #preview-container img { width: 100%; height: 200px; object-fit: contain; border: none; }
 
         #loader { 
-            display: flex; 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(255,255,255,0.9); z-index: 9999; justify-content: center; 
             align-items: center; flex-direction: column; 
         }
@@ -88,7 +87,7 @@
                 <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
             </div>
             <div class="aviso-devolucion d-none d-md-block">
-                <strong>⚠️ Aviso:</strong> Verifique bien los datos antes de guardar la solicitud.
+                <strong>⚠️ Aviso:</strong> Verifique los datos y el archivo adjunto antes de guardar su solicitud.
             </div>
         </div>
        <div class="dropdown">
@@ -114,14 +113,11 @@
             <div class="col-md-3"><label class="small fw-bold">Soporte Zona</label><input id="soporte" class="form-control text-uppercase" readonly></div>
             <div class="col-md-3"><label class="small fw-bold">Sucursal</label><input id="sucursal" class="form-control text-uppercase"></div>
             <div class="col-md-6">
-                <label class="small fw-bold">Requisición (PDF/Imagen)</label>
+                <label class="small fw-bold">Requisición (PDF o Imagen)</label>
                 <input id="archivo" type="file" class="form-control" onchange="window.previewArchivo(this)">
+                <div id="preview-container"><small class="text-muted">Vista previa no disponible</small></div>
             </div>
-            <div class="col-md-6">
-                <label class="small fw-bold">Vista Previa del Archivo</label>
-                <div id="preview-container"><small class="text-muted">Sin archivo seleccionado</small></div>
-            </div>
-            <div class="col-12 mt-4 text-center">
+            <div class="col-12 mt-4">
                 <button type="button" class="btn btn-primary btn-rounded px-5 shadow" onclick="guardarSolicitud()">💾 Guardar Solicitud</button>
             </div>
         </form>
@@ -168,7 +164,7 @@
     let globalSeguimientos = [];
     let dataParaExportar = [];
 
-    // --- MEJORA: VISTA PREVIA ---
+    // --- FUNCIÓN VISTA PREVIA ---
     window.previewArchivo = (input) => {
         const container = document.getElementById("preview-container");
         const file = input.files[0];
@@ -180,12 +176,12 @@
                 } else if (file.type.startsWith("image/")) {
                     container.innerHTML = `<img src="${e.target.result}">`;
                 } else {
-                    container.innerHTML = `<p class="p-3">El archivo no tiene vista previa soportada.</p>`;
+                    container.innerHTML = `<p class="p-2 small">Archivo seleccionado: ${file.name}</p>`;
                 }
             };
             reader.readAsDataURL(file);
         } else {
-            container.innerHTML = `<small class="text-muted">Sin archivo seleccionado</small>`;
+            container.innerHTML = `<small class="text-muted">Vista previa no disponible</small>`;
         }
     };
 
@@ -231,12 +227,19 @@
                             <div class="acciones">
                                 <span class="action-btn" onclick="window.verHistorialFolio('${s.folio}')" title="Historial">📜</span>
                                 <span class="action-btn text-primary" onclick="window.editarRegistro('${idKey}')" title="Editar">✏️</span>
+                                
                                 ${window.esSoporteJR && statusActual === "ENVIADO A ZONA" ? `
-                                    <span class="action-btn text-success" onclick="window.confirmarEntrega('${s.folio}')" title="Confirmar Solicitud">✅</span>
+                                    <span class="action-btn text-success" onclick="window.confirmarEntrega('${s.folio}')" title="Confirmar">✅</span>
                                     <span class="action-btn text-warning" onclick="window.enviarDevolucion('${s.folio}')" title="Devolucion">🔄</span>
                                 ` : `
-                                    <span class="action-btn ${window.esSoporteJR ? 'action-disabled' : ''}" onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}" title="Dar Seguimiento">📋</span>
+                                    <span class="action-btn ${window.esSoporteJR ? 'action-disabled' : ''}" 
+                                          onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}" 
+                                          title="Seguimiento">📋</span>
                                 `}
+
+                                ${window.puedeVerBase ? `
+                                    <span class="action-btn text-secondary" onclick="window.depurarRegistroPermanente('${idKey}', '${s.folio}')" title="Archivar">📦</span>
+                                ` : ``}
                             </div>
                         </td>
                     </tr>`;
@@ -244,78 +247,70 @@
         });
     }
 
-    // --- MEJORA: EDITAR REGISTRO ---
+    // --- FUNCIÓN EDITAR ---
     window.editarRegistro = async (idKey) => {
         const snap = await get(ref(database, `tecnologia/${idKey}`));
-        const data = snap.val();
+        const d = snap.val();
         
-        const { value: formValues } = await Swal.fire({
+        const { value: fv } = await Swal.fire({
             title: 'Editar Solicitud',
             html: `
                 <div class="text-start">
-                    <label class="small fw-bold">Zona</label><input id="edt-zona" class="form-control mb-2 text-uppercase" value="${data.zona}">
-                    <label class="small fw-bold">Sucursal</label><input id="edt-sucursal" class="form-control mb-2 text-uppercase" value="${data.sucursal}">
-                    <label class="small fw-bold">Actualizar Archivo (Opcional)</label><input type="file" id="edt-archivo" class="form-control">
+                    <label class="small fw-bold">Zona</label><input id="edt-zon" class="form-control mb-2 text-uppercase" value="${d.zona}">
+                    <label class="small fw-bold">Sucursal</label><input id="edt-suc" class="form-control mb-2 text-uppercase" value="${d.sucursal}">
+                    <label class="small fw-bold">Cambiar Archivo (Opcional)</label><input type="file" id="edt-arc" class="form-control">
                 </div>`,
             showCancelButton: true,
-            confirmButtonText: 'Actualizar',
+            confirmButtonText: 'Guardar Cambios',
             preConfirm: () => {
                 return {
-                    zona: document.getElementById('edt-zona').value,
-                    sucursal: document.getElementById('edt-sucursal').value,
-                    archivo: document.getElementById('edt-archivo').files[0]
+                    z: document.getElementById('edt-zon').value,
+                    s: document.getElementById('edt-suc').value,
+                    a: document.getElementById('edt-arc').files[0]
                 };
             }
         });
 
-        if (formValues) {
+        if (fv) {
             window.mostrarCargando();
-            const updates = { zona: formValues.zona.toUpperCase(), sucursal: formValues.sucursal.toUpperCase() };
-            
-            if (formValues.archivo) {
+            const upds = { zona: fv.z.toUpperCase(), sucursal: fv.s.toUpperCase() };
+            if (fv.a) {
                 const reader = new FileReader();
                 reader.onload = async () => {
-                    updates.archivoData = reader.result;
-                    await update(ref(database, `tecnologia/${idKey}`), updates);
+                    upds.archivoData = reader.result;
+                    await update(ref(database, `tecnologia/${idKey}`), upds);
                     window.ocultarCargando();
-                    Swal.fire("Actualizado", "Registro modificado correctamente", "success");
+                    Swal.fire("Éxito", "Datos actualizados", "success");
                 };
-                reader.readAsDataURL(formValues.archivo);
+                reader.readAsDataURL(fv.a);
             } else {
-                await update(ref(database, `tecnologia/${idKey}`), updates);
+                await update(ref(database, `tecnologia/${idKey}`), upds);
                 window.ocultarCargando();
-                Swal.fire("Actualizado", "Registro modificado correctamente", "success");
+                Swal.fire("Éxito", "Datos actualizados", "success");
             }
         }
     };
 
-    // --- MEJORA: VER Y DESCARGAR PDF/IMAGEN ---
+    // --- FUNCIÓN VER Y DESCARGAR ---
     window.verPDF = (base64, folio) => {
-        const byteCharacters = atob(base64.split(',')[1]);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) { byteNumbers[i] = byteCharacters.charCodeAt(i); }
-        const byteArray = new Uint8Array(byteNumbers);
         const type = base64.split(';')[0].split(':')[1];
-        const blob = new Blob([byteArray], { type: type });
-        const url = URL.createObjectURL(blob);
-        
         const w = window.open();
         w.document.write(`
-            <div style="font-family:sans-serif; text-align:center; padding: 10px; background: #f8f9fa; border-bottom: 1px solid #ddd;">
-                <strong>Archivo Folio: ${folio}</strong> | 
-                <a href="${url}" download="ARCHIVO_${folio}" style="background:#198754; color:white; padding:5px 15px; text-decoration:none; border-radius:5px; font-size:14px;">⬇️ Descargar Archivo</a>
+            <div style="background:#333; color:white; padding:10px; font-family:sans-serif; display:flex; justify-content:space-between; align-items:center;">
+                <span>Documento Folio: ${folio}</span>
+                <a href="${base64}" download="SOLICITUD_${folio}" style="color:white; background:#28a745; padding:5px 15px; text-decoration:none; border-radius:5px;">Descargar Archivo</a>
             </div>
-            <iframe src="${url}" style="width:100%;height:90vh;border:none;"></iframe>
+            <iframe src="${base64}" style="width:100%; height:92vh; border:none;"></iframe>
         `);
     };
 
-    // Funciones de lógica de negocio (mantienen lógica original)
+    // --- LÓGICA DE GUARDADO ---
     window.guardarSolicitud = async () => {
         const emp = document.getElementById("empresa").value;
         const zon = document.getElementById("zona").value;
         const suc = document.getElementById("sucursal").value;
         const arc = document.getElementById("archivo").files[0];
-        if (!emp || !zon || !suc || !arc) return Swal.fire("Error", "Campos incompletos", "error");
+        if (!emp || !zon || !suc || !arc) return Swal.fire("Error", "Complete todos los campos", "error");
         
         window.mostrarCargando();
         const reader = new FileReader();
@@ -328,28 +323,107 @@
                 await set(rFolio, n);
                 const fol = `TEC-${emp}-${zon}-${n.toString().padStart(4, "0")}`.toUpperCase();
                 
-                const nuevaSolicitud = {
+                const data = {
                     folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
                     soporte: window.nombreSesion, sucursal: suc.toUpperCase(),
                     archivoData: reader.result, status: "PENDIENTE", 
                     fechaEnvio: new Date().toLocaleString(), fechaISO: new Date().toISOString(),
                     usuario: window.usuarioSesion, eliminado: false
                 };
-                await push(solicitudesRef, nuevaSolicitud);
+                await push(solicitudesRef, data);
+                
+                // EmailJS (Opcional según tu lógica)
+                emailjs.send("service_mya4ogg", "template_apg1whs", {
+                    to_name: "Sistemas", from_name: window.nombreSesion,
+                    folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(), sucursal: suc.toUpperCase()
+                });
+
                 document.getElementById("formTec").reset();
-                document.getElementById("preview-container").innerHTML = `<small class="text-muted">Sin archivo seleccionado</small>`;
-                Swal.fire("Éxito", "Solicitud Guardada", "success");
-            } catch (e) { Swal.fire("Error", "No se pudo guardar", "error"); } finally { window.ocultarCargando(); }
+                document.getElementById("preview-container").innerHTML = `<small class="text-muted">Vista previa no disponible</small>`;
+                Swal.fire("Guardado", "Solicitud generada con éxito", "success");
+            } catch (e) { Swal.fire("Error", "Error al guardar", "error"); } finally { window.ocultarCargando(); }
         };
         reader.readAsDataURL(arc);
     };
 
-    window.irSeguimiento = f => location.href = "seguimiento.html?folio=" + encodeURIComponent(f);
+    // --- RESTO DE FUNCIONES ORIGINALES ---
+    window.exportarExcel = async () => {
+        if(dataParaExportar.length === 0) return Swal.fire("Aviso", "No hay datos para exportar", "info");
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet('Solicitudes');
+        sheet.columns = [
+            { header: 'FOLIO', key: 'folio', width: 20 },
+            { header: 'EMPRESA', key: 'empresa', width: 15 },
+            { header: 'ZONA', key: 'zona', width: 15 },
+            { header: 'SUCURSAL', key: 'sucursal', width: 20 },
+            { header: 'STATUS', key: 'statusActual', width: 20 },
+            { header: 'FECHA', key: 'fechaEnvio', width: 20 }
+        ];
+        dataParaExportar.forEach(d => sheet.addRow(d));
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Reporte_Tecnologia.xlsx`;
+        a.click();
+    };
+
+    window.confirmarEntrega = async (fol) => {
+        const { value: fv } = await Swal.fire({
+            title: 'Confirmar Entrega',
+            html: '<input type="file" id="sw-img" class="form-control mb-2" accept="image/*"><textarea id="sw-com" class="form-control" placeholder="Comentarios"></textarea>',
+            preConfirm: () => ({ i: document.getElementById('sw-img').files[0], c: document.getElementById('sw-com').value })
+        });
+        if(fv && fv.i) {
+            window.mostrarCargando();
+            const reader = new FileReader();
+            reader.onload = async () => {
+                await push(seguimientoRef, { folio: fol, status: "CONFIRMADO", comentarios: fv.c.toUpperCase(), fotoEvidencia: reader.result, fechaRegistro: new Date().toISOString(), usuario: window.nombreSesion });
+                Swal.fire("Confirmado", "Entrega registrada", "success");
+                window.ocultarCargando();
+            };
+            reader.readAsDataURL(fv.i);
+        }
+    };
+
+    window.enviarDevolucion = async (fol) => {
+        const { value: fv } = await Swal.fire({
+            title: 'Motivo Devolución',
+            html: '<textarea id="dev-com" class="form-control mb-2"></textarea><input type="file" id="dev-img" class="form-control">',
+            preConfirm: () => ({ c: document.getElementById('dev-com').value, i: document.getElementById('dev-img').files[0] })
+        });
+        if(fv) {
+            window.mostrarCargando();
+            const reader = new FileReader();
+            reader.onload = async () => {
+                await push(seguimientoRef, { folio: fol, status: "DEVOLUCION", comentarios: fv.c.toUpperCase(), fotoEvidencia: reader.result, fechaRegistro: new Date().toISOString(), usuario: window.nombreSesion });
+                window.ocultarCargando();
+                Swal.fire("Devuelto", "Estado actualizado", "info");
+            };
+            reader.readAsDataURL(fv.i);
+        }
+    };
+
+    window.depurarRegistroPermanente = async (id, fol) => {
+        const res = await Swal.fire({ title: '¿Archivar?', text: "Se moverá al historial permanente.", icon: 'warning', showCancelButton: true });
+        if(res.isConfirmed) {
+            window.mostrarCargando();
+            const snap = await get(ref(database, `tecnologia/${id}`));
+            await set(ref(database, `historial_permanente/${id}`), { ...snap.val(), fechaArchivado: new Date().toISOString() });
+            await remove(ref(database, `tecnologia/${id}`));
+            window.ocultarCargando();
+            Swal.fire("Archivado", "Registro movido", "success");
+        }
+    };
+
     window.verHistorialFolio = fol => {
         const segs = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
-        let html = `<div class="table-responsive"><table class="table table-sm mt-3"><thead><tr class="table-dark"><th>Fecha</th><th>Status</th><th>Usuario</th><th>Comentarios</th><th>Evidencia</th></tr></thead><tbody>${segs.map(h => `<tr><td>${h.fechaRegistro}</td><td>${h.status}</td><td>${h.usuario}</td><td>${h.comentarios||''}</td><td>${h.fotoEvidencia ? `<button class="btn btn-sm btn-info" onclick="window.verPDF('${h.fotoEvidencia}', '${fol}')">📸</button>` : '-'}</td></tr>`).join('')}</tbody></table></div>`;
-        Swal.fire({ title: `Historial: ${fol}`, html: html, width: '850px' });
+        let html = `<div class="table-responsive"><table class="table table-sm mt-2"><thead><tr><th>Fecha</th><th>Status</th><th>Comentario</th><th>Evidencia</th></tr></thead><tbody>${segs.map(h => `<tr><td><small>${new Date(h.fechaRegistro).toLocaleString()}</small></td><td>${h.status}</td><td>${h.comentarios||''}</td><td>${h.fotoEvidencia ? `<button class="btn btn-sm btn-info" onclick="window.verPDF('${h.fotoEvidencia}','${fol}')">📸</button>` : '-'}</td></tr>`).join('')}</tbody></table></div>`;
+        Swal.fire({ title: `Historial: ${fol}`, html: html, width: '800px' });
     };
+
+    window.irSeguimiento = f => location.href = "seguimiento.html?folio=" + encodeURIComponent(f);
 
     function calcularTranscurrido(f) {
         const d = new Date(f); if (isNaN(d)) return "N/A";
@@ -368,4 +442,5 @@
 </script>
 </body>
 </html>
+
 
