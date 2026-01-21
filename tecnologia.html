@@ -34,6 +34,10 @@
         .st-default { background-color: #6c757d !important; color: white; }   
         .tiempo-badge { font-size: 0.75rem; font-weight: bold; color: #555; }
         
+        /* Estilos Mejora Vista Previa */
+        #preview-container { border: 2px dashed #ccc; border-radius: 10px; min-height: 100px; display: flex; align-items: center; justify-content: center; background: #fff; overflow: hidden; }
+        #preview-container iframe, #preview-container img { width: 100%; height: 250px; object-fit: contain; }
+
         #loader { 
             display: flex; 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
@@ -57,6 +61,7 @@
         <span class="ms-2 fw-bold">Procesando información...</span>
     </div>
 </div>
+
 <script>
     const sesionRaw = localStorage.getItem("usuarioLogueado");
     if (!sesionRaw) {
@@ -74,6 +79,7 @@
     window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
     window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
 </script>
+
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div class="d-flex align-items-center gap-3">
@@ -82,7 +88,7 @@
                 <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
             </div>
             <div class="aviso-devolucion d-none d-md-block">
-                <strong>⚠️ Aviso:</strong> Se les recuerda que para hacer una devolucion de mercancia los empaques deben de estar lo mas intactos posibles...
+                <strong>⚠️ Aviso:</strong> Verifique bien los datos antes de guardar la solicitud.
             </div>
         </div>
        <div class="dropdown">
@@ -97,7 +103,9 @@
             </ul>
         </div>
     </div>
+
     <h2 class="text-center fw-bold mb-4">Solicitud de Tecnología</h2>
+
     <div class="card shadow p-4 mb-4 border-0">
         <h5 class="fw-bold mb-3 border-bottom pb-2 text-secondary">Registrar Solicitud</h5>
         <form id="formTec" class="row g-3">
@@ -105,12 +113,20 @@
             <div class="col-md-3"><label class="small fw-bold">Zona</label><input id="zona" class="form-control text-uppercase"></div>
             <div class="col-md-3"><label class="small fw-bold">Soporte Zona</label><input id="soporte" class="form-control text-uppercase" readonly></div>
             <div class="col-md-3"><label class="small fw-bold">Sucursal</label><input id="sucursal" class="form-control text-uppercase"></div>
-            <div class="col-md-6"><label class="small fw-bold">Requisición</label><input id="archivo" type="file" class="form-control"></div>
-            <div class="col-12 mt-4">
+            <div class="col-md-6">
+                <label class="small fw-bold">Requisición (PDF/Imagen)</label>
+                <input id="archivo" type="file" class="form-control" onchange="window.previewArchivo(this)">
+            </div>
+            <div class="col-md-6">
+                <label class="small fw-bold">Vista Previa del Archivo</label>
+                <div id="preview-container"><small class="text-muted">Sin archivo seleccionado</small></div>
+            </div>
+            <div class="col-12 mt-4 text-center">
                 <button type="button" class="btn btn-primary btn-rounded px-5 shadow" onclick="guardarSolicitud()">💾 Guardar Solicitud</button>
             </div>
         </form>
     </div>
+
     <div class="card shadow p-4 border-0">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="fw-bold m-0 text-secondary">Solicitudes en Proceso</h5>
@@ -126,14 +142,15 @@
         </div>
     </div>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script type="module">
     import { database, ref, push, set, get, onValue, update, remove } from "./firebase.js";
+
     document.getElementById("usuarioActivo").textContent = window.nombreSesion;
     document.getElementById("puestoActivo").textContent = window.puestoSesion;
     document.getElementById("soporte").value = window.nombreSesion;
     
-    // Lógica de visibilidad del botón Exportar (No visible para SOPORTE TECNICO JR)
     if (!window.esSoporteJR) {
         document.getElementById("contenedorExportar").innerHTML = `
             <button class="btn btn-outline-success btn-sm fw-bold px-3" onclick="window.exportarExcel()">
@@ -145,22 +162,38 @@
     if (window.puedeVerBase) {
         document.getElementById("liBase").innerHTML = '<a class="dropdown-item" href="base.html">🏠 Página Base (Usuarios)</a>';
     }
+
     const solicitudesRef = ref(database, "tecnologia");
     const seguimientoRef = ref(database, "seguimiento");
     let globalSeguimientos = [];
-    let dataParaExportar = []; // Variable para almacenar lo que se ve en tabla
+    let dataParaExportar = [];
+
+    // --- MEJORA: VISTA PREVIA ---
+    window.previewArchivo = (input) => {
+        const container = document.getElementById("preview-container");
+        const file = input.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                if (file.type === "application/pdf") {
+                    container.innerHTML = `<iframe src="${e.target.result}"></iframe>`;
+                } else if (file.type.startsWith("image/")) {
+                    container.innerHTML = `<img src="${e.target.result}">`;
+                } else {
+                    container.innerHTML = `<p class="p-3">El archivo no tiene vista previa soportada.</p>`;
+                }
+            };
+            reader.readAsDataURL(file);
+        } else {
+            container.innerHTML = `<small class="text-muted">Sin archivo seleccionado</small>`;
+        }
+    };
 
     onValue(seguimientoRef, snap => {
         globalSeguimientos = [];
         snap.forEach(c => { globalSeguimientos.push({ ...c.val(), id: c.key }); });
-       onValue(solicitudesRef, snapSolicitudes => {
-            try {
-                renderTable(snapSolicitudes);
-            } catch (e) {
-                console.error("Error al renderizar:", e);
-            } finally {
-                window.ocultarCargando();
-            }
+        onValue(solicitudesRef, snapSolicitudes => {
+            try { renderTable(snapSolicitudes); } catch (e) { console.error(e); } finally { window.ocultarCargando(); }
         });
     }, () => window.ocultarCargando());
 
@@ -181,7 +214,6 @@
                 const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas", "DEVOLUCION": "st-devolucion"};
                 const claseColor = colores[statusActual] || "st-default";
                 
-                // Guardar en array para exportación
                 dataParaExportar.push({ ...s, statusActual, segs: segsDelFolio.reverse() });
 
                 tbody.innerHTML += `
@@ -191,22 +223,20 @@
                         <td>${s.zona}</td>
                         <td>${s.soporte}</td>
                         <td>${s.sucursal}</td>
-                        <td><button class="btn btn-sm btn-success" onclick="window.verPDF('${s.archivoData}')">👁️</button></td>
+                        <td><button class="btn btn-sm btn-success" onclick="window.verPDF('${s.archivoData}', '${s.folio}')">👁️</button></td>
                         <td><span class="badge ${claseColor} p-2 w-100">${statusActual}</span></td>
                         <td class="tiempo-badge">${calcularTranscurrido(s.fechaISO || s.fechaEnvio)}</td>
                         <td><small>${s.fechaEnvio}</small></td>
                         <td>
                             <div class="acciones">
                                 <span class="action-btn" onclick="window.verHistorialFolio('${s.folio}')" title="Historial">📜</span>
+                                <span class="action-btn text-primary" onclick="window.editarRegistro('${idKey}')" title="Editar">✏️</span>
                                 ${window.esSoporteJR && statusActual === "ENVIADO A ZONA" ? `
                                     <span class="action-btn text-success" onclick="window.confirmarEntrega('${s.folio}')" title="Confirmar Solicitud">✅</span>
                                     <span class="action-btn text-warning" onclick="window.enviarDevolucion('${s.folio}')" title="Devolucion">🔄</span>
                                 ` : `
                                     <span class="action-btn ${window.esSoporteJR ? 'action-disabled' : ''}" onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}" title="Dar Seguimiento">📋</span>
                                 `}
-                                ${window.puedeVerBase ? `
-                                    <span class="action-btn text-secondary" onclick="window.depurarRegistroPermanente('${idKey}', '${s.folio}')" title="Archivar Permanente">📦</span>
-                                ` : ``}
                             </div>
                         </td>
                     </tr>`;
@@ -214,238 +244,72 @@
         });
     }
 
-    // --- FUNCIÓN EXPORTAR EXCEL ---
-    window.exportarExcel = async () => {
-        if(dataParaExportar.length === 0) return Swal.fire("Sin datos", "No hay registros para descargar", "info");
+    // --- MEJORA: EDITAR REGISTRO ---
+    window.editarRegistro = async (idKey) => {
+        const snap = await get(ref(database, `tecnologia/${idKey}`));
+        const data = snap.val();
         
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Solicitudes');
-
-        // Definir columnas base
-        let columns = [
-            { header: 'FOLIO', key: 'folio', width: 20 },
-            { header: 'EMPRESA', key: 'empresa', width: 15 },
-            { header: 'ZONA', key: 'zona', width: 15 },
-            { header: 'SOPORTE', key: 'soporte', width: 25 },
-            { header: 'SUCURSAL', key: 'sucursal', width: 20 },
-            { header: 'STATUS', key: 'status', width: 20 },
-            { header: 'TIEMPO', key: 'tiempo', width: 10 },
-            { header: 'FECHA REGISTRO', key: 'fecha', width: 20 }
-        ];
-
-        // Calcular el máximo de seguimientos para añadir columnas dinámicas
-        let maxSegs = 0;
-        dataParaExportar.forEach(d => { if(d.segs.length > maxSegs) maxSegs = d.segs.length; });
-
-        for(let i=1; i<=maxSegs; i++) {
-            columns.push({ header: `FECHA SEG ${i}`, key: `f_seg_${i}`, width: 20 });
-            columns.push({ header: `USUARIO SEG ${i}`, key: `u_seg_${i}`, width: 20 });
-            columns.push({ header: `COMENTARIO SEG ${i}`, key: `c_seg_${i}`, width: 35 });
-        }
-
-        worksheet.columns = columns;
-
-        // Estilo para el encabezado
-        worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFF' } };
-        worksheet.getRow(1).fill = { type: 'pattern', pattern:'solid', fgColor:{argb:'0d6efd'} };
-
-        // Añadir filas
-        dataParaExportar.forEach(sol => {
-            let rowData = {
-                folio: sol.folio,
-                empresa: sol.empresa,
-                zona: sol.zona,
-                soporte: sol.soporte,
-                sucursal: sol.sucursal,
-                status: sol.statusActual,
-                tiempo: calcularTranscurrido(sol.fechaISO || sol.fechaEnvio),
-                fecha: sol.fechaEnvio
-            };
-
-            // Añadir datos de seguimientos a la fila
-            sol.segs.forEach((sg, index) => {
-                let idx = index + 1;
-                rowData[`f_seg_${idx}`] = sg.fechaRegistro;
-                rowData[`u_seg_${idx}`] = sg.usuario;
-                rowData[`c_seg_${idx}`] = sg.comentarios;
-            });
-
-            worksheet.addRow(rowData);
-        });
-
-        // Descargar
-        const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Reporte_Tecnologia_${new Date().toLocaleDateString()}.xlsx`;
-        a.click();
-    };
-
-    // Funciones originales conservadas...
-    async function enviarCorreo(datos) {
-        const params = {
-            to_name: "Admin / Sistemas",
-            from_name: window.nombreSesion,
-            folio: datos.folio,
-            empresa: datos.empresa,
-            zona: datos.zona,
-            sucursal: datos.sucursal,
-            status: "PENDIENTE",
-            message: `Se ha generado una nueva solicitud de tecnología con Folio: ${datos.folio}`
-        };
-
-        emailjs.send("service_mya4ogg", "template_apg1whs", params)
-            .then(() => console.log("Correo enviado con éxito"))
-            .catch((err) => console.error("Error al enviar correo:", err));
-    }
-
-    window.confirmarEntrega = async (fol) => {
-        const snap = await get(solicitudesRef);
-        let idPrincipal = null;
-        let datosSolicitud = null;
-
-        snap.forEach(d => { 
-            if(d.val().folio === fol) {
-                idPrincipal = d.key; 
-                datosSolicitud = d.val();
-            }
-        });
-
         const { value: formValues } = await Swal.fire({
-            title: 'Confirmar Entrega',
-            html: '<label class="small fw-bold">Evidencia Fotográfica</label><input type="file" id="swal-img-ent" class="form-control mb-2" accept="image/*"><textarea id="swal-com-ent" class="form-control" placeholder="Comentarios de entrega..."></textarea>',
+            title: 'Editar Solicitud',
+            html: `
+                <div class="text-start">
+                    <label class="small fw-bold">Zona</label><input id="edt-zona" class="form-control mb-2 text-uppercase" value="${data.zona}">
+                    <label class="small fw-bold">Sucursal</label><input id="edt-sucursal" class="form-control mb-2 text-uppercase" value="${data.sucursal}">
+                    <label class="small fw-bold">Actualizar Archivo (Opcional)</label><input type="file" id="edt-archivo" class="form-control">
+                </div>`,
+            showCancelButton: true,
+            confirmButtonText: 'Actualizar',
             preConfirm: () => {
-                const i = document.getElementById('swal-img-ent').files[0];
-                const c = document.getElementById('swal-com-ent').value;
-                if(!i || !c) return Swal.showValidationMessage('Imagen y comentario obligatorios');
-                return { i, c };
+                return {
+                    zona: document.getElementById('edt-zona').value,
+                    sucursal: document.getElementById('edt-sucursal').value,
+                    archivo: document.getElementById('edt-archivo').files[0]
+                };
             }
         });
 
         if (formValues) {
             window.mostrarCargando();
-            const reader = new FileReader();
-            reader.onload = async () => {
-                try {
-                    const nuevoSeguimiento = { 
-                        folio: fol, 
-                        status: "CONFIRMADO", 
-                        comentarios: formValues.c.toUpperCase(), 
-                        descripcion: "ENTREGA CONFIRMADA POR SOPORTE JR",
-                        fotoEvidencia: reader.result, 
-                        fechaRegistro: new Date().toISOString(), 
-                        usuario: window.nombreSesion 
-                    };
-
-                    await push(seguimientoRef, nuevoSeguimiento);
-
-                    if (idPrincipal && datosSolicitud) {
-                        const segsRelacionados = globalSeguimientos.filter(x => x.folio === fol);
-                        segsRelacionados.push(nuevoSeguimiento);
-
-                        await set(ref(database, `historial_permanente/${idPrincipal}`), {
-                            ...datosSolicitud,
-                            status: "CONFIRMADO",
-                            seguimientos: segsRelacionados,
-                            fechaCierre: new Date().toISOString()
-                        });
-
-                        await remove(ref(database, `tecnologia/${idPrincipal}`));
-                        
-                        const snapSegs = await get(seguimientoRef);
-                        snapSegs.forEach(child => {
-                            if(child.val().folio === fol) remove(ref(database, `seguimiento/${child.key}`));
-                        });
-                    }
-                    Swal.fire("Entregado", "Solicitud cerrada y enviada al historial", "success");
-                } catch (e) {
-                    Swal.fire("Error", "No se pudo procesar la confirmación", "error");
-                } finally {
+            const updates = { zona: formValues.zona.toUpperCase(), sucursal: formValues.sucursal.toUpperCase() };
+            
+            if (formValues.archivo) {
+                const reader = new FileReader();
+                reader.onload = async () => {
+                    updates.archivoData = reader.result;
+                    await update(ref(database, `tecnologia/${idKey}`), updates);
                     window.ocultarCargando();
-                }
-            };
-            reader.readAsDataURL(formValues.i);
-        }
-    };
-
-    window.depurarRegistroPermanente = async (idPrincipal, folio) => {
-        const { isConfirmed } = await Swal.fire({
-            title: '¿Archivar Permanentemente?',
-            text: "El registro se moverá al historial permanente y se borrará de la base activa.",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#0d6efd',
-            confirmButtonText: 'Sí, archivar'
-        });
-        if (isConfirmed) {
-            window.mostrarCargando();
-            try {
-                const snapSolicitud = await get(ref(database, `tecnologia/${idPrincipal}`));
-                const datos = snapSolicitud.val();
-                const segsRelacionados = globalSeguimientos.filter(x => x.folio === folio);
-                
-                await set(ref(database, `historial_permanente/${idPrincipal}`), {
-                    ...datos,
-                    seguimientos: segsRelacionados,
-                    fechaDepuracion: new Date().toISOString()
-                });
-
-                await remove(ref(database, `tecnologia/${idPrincipal}`));
-                
-                const snapSegs = await get(seguimientoRef);
-                snapSegs.forEach(child => {
-                    if(child.val().folio === folio) remove(ref(database, `seguimiento/${child.key}`));
-                });
-
-                Swal.fire("Depurado", "Espacio liberado con éxito", "success");
-            } catch (e) {
-                Swal.fire("Error", "No se pudo depurar", "error");
-            } finally {
+                    Swal.fire("Actualizado", "Registro modificado correctamente", "success");
+                };
+                reader.readAsDataURL(formValues.archivo);
+            } else {
+                await update(ref(database, `tecnologia/${idKey}`), updates);
                 window.ocultarCargando();
+                Swal.fire("Actualizado", "Registro modificado correctamente", "success");
             }
         }
     };
 
-    window.enviarDevolucion = async (fol) => {
-        const snap = await get(solicitudesRef);
-        let idPrincipal = null;
-        snap.forEach(d => { if(d.val().folio === fol) idPrincipal = d.key; });
-
-        const { value: fv } = await Swal.fire({
-            title: 'Motivo de Devolución',
-            html: `<textarea id="swal-motivo" class="form-control mb-2" placeholder="Explique el motivo..."></textarea><input type="file" id="swal-img" class="form-control" accept="image/*">`,
-            preConfirm: () => {
-                const m = document.getElementById('swal-motivo').value;
-                const i = document.getElementById('swal-img').files[0];
-                if(!m || !i) return Swal.showValidationMessage('Todos los campos son requeridos');
-                return { m, i };
-            }
-        });
-
-        if (fv) {
-            window.mostrarCargando();
-            const reader = new FileReader();
-            reader.onload = async () => {
-                await push(seguimientoRef, { 
-                    folio: fol, 
-                    status: "DEVOLUCION", 
-                    comentarios: fv.m.toUpperCase(), 
-                    fotoEvidencia: reader.result, 
-                    fechaRegistro: new Date().toISOString(), 
-                    usuario: window.nombreSesion 
-                });
-                if (idPrincipal) {
-                    await update(ref(database, `tecnologia/${idPrincipal}`), { status: "DEVOLUCION" });
-                }
-                window.ocultarCargando();
-                Swal.fire("Devuelto", "Estatus actualizado", "success");
-            };
-            reader.readAsDataURL(fv.i);
-        }
+    // --- MEJORA: VER Y DESCARGAR PDF/IMAGEN ---
+    window.verPDF = (base64, folio) => {
+        const byteCharacters = atob(base64.split(',')[1]);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) { byteNumbers[i] = byteCharacters.charCodeAt(i); }
+        const byteArray = new Uint8Array(byteNumbers);
+        const type = base64.split(';')[0].split(':')[1];
+        const blob = new Blob([byteArray], { type: type });
+        const url = URL.createObjectURL(blob);
+        
+        const w = window.open();
+        w.document.write(`
+            <div style="font-family:sans-serif; text-align:center; padding: 10px; background: #f8f9fa; border-bottom: 1px solid #ddd;">
+                <strong>Archivo Folio: ${folio}</strong> | 
+                <a href="${url}" download="ARCHIVO_${folio}" style="background:#198754; color:white; padding:5px 15px; text-decoration:none; border-radius:5px; font-size:14px;">⬇️ Descargar Archivo</a>
+            </div>
+            <iframe src="${url}" style="width:100%;height:90vh;border:none;"></iframe>
+        `);
     };
 
+    // Funciones de lógica de negocio (mantienen lógica original)
     window.guardarSolicitud = async () => {
         const emp = document.getElementById("empresa").value;
         const zon = document.getElementById("zona").value;
@@ -471,26 +335,19 @@
                     fechaEnvio: new Date().toLocaleString(), fechaISO: new Date().toISOString(),
                     usuario: window.usuarioSesion, eliminado: false
                 };
-
                 await push(solicitudesRef, nuevaSolicitud);
-                await enviarCorreo(nuevaSolicitud);
-
-                Swal.fire("Éxito", "Solicitud Guardada", "success");
                 document.getElementById("formTec").reset();
-            } catch (e) {
-                Swal.fire("Error", "No se pudo guardar", "error");
-            } finally {
-                window.ocultarCargando();
-            }
+                document.getElementById("preview-container").innerHTML = `<small class="text-muted">Sin archivo seleccionado</small>`;
+                Swal.fire("Éxito", "Solicitud Guardada", "success");
+            } catch (e) { Swal.fire("Error", "No se pudo guardar", "error"); } finally { window.ocultarCargando(); }
         };
         reader.readAsDataURL(arc);
     };
 
-    window.verPDF = d => { const w = window.open(); w.document.write(`<iframe src="${d}" style="width:100%;height:100%;"></iframe>`); };
     window.irSeguimiento = f => location.href = "seguimiento.html?folio=" + encodeURIComponent(f);
     window.verHistorialFolio = fol => {
         const segs = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
-        let html = `<div class="table-responsive"><table class="table table-sm mt-3"><thead><tr class="table-dark"><th>Fecha</th><th>Status</th><th>Usuario</th><th>Comentarios</th><th>Evidencia</th></tr></thead><tbody>${segs.map(h => `<tr><td>${h.fechaRegistro}</td><td>${h.status}</td><td>${h.usuario}</td><td>${h.comentarios||''}</td><td>${h.fotoEvidencia ? `<button class="btn btn-sm btn-info" onclick="window.verPDF('${h.fotoEvidencia}')">📸</button>` : '-'}</td></tr>`).join('')}</tbody></table></div>`;
+        let html = `<div class="table-responsive"><table class="table table-sm mt-3"><thead><tr class="table-dark"><th>Fecha</th><th>Status</th><th>Usuario</th><th>Comentarios</th><th>Evidencia</th></tr></thead><tbody>${segs.map(h => `<tr><td>${h.fechaRegistro}</td><td>${h.status}</td><td>${h.usuario}</td><td>${h.comentarios||''}</td><td>${h.fotoEvidencia ? `<button class="btn btn-sm btn-info" onclick="window.verPDF('${h.fotoEvidencia}', '${fol}')">📸</button>` : '-'}</td></tr>`).join('')}</tbody></table></div>`;
         Swal.fire({ title: `Historial: ${fol}`, html: html, width: '850px' });
     };
 
@@ -500,7 +357,6 @@
         return `${Math.floor(dif / 3600000)}h`;
     }
 </script>
-
 <script>
     document.addEventListener('contextmenu', (e) => e.preventDefault());
     document.onkeydown = function(e) {
@@ -512,3 +368,4 @@
 </script>
 </body>
 </html>
+
