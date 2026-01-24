@@ -247,7 +247,7 @@
         });
     }
 
-    // --- FUNCIÓN EDITAR ---
+   // --- FUNCIÓN EDITAR (ACTUALIZADA) ---
     window.editarRegistro = async (idKey) => {
         const snap = await get(ref(database, `tecnologia/${idKey}`));
         const d = snap.val();
@@ -256,9 +256,19 @@
             title: 'Editar Solicitud',
             html: `
                 <div class="text-start">
-                    <label class="small fw-bold">Zona</label><input id="edt-zon" class="form-control mb-2 text-uppercase" value="${d.zona}">
-                    <label class="small fw-bold">Sucursal</label><input id="edt-suc" class="form-control mb-2 text-uppercase" value="${d.sucursal}">
-                    <label class="small fw-bold">Cambiar Archivo (Opcional)</label><input type="file" id="edt-arc" class="form-control">
+                    <label class="small fw-bold">Zona</label>
+                    <input id="edt-zon" class="form-control mb-2 text-uppercase" value="${d.zona || ''}">
+                    
+                    <label class="small fw-bold">Sucursal</label>
+                    <input id="edt-suc" class="form-control mb-2 text-uppercase" value="${d.sucursal || ''}">
+                    
+                    <label class="small fw-bold">Responsable Seguimiento</label>
+                    <input id="edt-resp" class="form-control mb-2 text-uppercase" 
+                           placeholder="Nombre de quien da seguimiento" 
+                           value="${d.responsableSeguimiento || ''}">
+                    
+                    <label class="small fw-bold">Cambiar Archivo (Opcional)</label>
+                    <input type="file" id="edt-arc" class="form-control">
                 </div>`,
             showCancelButton: true,
             confirmButtonText: 'Guardar Cambios',
@@ -266,9 +276,37 @@
                 return {
                     z: document.getElementById('edt-zon').value,
                     s: document.getElementById('edt-suc').value,
+                    r: document.getElementById('edt-resp').value,
                     a: document.getElementById('edt-arc').files[0]
                 };
             }
+        });
+
+        if (fv) {
+            window.mostrarCargando();
+            // Agregamos el nuevo campo al objeto de actualización
+            const upds = { 
+                zona: fv.z.toUpperCase(), 
+                sucursal: fv.s.toUpperCase(),
+                responsableSeguimiento: fv.r.toUpperCase() 
+            };
+
+            if (fv.a) {
+                const reader = new FileReader();
+                reader.onload = async () => {
+                    upds.archivoData = reader.result;
+                    await update(ref(database, `tecnologia/${idKey}`), upds);
+                    window.ocultarCargando();
+                    Swal.fire("Éxito", "Datos actualizados correctamente", "success");
+                };
+                reader.readAsDataURL(fv.a);
+            } else {
+                await update(ref(database, `tecnologia/${idKey}`), upds);
+                window.ocultarCargando();
+                Swal.fire("Éxito", "Datos actualizados correctamente", "success");
+            }
+        }
+    };
         });
 
         if (fv) {
@@ -442,6 +480,7 @@
 </script>
 </body>
 </html>
+
 
 
 
