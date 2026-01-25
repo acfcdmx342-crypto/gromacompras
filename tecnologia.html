@@ -164,7 +164,6 @@
     let globalSeguimientos = [];
     let dataParaExportar = [];
 
-    // --- FUNCIÓN VISTA PREVIA ---
     window.previewArchivo = (input) => {
         const container = document.getElementById("preview-container");
         const file = input.files[0];
@@ -247,7 +246,7 @@
         });
     }
 
-   // --- FUNCIÓN EDITAR (ACTUALIZADA) ---
+    // --- FUNCIÓN EDITAR CON CAMPO DE RESPONSABLE SEGUIMIENTO ---
     window.editarRegistro = async (idKey) => {
         const snap = await get(ref(database, `tecnologia/${idKey}`));
         const d = snap.val();
@@ -258,15 +257,10 @@
                 <div class="text-start">
                     <label class="small fw-bold">Zona</label>
                     <input id="edt-zon" class="form-control mb-2 text-uppercase" value="${d.zona || ''}">
-                    
                     <label class="small fw-bold">Sucursal</label>
                     <input id="edt-suc" class="form-control mb-2 text-uppercase" value="${d.sucursal || ''}">
-                    
                     <label class="small fw-bold">Responsable Seguimiento</label>
-                    <input id="edt-resp" class="form-control mb-2 text-uppercase" 
-                           placeholder="Nombre de quien da seguimiento" 
-                           value="${d.responsableSeguimiento || ''}">
-                    
+                    <input id="edt-resp" class="form-control mb-2 text-uppercase" placeholder="Nombre del responsable" value="${d.responsableSeguimiento || ''}">
                     <label class="small fw-bold">Cambiar Archivo (Opcional)</label>
                     <input type="file" id="edt-arc" class="form-control">
                 </div>`,
@@ -284,34 +278,11 @@
 
         if (fv) {
             window.mostrarCargando();
-            // Agregamos el nuevo campo al objeto de actualización
             const upds = { 
                 zona: fv.z.toUpperCase(), 
                 sucursal: fv.s.toUpperCase(),
-                responsableSeguimiento: fv.r.toUpperCase() 
+                responsableSeguimiento: fv.r.toUpperCase()
             };
-
-            if (fv.a) {
-                const reader = new FileReader();
-                reader.onload = async () => {
-                    upds.archivoData = reader.result;
-                    await update(ref(database, `tecnologia/${idKey}`), upds);
-                    window.ocultarCargando();
-                    Swal.fire("Éxito", "Datos actualizados correctamente", "success");
-                };
-                reader.readAsDataURL(fv.a);
-            } else {
-                await update(ref(database, `tecnologia/${idKey}`), upds);
-                window.ocultarCargando();
-                Swal.fire("Éxito", "Datos actualizados correctamente", "success");
-            }
-        }
-    };
-        });
-
-        if (fv) {
-            window.mostrarCargando();
-            const upds = { zona: fv.z.toUpperCase(), sucursal: fv.s.toUpperCase() };
             if (fv.a) {
                 const reader = new FileReader();
                 reader.onload = async () => {
@@ -329,7 +300,6 @@
         }
     };
 
-    // --- FUNCIÓN VER Y DESCARGAR ---
     window.verPDF = (base64, folio) => {
         const type = base64.split(';')[0].split(':')[1];
         const w = window.open();
@@ -342,7 +312,6 @@
         `);
     };
 
-    // --- LÓGICA DE GUARDADO ---
     window.guardarSolicitud = async () => {
         const emp = document.getElementById("empresa").value;
         const zon = document.getElementById("zona").value;
@@ -366,11 +335,11 @@
                     soporte: window.nombreSesion, sucursal: suc.toUpperCase(),
                     archivoData: reader.result, status: "PENDIENTE", 
                     fechaEnvio: new Date().toLocaleString(), fechaISO: new Date().toISOString(),
-                    usuario: window.usuarioSesion, eliminado: false
+                    usuario: window.usuarioSesion, eliminado: false,
+                    responsableSeguimiento: "" // Inicialmente vacío
                 };
                 await push(solicitudesRef, data);
                 
-                // EmailJS (Opcional según tu lógica)
                 emailjs.send("service_mya4ogg", "template_apg1whs", {
                     to_name: "Sistemas", from_name: window.nombreSesion,
                     folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(), sucursal: suc.toUpperCase()
@@ -384,7 +353,6 @@
         reader.readAsDataURL(arc);
     };
 
-    // --- RESTO DE FUNCIONES ORIGINALES ---
     window.exportarExcel = async () => {
         if(dataParaExportar.length === 0) return Swal.fire("Aviso", "No hay datos para exportar", "info");
         const workbook = new ExcelJS.Workbook();
@@ -480,7 +448,3 @@
 </script>
 </body>
 </html>
-
-
-
-
