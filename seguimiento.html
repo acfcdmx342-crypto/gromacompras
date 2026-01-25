@@ -198,7 +198,7 @@
     const puestoUser = (sesion.puesto || "").toUpperCase();
     const usuarioActual = (sesion.nombre || "");
     const perfilesSistemas = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO", "SOPORTE TECNICO JR", "BECARIOS SISTEMAS"];
-    const tieneAccesoTotal = perfilesSistemas.includes(puestoUser);
+    const tieneAccesoTotal = perfilesSistemas.includes(puestoUser) && puestoUser !== "SOPORTE TECNICO JR"; // JR tiene acceso filtrado
 
     const selectFolio = document.getElementById("folio");
     const solInput = document.getElementById("solicito");
@@ -246,10 +246,13 @@
                 el.value = ""; el.readOnly = false; el.disabled = false; el.classList.remove("field-locked");
             } else {
                 el.value = data[id] || "";
+                // Si el campo tiene valor y no es status ni comentarios, se bloquea
                 if (el.value !== "" && id !== "status") {
                     el.readOnly = true; el.classList.add("field-locked");
+                    if(el.tagName === "SELECT") el.style.pointerEvents = "none";
                 } else {
                     el.readOnly = false; el.disabled = false; el.classList.remove("field-locked");
+                    el.style.pointerEvents = "auto";
                 }
             }
         });
@@ -287,7 +290,6 @@
 
     selectFolio.addEventListener("change", (e) => cargarInfoPorFolio(e.target.value));
 
-    // --- MEJORA: ELIMINACIÓN SEGURA (Incluso si no existe en tecnología) ---
     window.eliminarPermanente = async (fol) => {
         const { value: motivo } = await Swal.fire({
             title: '¿Eliminar Solicitud?',
@@ -344,7 +346,6 @@
         }
     };
 
-    // --- NUEVA FUNCIÓN: LIMPIEZA AUTOMÁTICA (ICONO ESCOBA) ---
     window.limpiezaAutomatica = async () => {
         const confirm = await Swal.fire({
             title: '¿Limpiar registros huérfanos?',
@@ -437,7 +438,15 @@
         Object.keys(grupos).forEach((folio, idx) => {
             const historial = grupos[folio].sort((a, b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
             const ultimo = historial[0];
-            if (!tieneAccesoTotal && ultimo.usuario !== usuarioActual) return;
+
+            // --- LÓGICA DE PRIVACIDAD SOPORTE JR ---
+            if (puestoUser === "SOPORTE TECNICO JR") {
+                const participo = grupos[folio].some(mov => mov.usuario === usuarioActual);
+                if (!participo) return; // Si el JR no está en el historial, no ve el folio
+            } else if (!tieneAccesoTotal && ultimo.usuario !== usuarioActual) {
+                return;
+            }
+
             if (ultimo.status === "CONFIRMADO" || ultimo.eliminado) return;
 
             const collId = `coll_${idx}`;
