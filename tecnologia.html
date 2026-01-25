@@ -28,6 +28,8 @@
         .st-zona { background-color: #ffc107 !important; color: black; }    
         .st-pendiente { background-color: #dc3545 !important; color: white; } 
         .st-devolucion { background-color: #6f42c1 !important; color: white; }
+        /* Nuevo Resaltado para Compras Locales según Status */
+        .st-local-cotizacion { background-color: #fd7e14 !important; color: white; }
         
         #loader { 
             display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
@@ -58,7 +60,7 @@
                 <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
             </div>
             <div class="aviso-devolucion d-none d-md-block">
-                <strong>⚠️ Aviso:</strong> Se les recuerda que para hacer una devolución de mercancía los empaques deben de estar lo más intactos posibles (sin rayaduras, enmendaduras, rotos) de lo contrario no procedera.
+                <strong>⚠️ Aviso:</strong> Se les recuerda que para hacer una devolución de mercancía los empaques deben de estar lo más intactos posibles.
             </div>
         </div>
         <div class="dropdown">
@@ -118,7 +120,6 @@
 <script type="module">
     import { database, ref, push, set, get, onValue, update, remove } from "./firebase.js";
 
-    // --- SESIÓN Y PERFILES ---
     const sesion = JSON.parse(localStorage.getItem("usuarioLogueado") || "{}");
     if(!sesion.usuario) location.href = "index.html";
 
@@ -165,12 +166,17 @@
 
             if (statusActual === "CONFIRMADO") return;
 
-            // COMPATIBILIDAD DOBLE (NUEVO Y ANTIGUO)
             const esLocal = s.solicitudLocal === true || s.isLocal === true;
+            
+            // Lógica de resaltado de Badge según status y tipo
+            let badgeClass = "st-compras"; // Default azul
+            if (statusActual === "EN ZONA") badgeClass = "st-zona";
+            else if (statusActual === "EN COTIZACION") badgeClass = "st-local-cotizacion";
+            else if (statusActual === "DEVOLUCION") badgeClass = "st-devolucion";
+            else if (statusActual === "PENDIENTE") badgeClass = "st-pendiente";
 
             if (window.esAdmin || s.usuario === window.usuarioSesion) {
                 dataExportar.push({ ...s, statusActual });
-
                 tbody.innerHTML += `
                     <tr class="${esLocal ? 'fila-local' : ''}">
                         <td class="fw-bold">${s.folio}</td>
@@ -179,23 +185,20 @@
                         <td>${s.sucursal}</td>
                         <td><span class="badge ${esLocal ? 'bg-warning text-dark' : 'bg-secondary'}">${esLocal ? 'LOCAL' : 'COMPRAS'}</span></td>
                         <td><button class="btn btn-sm btn-success" onclick="verPDF('${s.archivoData}', '${s.folio}')">👁️</button></td>
-                        <td><span class="badge ${statusActual === 'EN ZONA' ? 'st-zona' : 'st-compras'} p-2 w-100">${statusActual}</span></td>
+                        <td><span class="badge ${badgeClass} p-2 w-100">${statusActual}</span></td>
                         <td><small>${calcularTranscurrido(s.fechaISO || s.fechaEnvio)}</small></td>
                         <td>
                             <div class="d-flex justify-content-center gap-2">
                                 <span class="action-btn" title="Historial" onclick="verHistorial('${s.folio}')">📜</span>
                                 <span class="action-btn text-primary" title="Editar" onclick="editarRegistro('${idKey}')">✏️</span>
-                                
                                 ${esLocal ? 
                                     `<span class="action-btn text-info" title="Seguimiento Local" onclick="modalSegLocal('${idKey}', '${s.folio}')">📋</span>` :
                                     `<span class="action-btn text-secondary ${window.esSoporteJR ? 'action-disabled' : ''}" title="Seguimiento" onclick="window.location.href='seguimiento.html?folio=${s.folio}'">📋</span>`
                                 }
-
                                 ${window.esSoporteJR && statusActual === "EN ZONA" ? `
                                     <span class="action-btn text-success" title="Confirmar" onclick="confirmarEntrega('${s.folio}')">✅</span>
                                     <span class="action-btn text-warning" title="Devolución" onclick="enviarDevolucion('${s.folio}')">🔄</span>
                                 ` : ''}
-
                                 ${window.esAdmin ? `<span class="action-btn text-danger" title="Archivar" onclick="depurarRegistro('${idKey}')">📦</span>` : ''}
                             </div>
                         </td>
@@ -205,17 +208,14 @@
         document.getElementById("loader").style.display = "none";
     }
 
-    // --- FUNCIONES CORE RESTAURADAS ---
-
+    // --- FUNCIONES CORE ---
     window.guardarSolicitud = async () => {
         const emp = document.getElementById("empresa").value;
         const zon = document.getElementById("zona").value;
         const suc = document.getElementById("sucursal").value;
         const arc = document.getElementById("archivo").files[0];
         const local = document.getElementById("checkLocal").checked;
-
         if(!emp || !zon || !suc || !arc) return Swal.fire("Error", "Faltan campos", "error");
-
         document.getElementById("loader").style.display = "flex";
         const reader = new FileReader();
         reader.onload = async () => {
@@ -248,8 +248,24 @@
         }
     };
 
+    window.confirmarEntrega = async (fol) => {
+        const res = await Swal.fire({ title: '¿Confirmar Entrega?', icon: 'question', showCancelButton: true });
+        if(res.isConfirmed) {
+            await push(seguimientoRef, { folio: fol, status: "CONFIRMADO", fechaRegistro: new Date().toISOString(), usuario: window.nombreSesion });
+            Swal.fire("Confirmado", "", "success");
+        }
+    };
+
+    window.enviarDevolucion = async (fol) => {
+        const { value: com } = await Swal.fire({ title: 'Motivo Devolución', input: 'textarea', showCancelButton: true });
+        if(com) {
+            await push(seguimientoRef, { folio: fol, status: "DEVOLUCION", comentarios: com.toUpperCase(), fechaRegistro: new Date().toISOString(), usuario: window.nombreSesion });
+            Swal.fire("Devolución enviada", "", "warning");
+        }
+    };
+
     window.depurarRegistro = async (id) => {
-        const res = await Swal.fire({ title: '¿Archivar?', text: "Se moverá al historial permanente.", icon: 'warning', showCancelButton: true });
+        const res = await Swal.fire({ title: '¿Archivar?', icon: 'warning', showCancelButton: true });
         if(res.isConfirmed) {
             await update(ref(database, `tecnologia/${id}`), { eliminado: true });
             Swal.fire("Archivado", "", "success");
@@ -274,7 +290,6 @@
     window.modalSegLocal = async (id, fol) => {
         const sgs = globalSeguimientos.filter(x => x.folio === fol);
         const descPrev = sgs.find(x => x.descripcionArt)?.descripcionArt || "";
-
         const { value: f } = await Swal.fire({
             title: 'Seguimiento Local',
             html: `<textarea id="sw-desc" class="form-control mb-2" ${descPrev ? 'readonly' : ''} placeholder="Descripción">${descPrev}</textarea>
@@ -310,10 +325,10 @@
     };
 
     window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
-    
 </script>
+
 <script>
-    // Protección de código original
+    // Protección y bloqueo de teclas
     document.addEventListener('contextmenu', (e) => e.preventDefault());
     document.onkeydown = function(e) {
         if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) || (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0))) return false;
@@ -322,7 +337,3 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
-
-
-
