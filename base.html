@@ -11,7 +11,6 @@
 </style>
 </head>
 <body class="p-4 bg-light">
-
 <script>
     // ESTANDARIZACIÓN DE SESIÓN (Mantener tu lógica original)
     const sesionRaw = localStorage.getItem("usuarioLogueado");
@@ -28,7 +27,6 @@
         }
     }
 </script>
-
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Registro de Personal</h2>
@@ -43,8 +41,7 @@
             <div class="col-md-6"><label>Nombre</label><input id="nombre" class="form-control"></div>
             <div class="col-md-6"><label>Correo</label><input id="correo" class="form-control"></div>
             <div class="col-md-6"><label>Usuario</label><input id="usuario" class="form-control" oninput="this.value = this.value.toUpperCase()"></div>
-            
-            <div class="col-md-6">
+                  <div class="col-md-6">
                 <label>Contraseña</label>
                 <div class="input-group">
                     <input id="contrasena" type="password" class="form-control">
@@ -61,7 +58,6 @@
     </div>
 
     <hr class="my-5">
-
     <h4>Usuarios Registrados</h4>
     <div class="table-responsive">
         <table class="table table-bordered table-striped bg-white shadow-sm">
@@ -212,3 +208,4 @@
 </script>
 </body>
 </html>
+
