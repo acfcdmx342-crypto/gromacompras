@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solicitud de Tecnología</title>
+    <title>Solicitud de Tecnología - Procomex</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -12,25 +12,18 @@
         (function(){ emailjs.init("0aHlArLgvHrj2Xbk8"); })();
     </script>
     <style>
-        body { background:#f2f4f7; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background:#f2f4f7; font-family: 'Segoe UI', sans-serif; }
         .card { border-radius:15px; border: none; }
         .action-btn { cursor:pointer; font-size:20px; transition: 0.2s; display: inline-block; padding: 0 5px; }
         .action-btn:hover { transform: scale(1.2); }
         .action-disabled { color:#adb5bd; cursor:not-allowed; opacity: 0.4; pointer-events: none; }
-        .table thead { background:#0d6efd; color:white; }
-        .btn-rounded { border-radius:50px; }
         
-        /* Diferenciación Visual */
-        .fila-local { background-color: #fff9e6 !important; } /* Tono crema suave */
+        /* Diferenciación Visual de Filas */
+        .fila-local { background-color: #fff9e6 !important; } /* Tono Crema para Locales */
         .badge-local { background-color: #ffc107; color: #000; font-weight: bold; }
         .badge-compras { background-color: #6c757d; color: #fff; }
 
-        /* Status Colors */
-        .st-compras { background-color: #0d6efd !important; color: white; } 
-        .st-zona { background-color: #ffc107 !important; color: black; }    
-        .st-pendiente { background-color: #dc3545 !important; color: white; } 
-        .st-sistemas { background-color: #198754 !important; color: white; }  
-        .st-local-flow { background-color: #fd7e14 !important; color: white; }
+        .st-zona { background-color: #ffc107 !important; color: black; }
         
         #loader { 
             display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
@@ -45,54 +38,56 @@
 
 <div id="loader">
     <div class="spinner-border text-primary" role="status"></div>
-    <span class="mt-2 fw-bold">Cargando sistema...</span>
+    <span class="mt-2 fw-bold">Actualizando registros...</span>
 </div>
 
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded shadow-sm">
+    <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded shadow-sm border-start border-primary border-4">
         <div>
             <h5 class="mb-0 fw-bold text-primary">👤 <span id="usuarioActivo"></span></h5>
             <small class="text-muted" id="puestoActivo"></small>
         </div>
         <div class="dropdown">
-            <button class="btn btn-primary btn-rounded dropdown-toggle px-4" data-bs-toggle="dropdown">Menu</button>
-            <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="historial.html">📜 Historial</a></li>
+            <button class="btn btn-primary btn-rounded dropdown-toggle px-4 shadow-sm" data-bs-toggle="dropdown">Menú</button>
+            <ul class="dropdown-menu dropdown-menu-end shadow">
+                <li><a class="dropdown-item" href="historial.html">📜 Ver Historial</a></li>
                 <li id="liBase"></li>
                 <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item text-danger" href="#" onclick="cerrarSesion()">🚪 Salir</a></li>
+                <li><a class="dropdown-item text-danger" href="#" onclick="cerrarSesion()">🚪 Cerrar Sesión</a></li>
             </ul>
         </div>
     </div>
 
     <div class="card shadow-sm p-4 mb-4">
-        <h6 class="fw-bold mb-3">NUEVA SOLICITUD</h6>
+        <h6 class="fw-bold mb-3 text-secondary border-bottom pb-2">REGISTRAR NUEVA SOLICITUD</h6>
         <form id="formTec" class="row g-3">
             <div class="col-md-2"><label class="small fw-bold">Empresa</label><input id="empresa" class="form-control text-uppercase"></div>
             <div class="col-md-2"><label class="small fw-bold">Zona</label><input id="zona" class="form-control text-uppercase"></div>
             <div class="col-md-3"><label class="small fw-bold">Sucursal</label><input id="sucursal" class="form-control text-uppercase"></div>
             <div class="col-md-5">
-                <label class="small fw-bold">Evidencia / Requisición</label>
+                <label class="small fw-bold">Archivo Requisición</label>
                 <div class="input-group">
                     <input id="archivo" type="file" class="form-control" onchange="previewArchivo(this)">
-                    <div class="input-group-text bg-light border-start-0">
-                        <input class="form-check-input" type="checkbox" id="checkLocal">
-                        <label class="form-check-label small ms-2 fw-bold" for="checkLocal">¿Es Local?</label>
+                    <div class="input-group-text bg-white">
+                        <input class="form-check-input mt-0" type="checkbox" id="checkLocal">
+                        <label class="form-check-label small fw-bold ms-2" for="checkLocal">Solicitud Local</label>
                     </div>
                 </div>
-                <div id="preview-container"><small class="text-muted">Sin archivo</small></div>
+                <div id="preview-container"><small class="text-muted">Vista previa</small></div>
             </div>
-            <div class="col-12"><button type="button" class="btn btn-primary px-5" onclick="guardarSolicitud()">Generar Solicitud</button></div>
+            <div class="col-12 mt-3 text-end">
+                <button type="button" class="btn btn-primary px-5 fw-bold" onclick="guardarSolicitud()">💾 Guardar Solicitud</button>
+            </div>
         </form>
     </div>
 
     <div class="card shadow-sm p-4">
         <div class="table-responsive">
-            <table class="table align-middle text-center">
-                <thead class="table-dark">
+            <table class="table align-middle text-center table-hover">
+                <thead class="table-primary">
                     <tr>
                         <th>Folio</th><th>Empresa</th><th>Zona</th><th>Sucursal</th>
-                        <th>Tipo</th><th>Status</th><th>Tiempo</th><th>Acciones</th>
+                        <th>Tipo</th><th>Status Actual</th><th>Tiempo</th><th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tablaTecBody"></tbody>
@@ -104,7 +99,7 @@
 <script type="module">
     import { database, ref, push, set, get, onValue, update, remove } from "./firebase.js";
 
-    // Manejo de Sesión
+    // Manejo de Sesión y Perfiles
     const sesion = JSON.parse(localStorage.getItem("usuarioLogueado") || "{}");
     if(!sesion.usuario) location.href="index.html";
     
@@ -122,7 +117,7 @@
     window.ocultarCargando = () => document.getElementById("loader").style.display = "none";
     window.mostrarCargando = () => document.getElementById("loader").style.display = "flex";
 
-    // Escuchar Seguimientos
+    // Carga de Datos en Tiempo Real
     onValue(seguimientoRef, snap => {
         globalSegs = [];
         snap.forEach(c => { globalSegs.push({...c.val(), id: c.key}); });
@@ -138,12 +133,14 @@
             const id = doc.key;
             if(s.eliminado) return;
 
+            // Obtener el último estatus del seguimiento
             const misSegs = globalSegs.filter(x => x.folio === s.folio).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
-            const stActual = misSegs.length > 0 ? misSegs[0].status : s.status;
+            const stActual = misSegs.length > 0 ? misSegs[0].status : (s.status || "PENDIENTE");
             
             if(stActual === "CONFIRMADO") return;
 
-            const esLocal = s.solicitudLocal === true;
+            // LÓGICA DE RETROCOMPATIBILIDAD (Importante para tus registros anteriores)
+            const esLocal = (s.solicitudLocal === true || s.isLocal === true); 
             const filaClase = esLocal ? "fila-local" : "";
             const tipoBadge = esLocal ? "badge-local" : "badge-compras";
 
@@ -154,20 +151,20 @@
                     <td>${s.zona}</td>
                     <td>${s.sucursal}</td>
                     <td><span class="badge ${tipoBadge}">${esLocal ? 'LOCAL' : 'COMPRAS'}</span></td>
-                    <td><span class="badge bg-info text-dark w-100">${stActual}</span></td>
-                    <td><small>${calcularTiempo(s.fechaISO)}</small></td>
+                    <td><span class="badge ${stActual === 'EN ZONA' ? 'st-zona' : 'bg-info text-dark'} w-100">${stActual}</span></td>
+                    <td><small>${calcularTiempo(s.fechaISO || s.fechaEnvio)}</small></td>
                     <td>
                         <div class="d-flex gap-2 justify-content-center">
-                            <span class="action-btn" onclick="verHistorial('${s.folio}')">📜</span>
+                            <span class="action-btn" title="Historial" onclick="verHistorial('${s.folio}')">📜</span>
                             
                             ${esLocal ? 
-                                `<span class="action-btn text-info" onclick="modalSegLocal('${id}', '${s.folio}')">📋</span>` :
-                                `<span class="action-btn text-secondary ${esSoporteJR ? 'action-disabled' : ''}" onclick="irSeg('${s.folio}')">📋</span>`
+                                `<span class="action-btn text-info" title="Seguimiento Local" onclick="modalSegLocal('${id}', '${s.folio}')">📋</span>` :
+                                `<span class="action-btn text-secondary ${esSoporteJR ? 'action-disabled' : ''}" title="Seguimiento Compras" onclick="irSeg('${s.folio}')">📋</span>`
                             }
 
                             ${esSoporteJR && stActual === "EN ZONA" ? `
-                                <span class="action-btn text-success" onclick="confirmarEntrega('${s.folio}')">✅</span>
-                                <span class="action-btn text-warning" onclick="devolucion('${s.folio}')">🔄</span>
+                                <span class="action-btn text-success" title="Confirmar Entrega" onclick="confirmarEntrega('${s.folio}')">✅</span>
+                                <span class="action-btn text-warning" title="Devolución" onclick="devolucion('${s.folio}')">🔄</span>
                             ` : ''}
                         </div>
                     </td>
@@ -183,7 +180,7 @@
         const arc = document.getElementById("archivo").files[0];
         const local = document.getElementById("checkLocal").checked;
 
-        if(!emp || !zon || !suc || !arc) return Swal.fire("Error", "Faltan datos", "error");
+        if(!emp || !zon || !suc || !arc) return Swal.fire("Error", "Campos incompletos", "error");
 
         mostrarCargando();
         const reader = new FileReader();
@@ -193,21 +190,24 @@
                 folio: nFolio, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
                 sucursal: suc.toUpperCase(), archivoData: reader.result,
                 status: local ? "EN COTIZACION" : "PENDIENTE",
-                solicitudLocal: local, fechaISO: new Date().toISOString(),
+                solicitudLocal: local, isLocal: local, // Guardamos ambas para seguridad
+                fechaISO: new Date().toISOString(),
                 usuario: uNombre, eliminado: false
             });
             document.getElementById("formTec").reset();
-            Swal.fire("Éxito", "Solicitud Creada", "success");
+            document.getElementById("preview-container").innerHTML = "";
+            Swal.fire("Guardado", "La solicitud se ha registrado correctamente", "success");
         };
         reader.readAsDataURL(arc);
     };
 
     window.modalSegLocal = async (id, fol) => {
         const segs = globalSegs.filter(x => x.folio === fol);
+        // Respaldo de descripción para registros antiguos
         const descPrev = segs.find(x => x.descripcionArt)?.descripcionArt || "";
         
         const { value: form } = await Swal.fire({
-            title: 'Seguimiento Local',
+            title: 'Seguimiento de Solicitud Local',
             html: `
                 <div class="text-start">
                     <label class="small fw-bold">Descripción del Artículo</label>
@@ -219,11 +219,16 @@
                         <option value="EN COMPRA">EN COMPRA</option>
                         <option value="EN ZONA">EN ZONA</option>
                     </select>
-                    <label class="small fw-bold">Comentario</label>
-                    <textarea id="sw-coment" class="form-control"></textarea>
+                    <label class="small fw-bold">Comentario Adicional</label>
+                    <textarea id="sw-coment" class="form-control" placeholder="Escribe aquí..."></textarea>
                 </div>`,
             showCancelButton: true,
-            preConfirm: () => ({ desc: document.getElementById('sw-desc').value, sts: document.getElementById('sw-status').value, com: document.getElementById('sw-coment').value })
+            confirmButtonText: 'Registrar',
+            preConfirm: () => ({ 
+                desc: document.getElementById('sw-desc').value, 
+                sts: document.getElementById('sw-status').value, 
+                com: document.getElementById('sw-coment').value 
+            })
         });
 
         if(form) {
@@ -233,11 +238,12 @@
                 comentarios: form.com.toUpperCase(), fechaRegistro: new Date().toISOString(), usuario: uNombre
             });
             ocultarCargando();
+            Swal.fire("Registrado", "Seguimiento actualizado", "success");
         }
     };
 
-    // Funciones Auxiliares
     window.previewArchivo = (input) => {
+        if (!input.files[0]) return;
         const reader = new FileReader();
         reader.onload = e => {
             const cont = document.getElementById("preview-container");
@@ -247,12 +253,25 @@
     };
 
     function calcularTiempo(f) {
+        if(!f) return "0h";
         const diff = new Date() - new Date(f);
-        return `${Math.floor(diff / 3600000)}h`;
+        const horas = Math.floor(diff / 3600000);
+        return `${horas}h`;
     }
 
     window.cerrarSesion = () => { localStorage.clear(); location.href="index.html"; };
-    window.irSeg = (f) => location.href = "seguimiento.html?folio=" + f;
+    window.irSeg = (f) => location.href = "seguimiento.html?folio=" + encodeURIComponent(f);
+    
+    // Funciones globales para evitar errores de referencia
+    window.verHistorial = (fol) => {
+        const hist = globalSegs.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
+        let html = '<ul class="list-group text-start">';
+        hist.forEach(h => {
+            html += `<li class="list-group-item"><b>${h.status}:</b> ${h.descripcionArt || h.comentarios || 'Sin detalles'} <br><small class="text-muted">${new Date(h.fechaRegistro).toLocaleString()}</small></li>`;
+        });
+        html += '</ul>';
+        Swal.fire({ title: 'Historial ' + fol, html: html || 'Sin registros aún' });
+    };
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
