@@ -12,43 +12,55 @@
         (function(){ emailjs.init("0aHlArLgvHrj2Xbk8"); })();
     </script>
     <style>
-        body { background:#f2f4f7; font-family: 'Segoe UI', sans-serif; }
-        .card { border-radius:15px; border: none; }
-        .action-btn { cursor:pointer; font-size:20px; transition: 0.2s; display: inline-block; padding: 0 5px; }
+        body { background:#f2f4f7; }
+        .card { border-radius:20px; border: none; }
+        .action-btn { cursor:pointer; font-size:22px; transition: 0.2s; display: inline-block; }
         .action-btn:hover { transform: scale(1.2); }
-        .action-disabled { color:#adb5bd; cursor:not-allowed; opacity: 0.4; pointer-events: none; }
+        .action-disabled { color:#adb5bd; cursor:not-allowed; opacity: 0.5; filter: grayscale(1); pointer-events: none; }
+        .table thead { background:#0d6efd; color:white; }
+        .btn-rounded { border-radius:50px; }
+        .user-info-box { background: white; padding: 10px 20px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: inline-block; }
+        .aviso-devolucion { background: #fff3cd; border-left: 5px solid #ffc107; padding: 10px 15px; border-radius: 10px; font-size: 0.85rem; color: #856404; max-width: 600px; }
         
-        /* Diferenciación Visual de Filas */
-        .fila-local { background-color: #fff9e6 !important; } /* Tono Crema para Locales */
-        .badge-local { background-color: #ffc107; color: #000; font-weight: bold; }
-        .badge-compras { background-color: #6c757d; color: #fff; }
+        /* Diferenciación Visual */
+        .fila-local { background-color: #fff9e6 !important; } 
+        .st-zona { background-color: #ffc107 !important; color: black; }    
+        .st-compras { background-color: #0d6efd !important; color: white; } 
 
-        .st-zona { background-color: #ffc107 !important; color: black; }
-        
         #loader { 
             display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(255,255,255,0.9); z-index: 9999; justify-content: center; 
             align-items: center; flex-direction: column; 
         }
-        #preview-container { border: 2px dashed #ccc; border-radius: 10px; height: 150px; display: flex; align-items: center; justify-content: center; background: #fff; margin-top: 10px; overflow: hidden; }
-        #preview-container img, #preview-container iframe { width: 100%; height: 100%; object-fit: contain; }
+        #preview-container { border: 2px dashed #ccc; border-radius: 10px; min-height: 100px; display: flex; align-items: center; justify-content: center; background: #fff; overflow: hidden; margin-top: 5px; }
+        #preview-container iframe, #preview-container img { width: 100%; height: 200px; object-fit: contain; }
     </style>
 </head>
 <body class="p-4">
 
 <div id="loader">
-    <div class="spinner-border text-primary" role="status"></div>
-    <span class="mt-2 fw-bold">Actualizando registros...</span>
+    <div style="animation: pulse 1.5s infinite;">
+        <img src="https://gruporoma.com/wp-content/uploads/2023/06/cropped-cropped-procomex-pachuca-logo-350-%C3%97-100-px-1.png" style="width: 250px;">
+    </div>
+    <div class="mt-3">
+        <div class="spinner-border text-primary" role="status"></div>
+        <span class="ms-2 fw-bold">Restaurando sesión...</span>
+    </div>
 </div>
 
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded shadow-sm border-start border-primary border-4">
-        <div>
-            <h5 class="mb-0 fw-bold text-primary">👤 <span id="usuarioActivo"></span></h5>
-            <small class="text-muted" id="puestoActivo"></small>
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="user-info-box border-start border-primary border-4">
+                <div class="fw-bold text-primary">👤 <span id="usuarioActivo"></span></div>
+                <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
+            </div>
+            <div class="aviso-devolucion d-none d-md-block">
+                <strong>⚠️ Aviso:</strong> Los empaques de devolución deben estar intactos.
+            </div>
         </div>
         <div class="dropdown">
-            <button class="btn btn-primary btn-rounded dropdown-toggle px-4 shadow-sm" data-bs-toggle="dropdown">Menú</button>
+            <button class="btn btn-primary btn-rounded dropdown-toggle fw-bold px-4 shadow-sm" data-bs-toggle="dropdown">☰ Menú</button>
             <ul class="dropdown-menu dropdown-menu-end shadow">
                 <li><a class="dropdown-item" href="historial.html">📜 Ver Historial</a></li>
                 <li id="liBase"></li>
@@ -58,36 +70,43 @@
         </div>
     </div>
 
-    <div class="card shadow-sm p-4 mb-4">
-        <h6 class="fw-bold mb-3 text-secondary border-bottom pb-2">REGISTRAR NUEVA SOLICITUD</h6>
+    <h2 class="text-center fw-bold mb-4">Solicitud de Tecnología</h2>
+
+    <div class="card shadow p-4 mb-4">
+        <h5 class="fw-bold mb-3 border-bottom pb-2 text-secondary">Registrar Solicitud</h5>
         <form id="formTec" class="row g-3">
-            <div class="col-md-2"><label class="small fw-bold">Empresa</label><input id="empresa" class="form-control text-uppercase"></div>
-            <div class="col-md-2"><label class="small fw-bold">Zona</label><input id="zona" class="form-control text-uppercase"></div>
+            <div class="col-md-3"><label class="small fw-bold">Empresa</label><input id="empresa" class="form-control text-uppercase"></div>
+            <div class="col-md-3"><label class="small fw-bold">Zona</label><input id="zona" class="form-control text-uppercase"></div>
+            <div class="col-md-3"><label class="small fw-bold">Soporte</label><input id="soporte" class="form-control text-uppercase" readonly></div>
             <div class="col-md-3"><label class="small fw-bold">Sucursal</label><input id="sucursal" class="form-control text-uppercase"></div>
-            <div class="col-md-5">
+            <div class="col-md-6">
                 <label class="small fw-bold">Archivo Requisición</label>
                 <div class="input-group">
                     <input id="archivo" type="file" class="form-control" onchange="previewArchivo(this)">
                     <div class="input-group-text bg-white">
-                        <input class="form-check-input mt-0" type="checkbox" id="checkLocal">
-                        <label class="form-check-label small fw-bold ms-2" for="checkLocal">Solicitud Local</label>
+                        <input class="form-check-input" type="checkbox" id="checkLocal">
+                        <label class="form-check-label small fw-bold ms-2" for="checkLocal">Solicitud local</label>
                     </div>
                 </div>
                 <div id="preview-container"><small class="text-muted">Vista previa</small></div>
             </div>
-            <div class="col-12 mt-3 text-end">
-                <button type="button" class="btn btn-primary px-5 fw-bold" onclick="guardarSolicitud()">💾 Guardar Solicitud</button>
+            <div class="col-12 mt-4 text-center">
+                <button type="button" class="btn btn-primary btn-rounded px-5 shadow" onclick="guardarSolicitud()">💾 Guardar Solicitud</button>
             </div>
         </form>
     </div>
 
-    <div class="card shadow-sm p-4">
+    <div class="card shadow p-4 border-0">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold m-0 text-secondary">Solicitudes en Proceso</h5>
+            <div id="contenedorExportar"></div>
+        </div>
         <div class="table-responsive">
-            <table class="table align-middle text-center table-hover">
+            <table class="table table-bordered align-middle text-center bg-white">
                 <thead class="table-primary">
                     <tr>
                         <th>Folio</th><th>Empresa</th><th>Zona</th><th>Sucursal</th>
-                        <th>Tipo</th><th>Status Actual</th><th>Tiempo</th><th>Acciones</th>
+                        <th>Tipo</th><th>Status</th><th>Tiempo</th><th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tablaTecBody"></tbody>
@@ -99,28 +118,33 @@
 <script type="module">
     import { database, ref, push, set, get, onValue, update, remove } from "./firebase.js";
 
-    // Manejo de Sesión y Perfiles
-    const sesion = JSON.parse(localStorage.getItem("usuarioLogueado") || "{}");
-    if(!sesion.usuario) location.href="index.html";
+    // --- LÓGICA DE SESIÓN ---
+    const sesionRaw = localStorage.getItem("usuarioLogueado");
+    if (!sesionRaw) location.href = "index.html";
+    const sesion = JSON.parse(sesionRaw);
     
-    const uNombre = sesion.nombre;
-    const uPuesto = (sesion.puesto || "").toUpperCase();
-    const esSoporteJR = uPuesto === "SOPORTE TECNICO JR";
+    window.usuarioSesion = sesion.usuario;
+    window.nombreSesion = sesion.nombre;
+    window.puestoSesion = (sesion.puesto || "").toUpperCase();
     
-    document.getElementById("usuarioActivo").textContent = uNombre;
-    document.getElementById("puestoActivo").textContent = uPuesto;
+    const puestosAdmin = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO", "SOPORTE TECNICO SR"];
+    window.esSoporteJR = window.puestoSesion === "SOPORTE TECNICO JR";
+    window.puedeVerTodo = puestosAdmin.includes(window.puestoSesion);
+
+    document.getElementById("usuarioActivo").textContent = window.nombreSesion;
+    document.getElementById("puestoActivo").textContent = window.puestoSesion;
+    document.getElementById("soporte").value = window.nombreSesion;
+
+    if (window.puedeVerTodo) document.getElementById("liBase").innerHTML = '<a class="dropdown-item" href="base.html">🏠 Página Base</a>';
 
     const solicitudesRef = ref(database, "tecnologia");
     const seguimientoRef = ref(database, "seguimiento");
-    let globalSegs = [];
+    let globalSeguimientos = [];
 
-    window.ocultarCargando = () => document.getElementById("loader").style.display = "none";
-    window.mostrarCargando = () => document.getElementById("loader").style.display = "flex";
-
-    // Carga de Datos en Tiempo Real
+    // --- RENDERIZADO Y LÓGICA ---
     onValue(seguimientoRef, snap => {
-        globalSegs = [];
-        snap.forEach(c => { globalSegs.push({...c.val(), id: c.key}); });
+        globalSeguimientos = [];
+        snap.forEach(c => { globalSeguimientos.push({ ...c.val(), id: c.key }); });
         onValue(solicitudesRef, sSnap => renderTable(sSnap));
     });
 
@@ -130,49 +154,50 @@
         
         snap.forEach(doc => {
             const s = doc.val();
-            const id = doc.key;
-            if(s.eliminado) return;
+            const idKey = doc.key;
+            if (s.eliminado) return;
 
-            // Obtener el último estatus del seguimiento
-            const misSegs = globalSegs.filter(x => x.folio === s.folio).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
-            const stActual = misSegs.length > 0 ? misSegs[0].status : (s.status || "PENDIENTE");
+            const segs = globalSeguimientos.filter(x => x.folio === s.folio).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
+            const statusActual = segs.length > 0 ? segs[0].status : (s.status || "PENDIENTE");
+
+            if (statusActual === "CONFIRMADO") return;
+
+            // COMPATIBILIDAD CON DATOS ANTERIORES
+            const esLocal = (s.solicitudLocal === true || s.isLocal === true);
             
-            if(stActual === "CONFIRMADO") return;
+            // FILTRO DE PRIVACIDAD
+            if (window.puedeVerTodo || s.usuario === window.usuarioSesion) {
+                tbody.innerHTML += `
+                    <tr class="${esLocal ? 'fila-local' : ''}">
+                        <td class="fw-bold">${s.folio}</td>
+                        <td>${s.empresa}</td>
+                        <td>${s.zona}</td>
+                        <td>${s.sucursal}</td>
+                        <td><span class="badge ${esLocal ? 'bg-warning text-dark' : 'bg-secondary'}">${esLocal ? 'LOCAL' : 'COMPRAS'}</span></td>
+                        <td><span class="badge ${statusActual === 'EN ZONA' ? 'st-zona' : 'st-compras'} p-2 w-100">${statusActual}</span></td>
+                        <td><small>${calcularTranscurrido(s.fechaISO || s.fechaEnvio)}</small></td>
+                        <td>
+                            <div class="d-flex justify-content-center gap-2">
+                                <span class="action-btn" onclick="verHistorial('${s.folio}')">📜</span>
+                                
+                                ${esLocal ? 
+                                    `<span class="action-btn text-info" onclick="modalSegLocal('${idKey}', '${s.folio}')">📋</span>` :
+                                    `<span class="action-btn text-primary ${window.esSoporteJR ? 'action-disabled' : ''}" onclick="window.location.href='seguimiento.html?folio=${s.folio}'">📋</span>`
+                                }
 
-            // LÓGICA DE RETROCOMPATIBILIDAD (Importante para tus registros anteriores)
-            const esLocal = (s.solicitudLocal === true || s.isLocal === true); 
-            const filaClase = esLocal ? "fila-local" : "";
-            const tipoBadge = esLocal ? "badge-local" : "badge-compras";
-
-            tbody.innerHTML += `
-                <tr class="${filaClase}">
-                    <td class="fw-bold">${s.folio}</td>
-                    <td>${s.empresa}</td>
-                    <td>${s.zona}</td>
-                    <td>${s.sucursal}</td>
-                    <td><span class="badge ${tipoBadge}">${esLocal ? 'LOCAL' : 'COMPRAS'}</span></td>
-                    <td><span class="badge ${stActual === 'EN ZONA' ? 'st-zona' : 'bg-info text-dark'} w-100">${stActual}</span></td>
-                    <td><small>${calcularTiempo(s.fechaISO || s.fechaEnvio)}</small></td>
-                    <td>
-                        <div class="d-flex gap-2 justify-content-center">
-                            <span class="action-btn" title="Historial" onclick="verHistorial('${s.folio}')">📜</span>
-                            
-                            ${esLocal ? 
-                                `<span class="action-btn text-info" title="Seguimiento Local" onclick="modalSegLocal('${id}', '${s.folio}')">📋</span>` :
-                                `<span class="action-btn text-secondary ${esSoporteJR ? 'action-disabled' : ''}" title="Seguimiento Compras" onclick="irSeg('${s.folio}')">📋</span>`
-                            }
-
-                            ${esSoporteJR && stActual === "EN ZONA" ? `
-                                <span class="action-btn text-success" title="Confirmar Entrega" onclick="confirmarEntrega('${s.folio}')">✅</span>
-                                <span class="action-btn text-warning" title="Devolución" onclick="devolucion('${s.folio}')">🔄</span>
-                            ` : ''}
-                        </div>
-                    </td>
-                </tr>`;
+                                ${window.esSoporteJR && statusActual === "EN ZONA" ? `
+                                    <span class="action-btn text-success" onclick="confirmarEntrega('${s.folio}')">✅</span>
+                                    <span class="action-btn text-warning" onclick="enviarDevolucion('${s.folio}')">🔄</span>
+                                ` : ''}
+                            </div>
+                        </td>
+                    </tr>`;
+            }
         });
-        ocultarCargando();
+        document.getElementById("loader").style.display = "none";
     }
 
+    // --- FUNCIONES DE ACCIÓN ---
     window.guardarSolicitud = async () => {
         const emp = document.getElementById("empresa").value;
         const zon = document.getElementById("zona").value;
@@ -180,70 +205,63 @@
         const arc = document.getElementById("archivo").files[0];
         const local = document.getElementById("checkLocal").checked;
 
-        if(!emp || !zon || !suc || !arc) return Swal.fire("Error", "Campos incompletos", "error");
+        if(!emp || !zon || !suc || !arc) return Swal.fire("Error", "Completa todos los campos", "error");
 
-        mostrarCargando();
+        document.getElementById("loader").style.display = "flex";
         const reader = new FileReader();
         reader.onload = async () => {
-            const nFolio = `TEC-${emp}-${zon}-${Date.now().toString().slice(-4)}`.toUpperCase();
+            const fol = `TEC-${emp}-${zon}-${Date.now().toString().slice(-4)}`.toUpperCase();
             await push(solicitudesRef, {
-                folio: nFolio, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
-                sucursal: suc.toUpperCase(), archivoData: reader.result,
-                status: local ? "EN COTIZACION" : "PENDIENTE",
-                solicitudLocal: local, isLocal: local, // Guardamos ambas para seguridad
-                fechaISO: new Date().toISOString(),
-                usuario: uNombre, eliminado: false
+                folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
+                sucursal: suc.toUpperCase(), soporte: window.nombreSesion,
+                archivoData: reader.result, status: local ? "EN COTIZACION" : "PENDIENTE",
+                solicitudLocal: local, isLocal: local,
+                fechaISO: new Date().toISOString(), usuario: window.usuarioSesion, eliminado: false
             });
             document.getElementById("formTec").reset();
-            document.getElementById("preview-container").innerHTML = "";
-            Swal.fire("Guardado", "La solicitud se ha registrado correctamente", "success");
+            Swal.fire("Éxito", "Solicitud guardada", "success");
         };
         reader.readAsDataURL(arc);
     };
 
     window.modalSegLocal = async (id, fol) => {
-        const segs = globalSegs.filter(x => x.folio === fol);
-        // Respaldo de descripción para registros antiguos
-        const descPrev = segs.find(x => x.descripcionArt)?.descripcionArt || "";
-        
+        const sgs = globalSeguimientos.filter(x => x.folio === fol);
+        const descPrev = sgs.find(x => x.descripcionArt)?.descripcionArt || "";
+
         const { value: form } = await Swal.fire({
-            title: 'Seguimiento de Solicitud Local',
+            title: 'Seguimiento Local',
             html: `
                 <div class="text-start">
-                    <label class="small fw-bold">Descripción del Artículo</label>
+                    <label class="small fw-bold">Descripción</label>
                     <textarea id="sw-desc" class="form-control mb-2" ${descPrev ? 'readonly' : ''}>${descPrev}</textarea>
-                    <label class="small fw-bold">Cambiar Status</label>
+                    <label class="small fw-bold">Status</label>
                     <select id="sw-status" class="form-select mb-2">
                         <option value="EN COTIZACION">EN COTIZACION</option>
                         <option value="EN AUTORIZACION">EN AUTORIZACION</option>
                         <option value="EN COMPRA">EN COMPRA</option>
                         <option value="EN ZONA">EN ZONA</option>
                     </select>
-                    <label class="small fw-bold">Comentario Adicional</label>
-                    <textarea id="sw-coment" class="form-control" placeholder="Escribe aquí..."></textarea>
+                    <textarea id="sw-coment" class="form-control" placeholder="Comentarios"></textarea>
                 </div>`,
             showCancelButton: true,
-            confirmButtonText: 'Registrar',
-            preConfirm: () => ({ 
-                desc: document.getElementById('sw-desc').value, 
-                sts: document.getElementById('sw-status').value, 
-                com: document.getElementById('sw-coment').value 
-            })
+            preConfirm: () => ({ desc: document.getElementById('sw-desc').value, sts: document.getElementById('sw-status').value, com: document.getElementById('sw-coment').value })
         });
 
         if(form) {
-            mostrarCargando();
             await push(seguimientoRef, {
                 folio: fol, status: form.sts, descripcionArt: form.desc.toUpperCase(),
-                comentarios: form.com.toUpperCase(), fechaRegistro: new Date().toISOString(), usuario: uNombre
+                comentarios: form.com.toUpperCase(), fechaRegistro: new Date().toISOString(), usuario: window.nombreSesion
             });
-            ocultarCargando();
-            Swal.fire("Registrado", "Seguimiento actualizado", "success");
         }
     };
 
+    window.verHistorial = (fol) => {
+        const h = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
+        let body = h.map(i => `<tr><td><small>${new Date(i.fechaRegistro).toLocaleString()}</small></td><td>${i.status}</td><td>${i.descripcionArt || i.comentarios || '-'}</td></tr>`).join('');
+        Swal.fire({ title: 'Historial', html: `<table class="table table-sm small"><thead><tr><th>Fecha</th><th>Status</th><th>Detalle</th></tr></thead><tbody>${body}</tbody></table>`, width: '800px' });
+    };
+
     window.previewArchivo = (input) => {
-        if (!input.files[0]) return;
         const reader = new FileReader();
         reader.onload = e => {
             const cont = document.getElementById("preview-container");
@@ -252,28 +270,14 @@
         reader.readAsDataURL(input.files[0]);
     };
 
-    function calcularTiempo(f) {
+    function calcularTranscurrido(f) {
         if(!f) return "0h";
         const diff = new Date() - new Date(f);
-        const horas = Math.floor(diff / 3600000);
-        return `${horas}h`;
+        return `${Math.floor(diff / 3600000)}h`;
     }
 
-    window.cerrarSesion = () => { localStorage.clear(); location.href="index.html"; };
-    window.irSeg = (f) => location.href = "seguimiento.html?folio=" + encodeURIComponent(f);
-    
-    // Funciones globales para evitar errores de referencia
-    window.verHistorial = (fol) => {
-        const hist = globalSegs.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
-        let html = '<ul class="list-group text-start">';
-        hist.forEach(h => {
-            html += `<li class="list-group-item"><b>${h.status}:</b> ${h.descripcionArt || h.comentarios || 'Sin detalles'} <br><small class="text-muted">${new Date(h.fechaRegistro).toLocaleString()}</small></li>`;
-        });
-        html += '</ul>';
-        Swal.fire({ title: 'Historial ' + fol, html: html || 'Sin registros aún' });
-    };
+    window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
 </script>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
