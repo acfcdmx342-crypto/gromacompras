@@ -14,7 +14,7 @@
     <style>
         body { background:#f2f4f7; }
         .card { border-radius:20px; border: none; }
-        .action-btn { cursor:pointer; font-size:22px; transition: 0.2s; display: inline-block; }
+        .action-btn { cursor:pointer; font-size:22px; transition: 0.2s; display: inline-block; padding: 0 4px; }
         .action-btn:hover { transform: scale(1.2); }
         .action-disabled { color:#adb5bd; cursor:not-allowed; opacity: 0.5; filter: grayscale(1); pointer-events: none; }
         .table thead { background:#0d6efd; color:white; }
@@ -22,11 +22,13 @@
         .user-info-box { background: white; padding: 10px 20px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: inline-block; }
         .aviso-devolucion { background: #fff3cd; border-left: 5px solid #ffc107; padding: 10px 15px; border-radius: 10px; font-size: 0.85rem; color: #856404; max-width: 600px; }
         
-        /* Diferenciación Visual */
-        .fila-local { background-color: #fff9e6 !important; } 
-        .st-zona { background-color: #ffc107 !important; color: black; }    
+        /* Estilos de Status y Diferenciación */
+        .fila-local { background-color: #fff8e1 !important; } 
         .st-compras { background-color: #0d6efd !important; color: white; } 
-
+        .st-zona { background-color: #ffc107 !important; color: black; }    
+        .st-pendiente { background-color: #dc3545 !important; color: white; } 
+        .st-devolucion { background-color: #6f42c1 !important; color: white; }
+        
         #loader { 
             display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(255,255,255,0.9); z-index: 9999; justify-content: center; 
@@ -44,7 +46,7 @@
     </div>
     <div class="mt-3">
         <div class="spinner-border text-primary" role="status"></div>
-        <span class="ms-2 fw-bold">Restaurando sesión...</span>
+        <span class="ms-2 fw-bold">Cargando sistema completo...</span>
     </div>
 </div>
 
@@ -56,7 +58,7 @@
                 <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
             </div>
             <div class="aviso-devolucion d-none d-md-block">
-                <strong>⚠️ Aviso:</strong> Los empaques de devolución deben estar intactos.
+                <strong>⚠️ Aviso:</strong> Para devoluciones, los empaques deben estar intactos.
             </div>
         </div>
         <div class="dropdown">
@@ -70,17 +72,15 @@
         </div>
     </div>
 
-    <h2 class="text-center fw-bold mb-4">Solicitud de Tecnología</h2>
-
     <div class="card shadow p-4 mb-4">
-        <h5 class="fw-bold mb-3 border-bottom pb-2 text-secondary">Registrar Solicitud</h5>
+        <h5 class="fw-bold mb-3 border-bottom pb-2 text-secondary">Nueva Solicitud</h5>
         <form id="formTec" class="row g-3">
             <div class="col-md-3"><label class="small fw-bold">Empresa</label><input id="empresa" class="form-control text-uppercase"></div>
             <div class="col-md-3"><label class="small fw-bold">Zona</label><input id="zona" class="form-control text-uppercase"></div>
             <div class="col-md-3"><label class="small fw-bold">Soporte</label><input id="soporte" class="form-control text-uppercase" readonly></div>
             <div class="col-md-3"><label class="small fw-bold">Sucursal</label><input id="sucursal" class="form-control text-uppercase"></div>
             <div class="col-md-6">
-                <label class="small fw-bold">Archivo Requisición</label>
+                <label class="small fw-bold">Requisición</label>
                 <div class="input-group">
                     <input id="archivo" type="file" class="form-control" onchange="previewArchivo(this)">
                     <div class="input-group-text bg-white">
@@ -106,7 +106,7 @@
                 <thead class="table-primary">
                     <tr>
                         <th>Folio</th><th>Empresa</th><th>Zona</th><th>Sucursal</th>
-                        <th>Tipo</th><th>Status</th><th>Tiempo</th><th>Acciones</th>
+                        <th>Tipo</th><th>Archivo</th><th>Status</th><th>Tiempo</th><th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tablaTecBody"></tbody>
@@ -118,30 +118,32 @@
 <script type="module">
     import { database, ref, push, set, get, onValue, update, remove } from "./firebase.js";
 
-    // --- LÓGICA DE SESIÓN ---
-    const sesionRaw = localStorage.getItem("usuarioLogueado");
-    if (!sesionRaw) location.href = "index.html";
-    const sesion = JSON.parse(sesionRaw);
-    
-    window.usuarioSesion = sesion.usuario;
+    // --- SESIÓN Y PERFILES ---
+    const sesion = JSON.parse(localStorage.getItem("usuarioLogueado") || "{}");
+    if(!sesion.usuario) location.href = "index.html";
+
     window.nombreSesion = sesion.nombre;
+    window.usuarioSesion = sesion.usuario;
     window.puestoSesion = (sesion.puesto || "").toUpperCase();
     
-    const puestosAdmin = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO", "SOPORTE TECNICO SR"];
+    const adminPuestos = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO SR", "SOPORTE TECNICO"];
     window.esSoporteJR = window.puestoSesion === "SOPORTE TECNICO JR";
-    window.puedeVerTodo = puestosAdmin.includes(window.puestoSesion);
+    window.esAdmin = adminPuestos.includes(window.puestoSesion);
 
     document.getElementById("usuarioActivo").textContent = window.nombreSesion;
     document.getElementById("puestoActivo").textContent = window.puestoSesion;
     document.getElementById("soporte").value = window.nombreSesion;
 
-    if (window.puedeVerTodo) document.getElementById("liBase").innerHTML = '<a class="dropdown-item" href="base.html">🏠 Página Base</a>';
+    if (window.esAdmin) {
+        document.getElementById("liBase").innerHTML = '<a class="dropdown-item" href="base.html">🏠 Página Base</a>';
+        document.getElementById("contenedorExportar").innerHTML = `<button class="btn btn-outline-success btn-sm fw-bold px-3" onclick="exportarExcel()">📊 Descargar Reporte</button>`;
+    }
 
     const solicitudesRef = ref(database, "tecnologia");
     const seguimientoRef = ref(database, "seguimiento");
     let globalSeguimientos = [];
+    let dataExportar = [];
 
-    // --- RENDERIZADO Y LÓGICA ---
     onValue(seguimientoRef, snap => {
         globalSeguimientos = [];
         snap.forEach(c => { globalSeguimientos.push({ ...c.val(), id: c.key }); });
@@ -151,22 +153,24 @@
     function renderTable(snap) {
         const tbody = document.getElementById("tablaTecBody");
         tbody.innerHTML = "";
-        
+        dataExportar = [];
+
         snap.forEach(doc => {
             const s = doc.val();
             const idKey = doc.key;
             if (s.eliminado) return;
 
-            const segs = globalSeguimientos.filter(x => x.folio === s.folio).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
-            const statusActual = segs.length > 0 ? segs[0].status : (s.status || "PENDIENTE");
+            const segsFolio = globalSeguimientos.filter(x => x.folio === s.folio).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
+            const statusActual = segsFolio.length > 0 ? segsFolio[0].status : (s.status || "PENDIENTE");
 
             if (statusActual === "CONFIRMADO") return;
 
-            // COMPATIBILIDAD CON DATOS ANTERIORES
-            const esLocal = (s.solicitudLocal === true || s.isLocal === true);
-            
-            // FILTRO DE PRIVACIDAD
-            if (window.puedeVerTodo || s.usuario === window.usuarioSesion) {
+            // COMPATIBILIDAD DOBLE (NUEVO Y ANTIGUO)
+            const esLocal = s.solicitudLocal === true || s.isLocal === true;
+
+            if (window.esAdmin || s.usuario === window.usuarioSesion) {
+                dataExportar.push({ ...s, statusActual });
+
                 tbody.innerHTML += `
                     <tr class="${esLocal ? 'fila-local' : ''}">
                         <td class="fw-bold">${s.folio}</td>
@@ -174,21 +178,25 @@
                         <td>${s.zona}</td>
                         <td>${s.sucursal}</td>
                         <td><span class="badge ${esLocal ? 'bg-warning text-dark' : 'bg-secondary'}">${esLocal ? 'LOCAL' : 'COMPRAS'}</span></td>
+                        <td><button class="btn btn-sm btn-success" onclick="verPDF('${s.archivoData}', '${s.folio}')">👁️</button></td>
                         <td><span class="badge ${statusActual === 'EN ZONA' ? 'st-zona' : 'st-compras'} p-2 w-100">${statusActual}</span></td>
                         <td><small>${calcularTranscurrido(s.fechaISO || s.fechaEnvio)}</small></td>
                         <td>
                             <div class="d-flex justify-content-center gap-2">
-                                <span class="action-btn" onclick="verHistorial('${s.folio}')">📜</span>
+                                <span class="action-btn" title="Historial" onclick="verHistorial('${s.folio}')">📜</span>
+                                <span class="action-btn text-primary" title="Editar" onclick="editarRegistro('${idKey}')">✏️</span>
                                 
                                 ${esLocal ? 
-                                    `<span class="action-btn text-info" onclick="modalSegLocal('${idKey}', '${s.folio}')">📋</span>` :
-                                    `<span class="action-btn text-primary ${window.esSoporteJR ? 'action-disabled' : ''}" onclick="window.location.href='seguimiento.html?folio=${s.folio}'">📋</span>`
+                                    `<span class="action-btn text-info" title="Seguimiento Local" onclick="modalSegLocal('${idKey}', '${s.folio}')">📋</span>` :
+                                    `<span class="action-btn text-secondary ${window.esSoporteJR ? 'action-disabled' : ''}" title="Seguimiento" onclick="window.location.href='seguimiento.html?folio=${s.folio}'">📋</span>`
                                 }
 
                                 ${window.esSoporteJR && statusActual === "EN ZONA" ? `
-                                    <span class="action-btn text-success" onclick="confirmarEntrega('${s.folio}')">✅</span>
-                                    <span class="action-btn text-warning" onclick="enviarDevolucion('${s.folio}')">🔄</span>
+                                    <span class="action-btn text-success" title="Confirmar" onclick="confirmarEntrega('${s.folio}')">✅</span>
+                                    <span class="action-btn text-warning" title="Devolución" onclick="enviarDevolucion('${s.folio}')">🔄</span>
                                 ` : ''}
+
+                                ${window.esAdmin ? `<span class="action-btn text-danger" title="Archivar" onclick="depurarRegistro('${idKey}')">📦</span>` : ''}
                             </div>
                         </td>
                     </tr>`;
@@ -197,7 +205,8 @@
         document.getElementById("loader").style.display = "none";
     }
 
-    // --- FUNCIONES DE ACCIÓN ---
+    // --- FUNCIONES CORE RESTAURADAS ---
+
     window.guardarSolicitud = async () => {
         const emp = document.getElementById("empresa").value;
         const zon = document.getElementById("zona").value;
@@ -205,7 +214,7 @@
         const arc = document.getElementById("archivo").files[0];
         const local = document.getElementById("checkLocal").checked;
 
-        if(!emp || !zon || !suc || !arc) return Swal.fire("Error", "Completa todos los campos", "error");
+        if(!emp || !zon || !suc || !arc) return Swal.fire("Error", "Faltan campos", "error");
 
         document.getElementById("loader").style.display = "flex";
         const reader = new FileReader();
@@ -224,41 +233,71 @@
         reader.readAsDataURL(arc);
     };
 
+    window.editarRegistro = async (id) => {
+        const snap = await get(ref(database, `tecnologia/${id}`));
+        const d = snap.val();
+        const { value: form } = await Swal.fire({
+            title: 'Editar Registro',
+            html: `<input id="ed-suc" class="form-control mb-2" value="${d.sucursal}" placeholder="Sucursal">`,
+            showCancelButton: true,
+            preConfirm: () => ({ suc: document.getElementById('ed-suc').value.toUpperCase() })
+        });
+        if(form) {
+            await update(ref(database, `tecnologia/${id}`), { sucursal: form.suc });
+            Swal.fire("Actualizado", "", "success");
+        }
+    };
+
+    window.depurarRegistro = async (id) => {
+        const res = await Swal.fire({ title: '¿Archivar?', text: "Se moverá al historial permanente.", icon: 'warning', showCancelButton: true });
+        if(res.isConfirmed) {
+            await update(ref(database, `tecnologia/${id}`), { eliminado: true });
+            Swal.fire("Archivado", "", "success");
+        }
+    };
+
+    window.exportarExcel = async () => {
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet('Solicitudes');
+        sheet.columns = [ {header:'Folio', key:'folio'}, {header:'Empresa', key:'empresa'}, {header:'Status', key:'statusActual'} ];
+        dataExportar.forEach(d => sheet.addRow(d));
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Reporte.xlsx'; a.click();
+    };
+
+    window.verPDF = (base64, folio) => {
+        const w = window.open();
+        w.document.write(`<iframe src="${base64}" style="width:100%; height:100%; border:none;"></iframe>`);
+    };
+
     window.modalSegLocal = async (id, fol) => {
         const sgs = globalSeguimientos.filter(x => x.folio === fol);
         const descPrev = sgs.find(x => x.descripcionArt)?.descripcionArt || "";
 
-        const { value: form } = await Swal.fire({
+        const { value: f } = await Swal.fire({
             title: 'Seguimiento Local',
-            html: `
-                <div class="text-start">
-                    <label class="small fw-bold">Descripción</label>
-                    <textarea id="sw-desc" class="form-control mb-2" ${descPrev ? 'readonly' : ''}>${descPrev}</textarea>
-                    <label class="small fw-bold">Status</label>
-                    <select id="sw-status" class="form-select mb-2">
-                        <option value="EN COTIZACION">EN COTIZACION</option>
-                        <option value="EN AUTORIZACION">EN AUTORIZACION</option>
-                        <option value="EN COMPRA">EN COMPRA</option>
-                        <option value="EN ZONA">EN ZONA</option>
-                    </select>
-                    <textarea id="sw-coment" class="form-control" placeholder="Comentarios"></textarea>
-                </div>`,
+            html: `<textarea id="sw-desc" class="form-control mb-2" ${descPrev ? 'readonly' : ''} placeholder="Descripción">${descPrev}</textarea>
+                   <select id="sw-status" class="form-select mb-2"><option value="EN COTIZACION">EN COTIZACION</option><option value="EN ZONA">EN ZONA</option></select>
+                   <textarea id="sw-com" class="form-control" placeholder="Comentarios"></textarea>`,
             showCancelButton: true,
-            preConfirm: () => ({ desc: document.getElementById('sw-desc').value, sts: document.getElementById('sw-status').value, com: document.getElementById('sw-coment').value })
+            preConfirm: () => ({ desc: document.getElementById('sw-desc').value, sts: document.getElementById('sw-status').value, com: document.getElementById('sw-com').value })
         });
-
-        if(form) {
-            await push(seguimientoRef, {
-                folio: fol, status: form.sts, descripcionArt: form.desc.toUpperCase(),
-                comentarios: form.com.toUpperCase(), fechaRegistro: new Date().toISOString(), usuario: window.nombreSesion
-            });
+        if(f) {
+            await push(seguimientoRef, { folio: fol, status: f.sts, descripcionArt: f.desc.toUpperCase(), comentarios: f.com.toUpperCase(), fechaRegistro: new Date().toISOString(), usuario: window.nombreSesion });
         }
     };
 
+    function calcularTranscurrido(f) {
+        if(!f) return "0h";
+        const diff = new Date() - new Date(f);
+        return `${Math.floor(diff / 3600000)}h`;
+    }
+
     window.verHistorial = (fol) => {
         const h = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
-        let body = h.map(i => `<tr><td><small>${new Date(i.fechaRegistro).toLocaleString()}</small></td><td>${i.status}</td><td>${i.descripcionArt || i.comentarios || '-'}</td></tr>`).join('');
-        Swal.fire({ title: 'Historial', html: `<table class="table table-sm small"><thead><tr><th>Fecha</th><th>Status</th><th>Detalle</th></tr></thead><tbody>${body}</tbody></table>`, width: '800px' });
+        let rows = h.map(i => `<tr><td>${new Date(i.fechaRegistro).toLocaleString()}</td><td>${i.status}</td><td>${i.descripcionArt || i.comentarios || '-'}</td></tr>`).join('');
+        Swal.fire({ title: 'Historial ' + fol, html: `<table class="table table-sm small"><thead><tr><th>Fecha</th><th>Status</th><th>Detalle</th></tr></thead><tbody>${rows}</tbody></table>`, width: '800px' });
     };
 
     window.previewArchivo = (input) => {
@@ -269,12 +308,6 @@
         };
         reader.readAsDataURL(input.files[0]);
     };
-
-    function calcularTranscurrido(f) {
-        if(!f) return "0h";
-        const diff = new Date() - new Date(f);
-        return `${Math.floor(diff / 3600000)}h`;
-    }
 
     window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
 </script>
