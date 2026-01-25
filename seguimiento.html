@@ -454,7 +454,7 @@
                 <tr class="group-header">
                     <td class="text-center" data-bs-toggle="collapse" data-bs-target="#${collId}"><i class="fa-solid fa-chevron-down chevron-icon"></i></td>
                     <td class="fw-bold text-primary">${folio}</td>
-                    <td class="small">${(ultimo.descripcion || "").substring(0, 40)}...</td>
+                    <td class="small">${ultimo.descripcion ? (ultimo.descripcion.substring(0, 40) + (ultimo.descripcion.length > 40 ? "..." : "")) : "SIN DESCRIPCIÓN"}</td>
                     <td><span class="px-3 py-1 fw-bold small ${obtenerClaseEstatus(ultimo.status)}">${ultimo.status}</span></td>
                     <td><span class="badge bg-light text-dark">${historial.length} mov.</span></td>
                     <td>
@@ -488,3 +488,4 @@
 </script>
 </body>
 </html>
+
