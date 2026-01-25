@@ -9,139 +9,91 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
     <script type="text/javascript">
-        (function(){
-            emailjs.init("0aHlArLgvHrj2Xbk8"); 
-        })();
+        (function(){ emailjs.init("0aHlArLgvHrj2Xbk8"); })();
     </script>
     <style>
-        body { background:#f2f4f7; }
-        .card { border-radius:20px; }
-        .action-btn { cursor:pointer; font-size:22px; transition: 0.2s; display: inline-block; }
+        body { background:#f2f4f7; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card { border-radius:15px; border: none; }
+        .action-btn { cursor:pointer; font-size:20px; transition: 0.2s; display: inline-block; padding: 0 5px; }
         .action-btn:hover { transform: scale(1.2); }
-        .action-disabled { color:#adb5bd; cursor:not-allowed; opacity: 0.5; filter: grayscale(1); }
+        .action-disabled { color:#adb5bd; cursor:not-allowed; opacity: 0.4; pointer-events: none; }
         .table thead { background:#0d6efd; color:white; }
         .btn-rounded { border-radius:50px; }
-        .user-info-box { background: white; padding: 10px 20px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: inline-block; }
-        .aviso-devolucion { background: #fff3cd; border-left: 5px solid #ffc107; padding: 10px 15px; border-radius: 10px; font-size: 0.85rem; color: #856404; max-width: 600px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .acciones { display:flex; justify-content:center; gap:10px; }
-        .dropdown-menu { border-radius: 15px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1); padding: 10px; z-index: 1050; }
-        .dropdown-item { border-radius: 8px; margin-bottom: 2px; font-weight: 500; }
         
-        /* Estilos de Status */
+        /* Diferenciación Visual */
+        .fila-local { background-color: #fff9e6 !important; } /* Tono crema suave */
+        .badge-local { background-color: #ffc107; color: #000; font-weight: bold; }
+        .badge-compras { background-color: #6c757d; color: #fff; }
+
+        /* Status Colors */
         .st-compras { background-color: #0d6efd !important; color: white; } 
         .st-zona { background-color: #ffc107 !important; color: black; }    
         .st-pendiente { background-color: #dc3545 !important; color: white; } 
         .st-sistemas { background-color: #198754 !important; color: white; }  
-        .st-devolucion { background-color: #6f42c1 !important; color: white; }
-        .st-local { background-color: #fd7e14 !important; color: white; }
-        .st-default { background-color: #6c757d !important; color: white; }   
+        .st-local-flow { background-color: #fd7e14 !important; color: white; }
         
-        /* Diferenciación Visual: Fila Crema */
-        .fila-local { background-color: #fff8e1 !important; } 
-
-        .tiempo-badge { font-size: 0.75rem; font-weight: bold; color: #555; }
-        #preview-container { border: 2px dashed #ccc; border-radius: 10px; min-height: 100px; display: flex; align-items: center; justify-content: center; background: #fff; overflow: hidden; margin-top: 5px; }
-        #preview-container iframe, #preview-container img { width: 100%; height: 200px; object-fit: contain; border: none; }
         #loader { 
             display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(255,255,255,0.9); z-index: 9999; justify-content: center; 
             align-items: center; flex-direction: column; 
         }
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.05); opacity: 0.8; }
-            100% { transform: scale(1); opacity: 1; }
-        }
+        #preview-container { border: 2px dashed #ccc; border-radius: 10px; height: 150px; display: flex; align-items: center; justify-content: center; background: #fff; margin-top: 10px; overflow: hidden; }
+        #preview-container img, #preview-container iframe { width: 100%; height: 100%; object-fit: contain; }
     </style>
 </head>
 <body class="p-4">
+
 <div id="loader">
-    <div style="animation: pulse 1.5s infinite;">
-        <img src="https://gruporoma.com/wp-content/uploads/2023/06/cropped-cropped-procomex-pachuca-logo-350-%C3%97-100-px-1.png" style="width: 250px;">
-    </div>
-    <div class="mt-3">
-        <div class="spinner-border text-primary" role="status"></div>
-        <span class="ms-2 fw-bold">Procesando información...</span>
-    </div>
+    <div class="spinner-border text-primary" role="status"></div>
+    <span class="mt-2 fw-bold">Cargando sistema...</span>
 </div>
 
-<script>
-    const sesionRaw = localStorage.getItem("usuarioLogueado");
-    if (!sesionRaw) {
-        location.href = "index.html";
-    } else {
-        const sesion = JSON.parse(sesionRaw);
-        window.usuarioSesion = sesion.usuario;
-        window.nombreSesion = sesion.nombre;
-        window.puestoSesion = (sesion.puesto || "").toUpperCase();
-        const puestosPrivilegiados = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO", "SOPORTE TECNICO SR", "BECARIO DE SISTEMAS", "BECARIO"];
-        window.esSoporteJR = window.puestoSesion === "SOPORTE TECNICO JR";
-        window.puedeVerBase = puestosPrivilegiados.includes(window.puestoSesion);
-    }
-    window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
-    window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
-    window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
-</script>
-
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-        <div class="d-flex align-items-center gap-3">
-            <div class="user-info-box border-start border-primary border-4">
-                <div class="fw-bold text-primary">👤 <span id="usuarioActivo"></span></div>
-                <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
-            </div>
-            <div class="aviso-devolucion d-none d-md-block">
-                <strong>⚠️ Aviso:</strong>Se les recuerda que para hacer una devolución de mercancía los empaques deben de estar lo más intactos posibles.
-            </div>
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded shadow-sm">
+        <div>
+            <h5 class="mb-0 fw-bold text-primary">👤 <span id="usuarioActivo"></span></h5>
+            <small class="text-muted" id="puestoActivo"></small>
         </div>
         <div class="dropdown">
-            <button class="btn btn-primary btn-rounded dropdown-toggle fw-bold px-4 shadow-sm" type="button" id="menuBtn" data-bs-toggle="dropdown" aria-expanded="false">
-                ☰ Menú
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="menuBtn">
-                <li><a class="dropdown-item" href="historial.html">📜 Ver Historial</a></li>
+            <button class="btn btn-primary btn-rounded dropdown-toggle px-4" data-bs-toggle="dropdown">Menu</button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="historial.html">📜 Historial</a></li>
                 <li id="liBase"></li>
                 <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item text-danger" href="#" onclick="cerrarSesion()">🚪 Cerrar Sesión</a></li>
+                <li><a class="dropdown-item text-danger" href="#" onclick="cerrarSesion()">🚪 Salir</a></li>
             </ul>
         </div>
     </div>
 
-    <h2 class="text-center fw-bold mb-4">Solicitud de Tecnología</h2>
-
-    <div class="card shadow p-4 mb-4 border-0">
-        <h5 class="fw-bold mb-3 border-bottom pb-2 text-secondary">Registrar Solicitud</h5>
+    <div class="card shadow-sm p-4 mb-4">
+        <h6 class="fw-bold mb-3">NUEVA SOLICITUD</h6>
         <form id="formTec" class="row g-3">
-            <div class="col-md-3"><label class="small fw-bold">Empresa</label><input id="empresa" class="form-control text-uppercase"></div>
-            <div class="col-md-3"><label class="small fw-bold">Zona</label><input id="zona" class="form-control text-uppercase"></div>
-            <div class="col-md-3"><label class="small fw-bold">Soporte Zona</label><input id="soporte" class="form-control text-uppercase" readonly></div>
+            <div class="col-md-2"><label class="small fw-bold">Empresa</label><input id="empresa" class="form-control text-uppercase"></div>
+            <div class="col-md-2"><label class="small fw-bold">Zona</label><input id="zona" class="form-control text-uppercase"></div>
             <div class="col-md-3"><label class="small fw-bold">Sucursal</label><input id="sucursal" class="form-control text-uppercase"></div>
-            <div class="col-md-6">
-                <label class="small fw-bold">Requisición (PDF o Imagen)</label>
+            <div class="col-md-5">
+                <label class="small fw-bold">Evidencia / Requisición</label>
                 <div class="input-group">
-                    <input id="archivo" type="file" class="form-control" onchange="window.previewArchivo(this)">
-                    <div class="input-group-text bg-white">
-                        <input class="form-check-input mt-0" type="checkbox" id="checkLocal">
-                        <label class="form-check-label small fw-bold ms-2" for="checkLocal">Solicitud local</label>
+                    <input id="archivo" type="file" class="form-control" onchange="previewArchivo(this)">
+                    <div class="input-group-text bg-light border-start-0">
+                        <input class="form-check-input" type="checkbox" id="checkLocal">
+                        <label class="form-check-label small ms-2 fw-bold" for="checkLocal">¿Es Local?</label>
                     </div>
                 </div>
-                <div id="preview-container"><small class="text-muted">Vista previa no disponible</small></div>
+                <div id="preview-container"><small class="text-muted">Sin archivo</small></div>
             </div>
-            <div class="col-12 mt-4">
-                <button type="button" class="btn btn-primary btn-rounded px-5 shadow" onclick="guardarSolicitud()">💾 Guardar Solicitud</button>
-            </div>
+            <div class="col-12"><button type="button" class="btn btn-primary px-5" onclick="guardarSolicitud()">Generar Solicitud</button></div>
         </form>
     </div>
 
-    <div class="card shadow p-4 border-0">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold m-0 text-secondary">Solicitudes en Proceso</h5>
-            <div id="contenedorExportar"></div>
-        </div>
+    <div class="card shadow-sm p-4">
         <div class="table-responsive">
-            <table class="table table-bordered align-middle text-center bg-white">
-                <thead class="table-primary">
-                    <tr><th>Folio</th><th>Empresa</th><th>Zona</th><th>Soporte</th><th>Sucursal</th><th>Tipo Solicitud</th><th>Archivo</th><th>Status</th><th>Tiempo</th><th>Fecha</th><th>Acciones</th></tr>
+            <table class="table align-middle text-center">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Folio</th><th>Empresa</th><th>Zona</th><th>Sucursal</th>
+                        <th>Tipo</th><th>Status</th><th>Tiempo</th><th>Acciones</th>
+                    </tr>
                 </thead>
                 <tbody id="tablaTecBody"></tbody>
             </table>
@@ -149,283 +101,160 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script type="module">
     import { database, ref, push, set, get, onValue, update, remove } from "./firebase.js";
-    document.getElementById("usuarioActivo").textContent = window.nombreSesion;
-    document.getElementById("puestoActivo").textContent = window.puestoSesion;
-    document.getElementById("soporte").value = window.nombreSesion;
 
-    if (!window.esSoporteJR) {
-        document.getElementById("contenedorExportar").innerHTML = `<button class="btn btn-outline-success btn-sm fw-bold px-3" onclick="window.exportarExcel()">📊 Descargar Reporte</button>`;
-    }
-    if (window.puedeVerBase) {
-        document.getElementById("liBase").innerHTML = '<a class="dropdown-item" href="base.html">🏠 Página Base (Usuarios)</a>';
-    }
+    // Manejo de Sesión
+    const sesion = JSON.parse(localStorage.getItem("usuarioLogueado") || "{}");
+    if(!sesion.usuario) location.href="index.html";
+    
+    const uNombre = sesion.nombre;
+    const uPuesto = (sesion.puesto || "").toUpperCase();
+    const esSoporteJR = uPuesto === "SOPORTE TECNICO JR";
+    
+    document.getElementById("usuarioActivo").textContent = uNombre;
+    document.getElementById("puestoActivo").textContent = uPuesto;
 
     const solicitudesRef = ref(database, "tecnologia");
     const seguimientoRef = ref(database, "seguimiento");
-    let globalSeguimientos = [];
-    let dataParaExportar = [];
+    let globalSegs = [];
 
-    window.previewArchivo = (input) => {
-        const container = document.getElementById("preview-container");
-        const file = input.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                if (file.type === "application/pdf") { container.innerHTML = `<iframe src="${e.target.result}"></iframe>`; } 
-                else if (file.type.startsWith("image/")) { container.innerHTML = `<img src="${e.target.result}">`; } 
-                else { container.innerHTML = `<p class="p-2 small">Archivo seleccionado: ${file.name}</p>`; }
-            };
-            reader.readAsDataURL(file);
-        } else { container.innerHTML = `<small class="text-muted">Vista previa no disponible</small>`; }
-    };
+    window.ocultarCargando = () => document.getElementById("loader").style.display = "none";
+    window.mostrarCargando = () => document.getElementById("loader").style.display = "flex";
 
+    // Escuchar Seguimientos
     onValue(seguimientoRef, snap => {
-        globalSeguimientos = [];
-        snap.forEach(c => { globalSeguimientos.push({ ...c.val(), id: c.key }); });
-        onValue(solicitudesRef, snapSolicitudes => {
-            try { renderTable(snapSolicitudes); } catch (e) { console.error(e); } finally { window.ocultarCargando(); }
-        });
-    }, () => window.ocultarCargando());
+        globalSegs = [];
+        snap.forEach(c => { globalSegs.push({...c.val(), id: c.key}); });
+        onValue(solicitudesRef, sSnap => renderTable(sSnap));
+    });
 
     function renderTable(snap) {
         const tbody = document.getElementById("tablaTecBody");
         tbody.innerHTML = "";
-        dataParaExportar = []; 
-        snap.forEach(c => {
-            const s = c.val();
-            const idKey = c.key;
-            const segsDelFolio = globalSeguimientos.filter(x => x.folio === s.folio).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
-            const statusActual = segsDelFolio.length > 0 ? segsDelFolio[0].status : (s.status || "PENDIENTE");
+        
+        snap.forEach(doc => {
+            const s = doc.val();
+            const id = doc.key;
+            if(s.eliminado) return;
+
+            const misSegs = globalSegs.filter(x => x.folio === s.folio).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
+            const stActual = misSegs.length > 0 ? misSegs[0].status : s.status;
             
-            if (s.eliminado === true || statusActual === "CONFIRMADO") return;
-            
-            if(window.puedeVerBase || s.usuario === window.usuarioSesion) {
-                const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas", "DEVOLUCION": "st-devolucion", "EN COTIZACION":"st-local", "EN AUTORIZACION":"st-local", "EN COMPRA":"st-local", "EN ZONA":"st-zona"};
-                const claseColor = colores[statusActual] || "st-default";
-                const tipoSolicitudLabel = s.solicitudLocal ? "LOCAL" : "COMPRAS";
-                
-                dataParaExportar.push({ ...s, statusActual, segs: segsDelFolio.reverse() });
+            if(stActual === "CONFIRMADO") return;
 
-                // SE AGREGA LA CLASE 'fila-local' SI ES TRUE
-                tbody.innerHTML += `
-                    <tr class="${s.solicitudLocal ? 'fila-local' : ''}">
-                        <td><small class="fw-bold">${s.folio}</small></td>
-                        <td>${s.empresa}</td>
-                        <td>${s.zona}</td>
-                        <td>${s.soporte}</td>
-                        <td>${s.sucursal}</td>
-                        <td><span class="badge ${s.solicitudLocal ? 'bg-warning text-dark' : 'bg-secondary'}">${tipoSolicitudLabel}</span></td>
-                        <td><button class="btn btn-sm btn-success" onclick="window.verPDF('${s.archivoData}', '${s.folio}')">👁️</button></td>
-                        <td><span class="badge ${claseColor} p-2 w-100">${statusActual}</span></td>
-                        <td class="tiempo-badge">${calcularTranscurrido(s.fechaISO || s.fechaEnvio)}</td>
-                        <td><small>${s.fechaEnvio}</small></td>
-                        <td>
-                            <div class="acciones">
-                                <span class="action-btn" onclick="window.verHistorialFolio('${s.folio}')" title="Historial">📜</span>
-                                <span class="action-btn text-primary" onclick="window.editarRegistro('${idKey}')" title="Editar">✏️</span>
-                                
-                                ${s.solicitudLocal ? `
-                                    <span class="action-btn text-info" onclick="window.abrirSeguimientoLocal('${s.folio}', '${tipoSolicitudLabel}')" title="Seguimiento">📋</span>
-                                ` : `
-                                    <span class="action-btn ${window.esSoporteJR ? 'action-disabled' : ''}" 
-                                          onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}" 
-                                          title="Seguimiento">📋</span>
-                                `}
+            const esLocal = s.solicitudLocal === true;
+            const filaClase = esLocal ? "fila-local" : "";
+            const tipoBadge = esLocal ? "badge-local" : "badge-compras";
 
-                                ${window.esSoporteJR && statusActual === "EN ZONA" ? `
-                                    <span class="action-btn text-success" onclick="window.confirmarEntrega('${s.folio}')" title="Confirmar">✅</span>
-                                    <span class="action-btn text-warning" onclick="window.enviarDevolucion('${s.folio}')" title="Devolucion">🔄</span>
-                                ` : ``}
+            tbody.innerHTML += `
+                <tr class="${filaClase}">
+                    <td class="fw-bold">${s.folio}</td>
+                    <td>${s.empresa}</td>
+                    <td>${s.zona}</td>
+                    <td>${s.sucursal}</td>
+                    <td><span class="badge ${tipoBadge}">${esLocal ? 'LOCAL' : 'COMPRAS'}</span></td>
+                    <td><span class="badge bg-info text-dark w-100">${stActual}</span></td>
+                    <td><small>${calcularTiempo(s.fechaISO)}</small></td>
+                    <td>
+                        <div class="d-flex gap-2 justify-content-center">
+                            <span class="action-btn" onclick="verHistorial('${s.folio}')">📜</span>
+                            
+                            ${esLocal ? 
+                                `<span class="action-btn text-info" onclick="modalSegLocal('${id}', '${s.folio}')">📋</span>` :
+                                `<span class="action-btn text-secondary ${esSoporteJR ? 'action-disabled' : ''}" onclick="irSeg('${s.folio}')">📋</span>`
+                            }
 
-                                ${window.puedeVerBase ? `<span class="action-btn text-secondary" onclick="window.depurarRegistroPermanente('${idKey}', '${s.folio}')" title="Archivar">📦</span>` : ``}
-                            </div>
-                        </td>
-                    </tr>`;
-            }
+                            ${esSoporteJR && stActual === "EN ZONA" ? `
+                                <span class="action-btn text-success" onclick="confirmarEntrega('${s.folio}')">✅</span>
+                                <span class="action-btn text-warning" onclick="devolucion('${s.folio}')">🔄</span>
+                            ` : ''}
+                        </div>
+                    </td>
+                </tr>`;
         });
+        ocultarCargando();
     }
-
-    // Modal de Seguimiento Local
-    window.abrirSeguimientoLocal = async (fol, tipoLabel) => {
-        const segs = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
-        const tieneDesc = segs.some(seg => seg.descripcionArt && seg.descripcionArt.trim() !== "");
-        const descVal = tieneDesc ? segs.find(seg => seg.descripcionArt).descripcionArt : "";
-
-        const { value: fv } = await Swal.fire({
-            title: 'Seguimiento Local',
-            html: `
-                <div class="text-start">
-                    <label class="small fw-bold">Tipo de Solicitud</label>
-                    <input class="form-control mb-2 bg-light" value="${tipoLabel}" readonly>
-                    <label class="small fw-bold">Fecha de Seguimiento</label>
-                    <input class="form-control mb-2 bg-light" value="${new Date().toLocaleDateString()}" readonly>
-                    <label class="small fw-bold">Descripción del Artículo</label>
-                    <textarea id="sw-desc" class="form-control mb-2" ${tieneDesc ? 'readonly' : ''}>${descVal}</textarea>
-                    <label class="small fw-bold">Status</label>
-                    <select id="sw-status" class="form-select mb-2">
-                        <option value="EN COTIZACION">EN COTIZACION</option>
-                        <option value="EN AUTORIZACION">EN AUTORIZACION</option>
-                        <option value="EN COMPRA">EN COMPRA</option>
-                        <option value="EN ZONA">EN ZONA</option>
-                        <option value="DEVOLUCION">DEVOLUCION</option>
-                    </select>
-                    <label class="small fw-bold">Comentario</label>
-                    <textarea id="sw-coment" class="form-control mb-2"></textarea>
-                </div>`,
-            showCancelButton: true,
-            preConfirm: () => ({ desc: document.getElementById('sw-desc').value, sts: document.getElementById('sw-status').value, com: document.getElementById('sw-coment').value })
-        });
-
-        if (fv) {
-            window.mostrarCargando();
-            await push(seguimientoRef, { folio: fol, status: fv.sts, descripcionArt: fv.desc.toUpperCase(), comentarios: fv.com.toUpperCase(), fechaRegistro: new Date().toISOString(), usuario: window.nombreSesion });
-            window.ocultarCargando();
-            Swal.fire("Éxito", "Seguimiento guardado", "success");
-        }
-    };
 
     window.guardarSolicitud = async () => {
         const emp = document.getElementById("empresa").value;
         const zon = document.getElementById("zona").value;
         const suc = document.getElementById("sucursal").value;
         const arc = document.getElementById("archivo").files[0];
-        const isLocal = document.getElementById("checkLocal").checked;
+        const local = document.getElementById("checkLocal").checked;
 
-        if (!emp || !zon || !suc || !arc) return Swal.fire("Error", "Complete todos los campos", "error");
-        
-        window.mostrarCargando();
+        if(!emp || !zon || !suc || !arc) return Swal.fire("Error", "Faltan datos", "error");
+
+        mostrarCargando();
         const reader = new FileReader();
         reader.onload = async () => {
-            try {
-                const key = `TEC_${emp}_${zon}`.toUpperCase();
-                const rFolio = ref(database, "folios/" + key);
-                const sFolio = await get(rFolio);
-                let n = sFolio.exists() ? sFolio.val() + 1 : 1;
-                await set(rFolio, n);
-                const fol = `TEC-${emp}-${zon}-${n.toString().padStart(4, "0")}`.toUpperCase();
-                
-                const data = {
-                    folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
-                    soporte: window.nombreSesion, sucursal: suc.toUpperCase(),
-                    archivoData: reader.result, status: isLocal ? "EN COTIZACION" : "PENDIENTE", 
-                    fechaEnvio: new Date().toLocaleString(), fechaISO: new Date().toISOString(),
-                    usuario: window.usuarioSesion, eliminado: false, solicitudLocal: isLocal
-                };
-                await push(solicitudesRef, data);
-                document.getElementById("formTec").reset();
-                document.getElementById("preview-container").innerHTML = `<small class="text-muted">Vista previa no disponible</small>`;
-                Swal.fire("Guardado", "Solicitud generada con éxito", "success");
-            } catch (e) { Swal.fire("Error", "Error al guardar", "error"); } finally { window.ocultarCargando(); }
+            const nFolio = `TEC-${emp}-${zon}-${Date.now().toString().slice(-4)}`.toUpperCase();
+            await push(solicitudesRef, {
+                folio: nFolio, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
+                sucursal: suc.toUpperCase(), archivoData: reader.result,
+                status: local ? "EN COTIZACION" : "PENDIENTE",
+                solicitudLocal: local, fechaISO: new Date().toISOString(),
+                usuario: uNombre, eliminado: false
+            });
+            document.getElementById("formTec").reset();
+            Swal.fire("Éxito", "Solicitud Creada", "success");
         };
         reader.readAsDataURL(arc);
     };
 
-    // Funciones de soporte
-    window.editarRegistro = async (idKey) => {
-        const snap = await get(ref(database, `tecnologia/${idKey}`));
-        const d = snap.val();
-        const { value: fv } = await Swal.fire({
-            title: 'Editar Solicitud',
-            html: `<div class="text-start"><label class="small fw-bold">Zona</label><input id="edt-zon" class="form-control mb-2 text-uppercase" value="${d.zona}"><label class="small fw-bold">Sucursal</label><input id="edt-suc" class="form-control mb-2 text-uppercase" value="${d.sucursal}"><label class="small fw-bold">Archivo</label><input type="file" id="edt-arc" class="form-control"></div>`,
+    window.modalSegLocal = async (id, fol) => {
+        const segs = globalSegs.filter(x => x.folio === fol);
+        const descPrev = segs.find(x => x.descripcionArt)?.descripcionArt || "";
+        
+        const { value: form } = await Swal.fire({
+            title: 'Seguimiento Local',
+            html: `
+                <div class="text-start">
+                    <label class="small fw-bold">Descripción del Artículo</label>
+                    <textarea id="sw-desc" class="form-control mb-2" ${descPrev ? 'readonly' : ''}>${descPrev}</textarea>
+                    <label class="small fw-bold">Cambiar Status</label>
+                    <select id="sw-status" class="form-select mb-2">
+                        <option value="EN COTIZACION">EN COTIZACION</option>
+                        <option value="EN AUTORIZACION">EN AUTORIZACION</option>
+                        <option value="EN COMPRA">EN COMPRA</option>
+                        <option value="EN ZONA">EN ZONA</option>
+                    </select>
+                    <label class="small fw-bold">Comentario</label>
+                    <textarea id="sw-coment" class="form-control"></textarea>
+                </div>`,
             showCancelButton: true,
-            preConfirm: () => ({ z: document.getElementById('edt-zon').value, s: document.getElementById('edt-suc').value, a: document.getElementById('edt-arc').files[0] })
+            preConfirm: () => ({ desc: document.getElementById('sw-desc').value, sts: document.getElementById('sw-status').value, com: document.getElementById('sw-coment').value })
         });
-        if (fv) {
-            window.mostrarCargando();
-            const upds = { zona: fv.z.toUpperCase(), sucursal: fv.s.toUpperCase() };
-            if (fv.a) {
-                const reader = new FileReader();
-                reader.onload = async () => { upds.archivoData = reader.result; await update(ref(database, `tecnologia/${idKey}`), upds); window.ocultarCargando(); Swal.fire("Éxito", "Actualizado", "success"); };
-                reader.readAsDataURL(fv.a);
-            } else { await update(ref(database, `tecnologia/${idKey}`), upds); window.ocultarCargando(); Swal.fire("Éxito", "Actualizado", "success"); }
+
+        if(form) {
+            mostrarCargando();
+            await push(seguimientoRef, {
+                folio: fol, status: form.sts, descripcionArt: form.desc.toUpperCase(),
+                comentarios: form.com.toUpperCase(), fechaRegistro: new Date().toISOString(), usuario: uNombre
+            });
+            ocultarCargando();
         }
     };
 
-    window.confirmarEntrega = async (fol) => {
-        const { value: fv } = await Swal.fire({
-            title: 'Confirmar Entrega',
-            html: '<input type="file" id="sw-img" class="form-control mb-2" accept="image/*"><textarea id="sw-com" class="form-control" placeholder="Comentarios"></textarea>',
-            preConfirm: () => ({ i: document.getElementById('sw-img').files[0], c: document.getElementById('sw-com').value })
-        });
-        if(fv && fv.i) {
-            window.mostrarCargando();
-            const reader = new FileReader();
-            reader.onload = async () => {
-                await push(seguimientoRef, { folio: fol, status: "CONFIRMADO", comentarios: fv.c.toUpperCase(), fotoEvidencia: reader.result, fechaRegistro: new Date().toISOString(), usuario: window.nombreSesion });
-                Swal.fire("Confirmado", "Entrega registrada", "success"); window.ocultarCargando();
-            };
-            reader.readAsDataURL(fv.i);
-        }
+    // Funciones Auxiliares
+    window.previewArchivo = (input) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const cont = document.getElementById("preview-container");
+            cont.innerHTML = input.files[0].type.includes("pdf") ? `<iframe src="${e.target.result}"></iframe>` : `<img src="${e.target.result}">`;
+        };
+        reader.readAsDataURL(input.files[0]);
     };
 
-    window.enviarDevolucion = async (fol) => {
-        const { value: fv } = await Swal.fire({
-            title: 'Motivo Devolución',
-            html: '<textarea id="dev-com" class="form-control mb-2"></textarea><input type="file" id="dev-img" class="form-control">',
-            preConfirm: () => ({ c: document.getElementById('dev-com').value, i: document.getElementById('dev-img').files[0] })
-        });
-        if(fv) {
-            window.mostrarCargando();
-            const reader = new FileReader();
-            reader.onload = async () => {
-                await push(seguimientoRef, { folio: fol, status: "DEVOLUCION", comentarios: fv.c.toUpperCase(), fotoEvidencia: reader.result, fechaRegistro: new Date().toISOString(), usuario: window.nombreSesion });
-                window.ocultarCargando(); Swal.fire("Devuelto", "Estado actualizado", "info");
-            };
-            reader.readAsDataURL(fv.i);
-        }
-    };
-
-    window.verPDF = (base64, folio) => {
-        const w = window.open();
-        w.document.write(`<div style="background:#333; color:white; padding:10px; font-family:sans-serif; display:flex; justify-content:space-between; align-items:center;"><span>Folio: ${folio}</span><a href="${base64}" download="SOLICITUD_${folio}" style="color:white; background:#28a745; padding:5px 15px; text-decoration:none; border-radius:5px;">Descargar</a></div><iframe src="${base64}" style="width:100%; height:92vh; border:none;"></iframe>`);
-    };
-
-    window.verHistorialFolio = fol => {
-        const segs = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
-        let html = `<div class="table-responsive"><table class="table table-sm mt-2"><thead><tr><th>Fecha</th><th>Status</th><th>Comentario</th><th>Evidencia</th></tr></thead><tbody>${segs.map(h => `<tr><td><small>${new Date(h.fechaRegistro).toLocaleString()}</small></td><td>${h.status}</td><td>${h.comentarios||''}</td><td>${h.fotoEvidencia ? `<button class="btn btn-sm btn-info" onclick="window.verPDF('${h.fotoEvidencia}','${fol}')">📸</button>` : '-'}</td></tr>`).join('')}</tbody></table></div>`;
-        Swal.fire({ title: `Historial: ${fol}`, html: html, width: '800px' });
-    };
-
-    window.depurarRegistroPermanente = async (id, fol) => {
-        const res = await Swal.fire({ title: '¿Archivar?', text: "Se moverá al historial permanente.", icon: 'warning', showCancelButton: true });
-        if(res.isConfirmed) {
-            window.mostrarCargando();
-            const snap = await get(ref(database, `tecnologia/${id}`));
-            await set(ref(database, `historial_permanente/${id}`), { ...snap.val(), fechaArchivado: new Date().toISOString() });
-            await remove(ref(database, `tecnologia/${id}`));
-            window.ocultarCargando(); Swal.fire("Archivado", "Movido con éxito", "success");
-        }
-    };
-
-    window.exportarExcel = async () => {
-        if(dataParaExportar.length === 0) return Swal.fire("Aviso", "No hay datos", "info");
-        const workbook = new ExcelJS.Workbook();
-        const sheet = workbook.addWorksheet('Solicitudes');
-        sheet.columns = [
-            { header: 'FOLIO', key: 'folio', width: 20 },
-            { header: 'EMPRESA', key: 'empresa', width: 15 },
-            { header: 'ZONA', key: 'zona', width: 15 },
-            { header: 'SUCURSAL', key: 'sucursal', width: 20 },
-            { header: 'STATUS', key: 'statusActual', width: 20 },
-            { header: 'FECHA', key: 'fechaEnvio', width: 20 }
-        ];
-        dataParaExportar.forEach(d => sheet.addRow(d));
-        const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = `Reporte_Tecnologia.xlsx`; a.click();
-    };
-
-    window.irSeguimiento = f => location.href = "seguimiento.html?folio=" + encodeURIComponent(f);
-
-    function calcularTranscurrido(f) {
-        const d = new Date(f); if (isNaN(d)) return "N/A";
-        const dif = new Date() - d;
-        return `${Math.floor(dif / 3600000)}h`;
+    function calcularTiempo(f) {
+        const diff = new Date() - new Date(f);
+        return `${Math.floor(diff / 3600000)}h`;
     }
+
+    window.cerrarSesion = () => { localStorage.clear(); location.href="index.html"; };
+    window.irSeg = (f) => location.href = "seguimiento.html?folio=" + f;
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
