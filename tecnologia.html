@@ -130,7 +130,7 @@
         <div class="table-responsive">
             <table class="table table-bordered align-middle text-center bg-white">
                 <thead class="table-primary">
-                    <tr><th>Folio</th><th>Empresa</th><th>Zona</th><th>Soporte</th><th>Sucursal</th><th>Archivo</th><th>Status</th><th>Tiempo</th><th>Fecha</th><th>Acciones</th></tr>
+                    <tr><th>Folio</th><th>Descripción</th><th>Empresa</th><th>Zona</th><th>Soporte</th><th>Sucursal</th><th>Archivo</th><th>Status</th><th>Tiempo</th><th>Fecha</th><th>Acciones</th></tr>
                 </thead>
                 <tbody id="tablaTecBody"></tbody>
             </table>
@@ -202,6 +202,9 @@
             const segsDelFolio = globalSeguimientos.filter(x => x.folio === s.folio).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
             const statusActual = segsDelFolio.length > 0 ? segsDelFolio[0].status : (s.status || "PENDIENTE");
             
+            // Obtenemos la última descripción registrada en seguimientos (si existe) o la de la solicitud inicial
+            const descripcionActual = segsDelFolio.length > 0 && segsDelFolio[0].descripcion ? segsDelFolio[0].descripcion : (s.descripcion || "SIN DESCRIPCIÓN");
+
             if (s.eliminado === true || statusActual === "CONFIRMADO") return;
             
             if(window.puedeVerBase || s.usuario === window.usuarioSesion) {
@@ -213,6 +216,7 @@
                 tbody.innerHTML += `
                     <tr>
                         <td><small class="fw-bold">${s.folio}</small></td>
+                        <td><small>${descripcionActual}</small></td>
                         <td>${s.empresa}</td>
                         <td>${s.zona}</td>
                         <td>${s.soporte}</td>
@@ -245,8 +249,13 @@
         });
     }
 
-    // --- NUEVA FUNCIÓN PARA MODAL JR ---
+    // --- NUEVA FUNCIÓN PARA MODAL JR (MODIFICADA: BLOQUEO DE DESCRIPCIÓN SI EXISTE) ---
     window.abrirModalSeguimientoJR = async (fol) => {
+        // Buscamos si ya existe una descripción en el historial para este folio
+        const segAnterior = globalSeguimientos.find(x => x.folio === fol && x.descripcion && x.descripcion.trim() !== "");
+        const descExistente = segAnterior ? segAnterior.descripcion : "";
+        const isDescDisabled = descExistente !== "" ? "disabled" : "";
+
         const { value: formValues } = await Swal.fire({
             title: `Seguimiento: ${fol}`,
             html: `
@@ -263,6 +272,11 @@
                         <option value="ENZONA">Enzona</option>
                         <option value="CONFIRMADO">Confirmado</option>
                     </select>
+
+                    <label class="small fw-bold">Descripción del Artículo</label>
+                    <input type="text" id="jr-desc" class="form-control mb-3 text-uppercase" 
+                        placeholder="Ej. Impresora L3210, SSD 500GB..." 
+                        value="${descExistente}" ${isDescDisabled}>
                     
                     <label class="small fw-bold">Observaciones</label>
                     <textarea id="jr-obs" class="form-control" rows="3" placeholder="Escribe aquí los detalles..."></textarea>
@@ -274,11 +288,12 @@
             preConfirm: () => {
                 const fecha = document.getElementById('jr-fecha').value;
                 const status = document.getElementById('jr-status').value;
+                const desc = document.getElementById('jr-desc').value;
                 const obs = document.getElementById('jr-obs').value;
                 if (!fecha || !status) {
                     Swal.showValidationMessage('La fecha y el status son obligatorios');
                 }
-                return { fecha, status, obs };
+                return { fecha, status, desc, obs };
             }
         });
 
@@ -288,6 +303,7 @@
                 await push(seguimientoRef, {
                     folio: fol,
                     status: formValues.status,
+                    descripcion: formValues.desc.toUpperCase(),
                     comentarios: formValues.obs.toUpperCase(),
                     fechaRegistro: new Date(formValues.fecha).toISOString(),
                     usuario: window.nombreSesion
@@ -389,7 +405,8 @@
                     archivoData: reader.result, status: "PENDIENTE", 
                     fechaEnvio: new Date().toLocaleString(), fechaISO: new Date().toISOString(),
                     usuario: window.usuarioSesion, eliminado: false,
-                    responsableSeguimiento: ""
+                    responsableSeguimiento: "",
+                    descripcion: "" 
                 };
                 await push(solicitudesRef, data);
                 
@@ -478,7 +495,7 @@
 
     window.verHistorialFolio = fol => {
         const segs = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
-        let html = `<div class="table-responsive"><table class="table table-sm mt-2"><thead><tr><th>Fecha</th><th>Status</th><th>Comentario</th><th>Evidencia</th></tr></thead><tbody>${segs.map(h => `<tr><td><small>${new Date(h.fechaRegistro).toLocaleString()}</small></td><td>${h.status}</td><td>${h.comentarios||''}</td><td>${h.fotoEvidencia ? `<button class="btn btn-sm btn-info" onclick="window.verPDF('${h.fotoEvidencia}','${fol}')">📸</button>` : '-'}</td></tr>`).join('')}</tbody></table></div>`;
+        let html = `<div class="table-responsive"><table class="table table-sm mt-2"><thead><tr><th>Fecha</th><th>Status</th><th>Descripción</th><th>Comentario</th><th>Evidencia</th></tr></thead><tbody>${segs.map(h => `<tr><td><small>${new Date(h.fechaRegistro).toLocaleString()}</small></td><td>${h.status}</td><td>${h.descripcion || '-'}</td><td>${h.comentarios||''}</td><td>${h.fotoEvidencia ? `<button class="btn btn-sm btn-info" onclick="window.verPDF('${h.fotoEvidencia}','${fol}')">📸</button>` : '-'}</td></tr>`).join('')}</tbody></table></div>`;
         Swal.fire({ title: `Historial: ${fol}`, html: html, width: '800px' });
     };
 
