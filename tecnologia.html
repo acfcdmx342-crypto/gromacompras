@@ -75,7 +75,6 @@
     window.ocultarCargando = () => { document.getElementById("loader").style.none; };
     window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
 </script>
-
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div class="d-flex align-items-center gap-3">
@@ -99,9 +98,7 @@
             </ul>
         </div>
     </div>
-
     <h2 class="text-center fw-bold mb-4">Solicitud de Tecnología</h2>
-
     <div class="card shadow p-4 mb-4 border-0">
         <h5 class="fw-bold mb-3 border-bottom pb-2 text-secondary">Registrar Solicitud</h5>
         <form id="formTec" class="row g-3">
@@ -141,15 +138,13 @@
         </div>
     </div>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script type="module">
     import { database, ref, push, set, get, onValue, update, remove } from "./firebase.js";
     document.getElementById("usuarioActivo").textContent = window.nombreSesion;
     document.getElementById("puestoActivo").textContent = window.puestoSesion;
     document.getElementById("soporte").value = window.nombreSesion;
-    
-    if (!window.esSoporteJR) {
+      if (!window.esSoporteJR) {
         document.getElementById("contenedorExportar").innerHTML = `
             <button class="btn btn-outline-success btn-sm fw-bold px-3" onclick="window.exportarExcel()">
                 📊 Descargar Reporte
@@ -159,7 +154,6 @@
     if (window.puedeVerBase) {
         document.getElementById("liBase").innerHTML = '<a class="dropdown-item" href="base.html">🏠 Página Base (Usuarios)</a>';
     }
-
     const solicitudesRef = ref(database, "tecnologia");
     const seguimientoRef = ref(database, "seguimiento");
     let globalSeguimientos = [];
@@ -184,7 +178,6 @@
             container.innerHTML = `<small class="text-muted">Vista previa no disponible</small>`;
         }
     };
-
     onValue(seguimientoRef, snap => {
         globalSeguimientos = [];
         snap.forEach(c => { globalSeguimientos.push({ ...c.val(), id: c.key }); });
@@ -192,7 +185,6 @@
             try { renderTable(snapSolicitudes); } catch (e) { console.error(e); } finally { window.ocultarCargando(); }
         });
     }, () => window.ocultarCargando());
-
     function renderTable(snap) {
         const tbody = document.getElementById("tablaTecBody");
         tbody.innerHTML = "";
@@ -203,13 +195,11 @@
             const segsDelFolio = globalSeguimientos.filter(x => x.folio === s.folio).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
             const lastSeg = segsDelFolio[0];
             const statusActual = lastSeg ? lastSeg.status : (s.status || "PENDIENTE");
-            
             if (s.eliminado === true || statusActual === "CONFIRMADO") return;
             if(window.puedeVerBase || s.usuario === window.usuarioSesion) {
                 const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas", "DEVOLUCION": "st-devolucion", "EN COTIZACION": "st-local", "EN AUTORIZACION": "st-local", "EN COMPRA": "st-local"};
                 const claseColor = colores[statusActual] || "st-default";
                 dataParaExportar.push({ ...s, statusActual, segs: segsDelFolio.reverse() });
-                
                 tbody.innerHTML += `
                     <tr style="${s.tipoSol === 'LOCAL' ? 'background-color: #fffaf0;' : ''}">
                         <td><small class="fw-bold">${s.folio}</small></td>
@@ -450,3 +440,4 @@
 </script>
 </body>
 </html>
+
