@@ -58,14 +58,12 @@
         <span class="ms-2 fw-bold text-dark">Procesando información...</span>
     </div>
 </div>
-
 <script>
     const sesion = JSON.parse(localStorage.getItem("usuarioLogueado"));
     if (!sesion) { location.href = "index.html"; }
     window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
     window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
 </script>
-
 <div class="container">
     <div class="navbar-custom d-flex justify-content-between align-items-center">
         <h2 class="fw-bold m-0 text-dark" style="font-size: 1.5rem;">
@@ -183,30 +181,23 @@
         </div>
     </div>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
 <script type="module">
     import { database, ref, get, push, update, onValue, query, orderByChild, equalTo, remove } from "./firebase.js";
-
-    const urlParams = new URLSearchParams(window.location.search);
+   const urlParams = new URLSearchParams(window.location.search);
     const folioDesdeURL = urlParams.get('folio');
-    
-    document.getElementById("nombreUsuarioMenu").textContent = sesion.nombre;
+  document.getElementById("nombreUsuarioMenu").textContent = sesion.nombre;
     window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
-
-    const puestoUser = (sesion.puesto || "").toUpperCase();
+  const puestoUser = (sesion.puesto || "").toUpperCase();
     const usuarioActual = (sesion.nombre || "");
     const perfilesSistemas = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO", "SOPORTE TECNICO JR", "BECARIOS SISTEMAS"];
     const tieneAccesoTotal = perfilesSistemas.includes(puestoUser);
-
-    const selectFolio = document.getElementById("folio");
+  const selectFolio = document.getElementById("folio");
     const solInput = document.getElementById("solicito");
     const sucInput = document.getElementById("sucursal");
     const btnArc = document.getElementById("btnArchivo");
     let dataArchivoActual = null;
-
-    const obtenerClaseEstatus = (status) => {
+   const obtenerClaseEstatus = (status) => {
         switch(status) {
             case 'ENVIADO A COMPRAS': return 'status-compras';
             case 'ENVIADO A ZONA': return 'status-zona';
@@ -217,7 +208,6 @@
             default: return 'bg-secondary text-white';
         }
     };
-
     const toBase64 = file => new Promise((resolve, reject) => {
         if (!file) resolve(null);
         const reader = new FileReader();
@@ -225,14 +215,12 @@
         reader.onload = () => resolve(reader.result);
         reader.onerror = error => reject(error);
     });
-
     window.verArchivoOrigen = () => {
         if (dataArchivoActual) {
             const win = window.open();
             win.document.write(`<iframe src="${dataArchivoActual}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
         }
     };
-
     window.cargarParaContinuar = (dataString) => {
         const data = JSON.parse(decodeURIComponent(dataString));
         if(data.eliminado) return;
@@ -271,7 +259,6 @@
         });
         if (folioDesdeURL) cargarInfoPorFolio(folioDesdeURL);
     });
-
     async function cargarInfoPorFolio(fol) {
         if (!fol) return;
         const q = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(fol));
@@ -284,7 +271,6 @@
             btnArc.disabled = !dataArchivoActual;
         }
     }
-
     selectFolio.addEventListener("change", (e) => cargarInfoPorFolio(e.target.value));
 
     // --- MEJORA: ELIMINACIÓN SEGURA (Incluso si no existe en tecnología) ---
@@ -300,7 +286,6 @@
             confirmButtonText: 'Sí, eliminar',
             inputValidator: (value) => { if (!value) return 'El motivo es obligatorio' }
         });
-
         if (motivo) {
             window.mostrarCargando();
             try {
@@ -313,7 +298,6 @@
                     keyTec = Object.keys(snapTec.val())[0];
                     infoOrig = snapTec.val()[keyTec];
                 }
-
                 const objetoParaHistorial = {
                     ...infoOrig,
                     folio: fol,
@@ -322,9 +306,7 @@
                     usuarioElimino: sesion.nombre,
                     fechaDepuracion: new Date().toISOString()
                 };
-
                 await push(ref(database, "historial_permanente"), objetoParaHistorial);
-
                 const qSeg = query(ref(database, "seguimiento"), orderByChild("folio"), equalTo(fol));
                 const snapSeg = await get(qSeg);
                 if(snapSeg.exists()){
@@ -332,9 +314,7 @@
                     Object.keys(snapSeg.val()).forEach(k => updates[`seguimiento/${k}`] = null);
                     await update(ref(database), updates);
                 }
-
                 if(keyTec) await remove(ref(database, `tecnologia/${keyTec}`));
-
                 window.ocultarCargando();
                 Swal.fire("Éxito", "Registros removidos.", "success");
             } catch (e) {
@@ -343,7 +323,6 @@
             }
         }
     };
-
     // --- NUEVA FUNCIÓN: LIMPIEZA AUTOMÁTICA (ICONO ESCOBA) ---
     window.limpiezaAutomatica = async () => {
         const confirm = await Swal.fire({
@@ -353,7 +332,6 @@
             showCancelButton: true,
             confirmButtonText: 'Iniciar Limpieza'
         });
-
         if (confirm.isConfirmed) {
             window.mostrarCargando();
             try {
@@ -364,7 +342,6 @@
                 
                 const updates = {};
                 let count = 0;
-
                 Object.keys(segData).forEach(key => {
                     if (segData[key].eliminado === true || !foliosActivos.has(segData[key].folio)) {
                         updates[`seguimiento/${key}`] = null;
@@ -381,7 +358,6 @@
             }
         }
     };
-
     document.getElementById("btnGuardar").onclick = async () => {
         if (!selectFolio.value) return Swal.fire("Error", "Seleccione un folio", "error");
         window.mostrarCargando();
@@ -421,7 +397,6 @@
             Swal.fire("Éxito", "Guardado", "success").then(() => location.reload());
         } catch (e) { window.ocultarCargando(); Swal.fire("Error", "Error al guardar", "error"); }
     };
-
     onValue(ref(database, "seguimiento"), (snap) => {
         const tbody = document.getElementById("tablaSegBody");
         tbody.innerHTML = "";
@@ -479,3 +454,4 @@
 </script>
 </body>
 </html>
+
