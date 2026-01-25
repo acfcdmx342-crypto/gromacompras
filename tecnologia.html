@@ -34,7 +34,6 @@
         .st-default { background-color: #6c757d !important; color: white; }   
         .tiempo-badge { font-size: 0.75rem; font-weight: bold; color: #555; }
         
-        /* Mejora Vista Previa */
         #preview-container { border: 2px dashed #ccc; border-radius: 10px; min-height: 100px; display: flex; align-items: center; justify-content: center; background: #fff; overflow: hidden; margin-top: 5px; }
         #preview-container iframe, #preview-container img { width: 100%; height: 200px; object-fit: contain; border: none; }
 
@@ -206,7 +205,7 @@
             if (s.eliminado === true || statusActual === "CONFIRMADO") return;
             
             if(window.puedeVerBase || s.usuario === window.usuarioSesion) {
-                const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas", "DEVOLUCION": "st-devolucion"};
+                const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas", "DEVOLUCION": "st-devolucion", "EN PROCESO DE COTIZACION": "st-compras", "EN PROCESO DE COMPRA": "st-compras", "EN PROCESO DE AUTORIZACION": "st-pendiente", "ENZONA": "st-zona"};
                 const claseColor = colores[statusActual] || "st-default";
                 
                 dataParaExportar.push({ ...s, statusActual, segs: segsDelFolio.reverse() });
@@ -230,11 +229,11 @@
                                 ${window.esSoporteJR && statusActual === "ENVIADO A ZONA" ? `
                                     <span class="action-btn text-success" onclick="window.confirmarEntrega('${s.folio}')" title="Confirmar">✅</span>
                                     <span class="action-btn text-warning" onclick="window.enviarDevolucion('${s.folio}')" title="Devolucion">🔄</span>
-                                ` : `
-                                    <span class="action-btn ${window.esSoporteJR ? 'action-disabled' : ''}" 
-                                          onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}" 
-                                          title="Seguimiento">📋</span>
-                                `}
+                                ` : ``}
+
+                                <span class="action-btn text-info" 
+                                      onclick="${window.esSoporteJR ? `window.abrirModalSeguimientoJR('${s.folio}')` : `window.irSeguimiento('${s.folio}')`}" 
+                                      title="Seguimiento">📋</span>
 
                                 ${window.puedeVerBase ? `
                                     <span class="action-btn text-secondary" onclick="window.depurarRegistroPermanente('${idKey}', '${s.folio}')" title="Archivar">📦</span>
@@ -246,11 +245,66 @@
         });
     }
 
-    // --- FUNCIÓN EDITAR CON CAMPO DE RESPONSABLE SEGUIMIENTO ---
+    // --- NUEVA FUNCIÓN PARA MODAL JR ---
+    window.abrirModalSeguimientoJR = async (fol) => {
+        const { value: formValues } = await Swal.fire({
+            title: `Seguimiento: ${fol}`,
+            html: `
+                <div class="text-start">
+                    <label class="small fw-bold">Fecha de Seguimiento</label>
+                    <input type="datetime-local" id="jr-fecha" class="form-control mb-3" value="${new Date().toISOString().slice(0, 16)}">
+                    
+                    <label class="small fw-bold">Nuevo Status</label>
+                    <select id="jr-status" class="form-select mb-3">
+                        <option value="EN PROCESO DE COTIZACION">En Proceso de Cotizacion</option>
+                        <option value="EN PROCESO DE COMPRA">En Proceso de Compra</option>
+                        <option value="EN PROCESO DE AUTORIZACION">En Proceso de Autorizacion</option>
+                        <option value="EN SISTEMAS">En sistemas</option>
+                        <option value="ENZONA">Enzona</option>
+                        <option value="CONFIRMADO">Confirmado</option>
+                    </select>
+                    
+                    <label class="small fw-bold">Observaciones</label>
+                    <textarea id="jr-obs" class="form-control" rows="3" placeholder="Escribe aquí los detalles..."></textarea>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Registrar Seguimiento',
+            cancelButtonText: 'Cancelar',
+            preConfirm: () => {
+                const fecha = document.getElementById('jr-fecha').value;
+                const status = document.getElementById('jr-status').value;
+                const obs = document.getElementById('jr-obs').value;
+                if (!fecha || !status) {
+                    Swal.showValidationMessage('La fecha y el status son obligatorios');
+                }
+                return { fecha, status, obs };
+            }
+        });
+
+        if (formValues) {
+            window.mostrarCargando();
+            try {
+                await push(seguimientoRef, {
+                    folio: fol,
+                    status: formValues.status,
+                    comentarios: formValues.obs.toUpperCase(),
+                    fechaRegistro: new Date(formValues.fecha).toISOString(),
+                    usuario: window.nombreSesion
+                });
+                Swal.fire("Éxito", "Seguimiento actualizado correctamente", "success");
+            } catch (e) {
+                console.error(e);
+                Swal.fire("Error", "No se pudo guardar el seguimiento", "error");
+            } finally {
+                window.ocultarCargando();
+            }
+        }
+    };
+
     window.editarRegistro = async (idKey) => {
         const snap = await get(ref(database, `tecnologia/${idKey}`));
         const d = snap.val();
-        
         const { value: fv } = await Swal.fire({
             title: 'Editar Solicitud',
             html: `
@@ -301,7 +355,6 @@
     };
 
     window.verPDF = (base64, folio) => {
-        const type = base64.split(';')[0].split(':')[1];
         const w = window.open();
         w.document.write(`
             <div style="background:#333; color:white; padding:10px; font-family:sans-serif; display:flex; justify-content:space-between; align-items:center;">
@@ -336,7 +389,7 @@
                     archivoData: reader.result, status: "PENDIENTE", 
                     fechaEnvio: new Date().toLocaleString(), fechaISO: new Date().toISOString(),
                     usuario: window.usuarioSesion, eliminado: false,
-                    responsableSeguimiento: "" // Inicialmente vacío
+                    responsableSeguimiento: ""
                 };
                 await push(solicitudesRef, data);
                 
