@@ -26,15 +26,19 @@
         .acciones { display:flex; justify-content:center; gap:10px; }
         .dropdown-menu { border-radius: 15px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1); padding: 10px; z-index: 1050; }
         .dropdown-item { border-radius: 8px; margin-bottom: 2px; font-weight: 500; }
-        /* Colores de Status */
+        
+        /* Estilos de Status */
         .st-compras { background-color: #0d6efd !important; color: white; } 
         .st-zona { background-color: #ffc107 !important; color: black; }    
         .st-pendiente { background-color: #dc3545 !important; color: white; } 
         .st-sistemas { background-color: #198754 !important; color: white; }  
         .st-devolucion { background-color: #6f42c1 !important; color: white; }
-        .st-local { background-color: #fd7e14 !important; color: white; } /* Color para flujo local */
+        .st-local { background-color: #fd7e14 !important; color: white; }
         .st-default { background-color: #6c757d !important; color: white; }   
         
+        /* Diferenciación Visual: Fila Crema */
+        .fila-local { background-color: #fff8e1 !important; } 
+
         .tiempo-badge { font-size: 0.75rem; font-weight: bold; color: #555; }
         #preview-container { border: 2px dashed #ccc; border-radius: 10px; min-height: 100px; display: flex; align-items: center; justify-content: center; background: #fff; overflow: hidden; margin-top: 5px; }
         #preview-container iframe, #preview-container img { width: 100%; height: 200px; object-fit: contain; border: none; }
@@ -48,7 +52,6 @@
             50% { transform: scale(1.05); opacity: 0.8; }
             100% { transform: scale(1); opacity: 1; }
         }
-        .fila-local { background-color: #fff9e6 !important; } /* Resaltado para solicitudes locales */
     </style>
 </head>
 <body class="p-4">
@@ -117,9 +120,9 @@
                 <label class="small fw-bold">Requisición (PDF o Imagen)</label>
                 <div class="input-group">
                     <input id="archivo" type="file" class="form-control" onchange="window.previewArchivo(this)">
-                    <div class="input-group-text">
-                        <input class="form-check-input mt-0 me-2" type="checkbox" id="checkLocal">
-                        <label class="form-check-label small fw-bold" for="checkLocal">Solicitud local</label>
+                    <div class="input-group-text bg-white">
+                        <input class="form-check-input mt-0" type="checkbox" id="checkLocal">
+                        <label class="form-check-label small fw-bold ms-2" for="checkLocal">Solicitud local</label>
                     </div>
                 </div>
                 <div id="preview-container"><small class="text-muted">Vista previa no disponible</small></div>
@@ -138,7 +141,7 @@
         <div class="table-responsive">
             <table class="table table-bordered align-middle text-center bg-white">
                 <thead class="table-primary">
-                    <tr><th>Folio</th><th>Empresa</th><th>Zona</th><th>Soporte</th><th>Sucursal</th><th>Tipo de Solicitud</th><th>Archivo</th><th>Status</th><th>Tiempo</th><th>Fecha</th><th>Acciones</th></tr>
+                    <tr><th>Folio</th><th>Empresa</th><th>Zona</th><th>Soporte</th><th>Sucursal</th><th>Tipo Solicitud</th><th>Archivo</th><th>Status</th><th>Tiempo</th><th>Fecha</th><th>Acciones</th></tr>
                 </thead>
                 <tbody id="tablaTecBody"></tbody>
             </table>
@@ -154,11 +157,7 @@
     document.getElementById("soporte").value = window.nombreSesion;
 
     if (!window.esSoporteJR) {
-        document.getElementById("contenedorExportar").innerHTML = `
-            <button class="btn btn-outline-success btn-sm fw-bold px-3" onclick="window.exportarExcel()">
-                📊 Descargar Reporte
-            </button>
-        `;
+        document.getElementById("contenedorExportar").innerHTML = `<button class="btn btn-outline-success btn-sm fw-bold px-3" onclick="window.exportarExcel()">📊 Descargar Reporte</button>`;
     }
     if (window.puedeVerBase) {
         document.getElementById("liBase").innerHTML = '<a class="dropdown-item" href="base.html">🏠 Página Base (Usuarios)</a>';
@@ -175,18 +174,12 @@
         if (file) {
             const reader = new FileReader();
             reader.onload = (e) => {
-                if (file.type === "application/pdf") {
-                    container.innerHTML = `<iframe src="${e.target.result}"></iframe>`;
-                } else if (file.type.startsWith("image/")) {
-                    container.innerHTML = `<img src="${e.target.result}">`;
-                } else {
-                    container.innerHTML = `<p class="p-2 small">Archivo seleccionado: ${file.name}</p>`;
-                }
+                if (file.type === "application/pdf") { container.innerHTML = `<iframe src="${e.target.result}"></iframe>`; } 
+                else if (file.type.startsWith("image/")) { container.innerHTML = `<img src="${e.target.result}">`; } 
+                else { container.innerHTML = `<p class="p-2 small">Archivo seleccionado: ${file.name}</p>`; }
             };
             reader.readAsDataURL(file);
-        } else {
-            container.innerHTML = `<small class="text-muted">Vista previa no disponible</small>`;
-        }
+        } else { container.innerHTML = `<small class="text-muted">Vista previa no disponible</small>`; }
     };
 
     onValue(seguimientoRef, snap => {
@@ -210,24 +203,21 @@
             if (s.eliminado === true || statusActual === "CONFIRMADO") return;
             
             if(window.puedeVerBase || s.usuario === window.usuarioSesion) {
-                const colores = {
-                    "ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", 
-                    "EN SISTEMAS":"st-sistemas", "DEVOLUCION": "st-devolucion", "EN COTIZACION": "st-local",
-                    "EN AUTORIZACION": "st-local", "EN COMPRA": "st-local", "EN ZONA": "st-zona"
-                };
+                const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas", "DEVOLUCION": "st-devolucion", "EN COTIZACION":"st-local", "EN AUTORIZACION":"st-local", "EN COMPRA":"st-local", "EN ZONA":"st-zona"};
                 const claseColor = colores[statusActual] || "st-default";
-                const tipoSolicitudLabel = s.isLocal ? "LOCAL" : "COMPRAS";
+                const tipoSolicitudLabel = s.solicitudLocal ? "LOCAL" : "COMPRAS";
                 
                 dataParaExportar.push({ ...s, statusActual, segs: segsDelFolio.reverse() });
 
+                // SE AGREGA LA CLASE 'fila-local' SI ES TRUE
                 tbody.innerHTML += `
-                    <tr class="${s.isLocal ? 'fila-local' : ''}">
+                    <tr class="${s.solicitudLocal ? 'fila-local' : ''}">
                         <td><small class="fw-bold">${s.folio}</small></td>
                         <td>${s.empresa}</td>
                         <td>${s.zona}</td>
                         <td>${s.soporte}</td>
                         <td>${s.sucursal}</td>
-                        <td><span class="badge ${s.isLocal ? 'bg-warning text-dark' : 'bg-info'}">${tipoSolicitudLabel}</span></td>
+                        <td><span class="badge ${s.solicitudLocal ? 'bg-warning text-dark' : 'bg-secondary'}">${tipoSolicitudLabel}</span></td>
                         <td><button class="btn btn-sm btn-success" onclick="window.verPDF('${s.archivoData}', '${s.folio}')">👁️</button></td>
                         <td><span class="badge ${claseColor} p-2 w-100">${statusActual}</span></td>
                         <td class="tiempo-badge">${calcularTranscurrido(s.fechaISO || s.fechaEnvio)}</td>
@@ -237,8 +227,8 @@
                                 <span class="action-btn" onclick="window.verHistorialFolio('${s.folio}')" title="Historial">📜</span>
                                 <span class="action-btn text-primary" onclick="window.editarRegistro('${idKey}')" title="Editar">✏️</span>
                                 
-                                ${s.isLocal ? `
-                                    <span class="action-btn text-info" onclick="window.modalSeguimientoLocal('${idKey}', '${s.folio}', '${tipoSolicitudLabel}')" title="Seguimiento">📋</span>
+                                ${s.solicitudLocal ? `
+                                    <span class="action-btn text-info" onclick="window.abrirSeguimientoLocal('${s.folio}', '${tipoSolicitudLabel}')" title="Seguimiento">📋</span>
                                 ` : `
                                     <span class="action-btn ${window.esSoporteJR ? 'action-disabled' : ''}" 
                                           onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}" 
@@ -250,9 +240,7 @@
                                     <span class="action-btn text-warning" onclick="window.enviarDevolucion('${s.folio}')" title="Devolucion">🔄</span>
                                 ` : ``}
 
-                                ${window.puedeVerBase ? `
-                                    <span class="action-btn text-secondary" onclick="window.depurarRegistroPermanente('${idKey}', '${s.folio}')" title="Archivar">📦</span>
-                                ` : ``}
+                                ${window.puedeVerBase ? `<span class="action-btn text-secondary" onclick="window.depurarRegistroPermanente('${idKey}', '${s.folio}')" title="Archivar">📦</span>` : ``}
                             </div>
                         </td>
                     </tr>`;
@@ -260,21 +248,22 @@
         });
     }
 
-    window.modalSeguimientoLocal = async (idKey, fol, tipoSol) => {
+    // Modal de Seguimiento Local
+    window.abrirSeguimientoLocal = async (fol, tipoLabel) => {
         const segs = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
-        const tieneDescripcion = segs.some(seg => seg.descripcionArt && seg.descripcionArt.trim() !== "");
-        const descExistente = tieneDescripcion ? segs.find(seg => seg.descripcionArt).descripcionArt : "";
+        const tieneDesc = segs.some(seg => seg.descripcionArt && seg.descripcionArt.trim() !== "");
+        const descVal = tieneDesc ? segs.find(seg => seg.descripcionArt).descripcionArt : "";
 
-        const { value: formValues } = await Swal.fire({
-            title: 'Seguimiento de Solicitud Local',
+        const { value: fv } = await Swal.fire({
+            title: 'Seguimiento Local',
             html: `
                 <div class="text-start">
                     <label class="small fw-bold">Tipo de Solicitud</label>
-                    <input class="form-control mb-2 bg-light" value="${tipoSol}" readonly>
+                    <input class="form-control mb-2 bg-light" value="${tipoLabel}" readonly>
                     <label class="small fw-bold">Fecha de Seguimiento</label>
                     <input class="form-control mb-2 bg-light" value="${new Date().toLocaleDateString()}" readonly>
                     <label class="small fw-bold">Descripción del Artículo</label>
-                    <textarea id="sw-desc" class="form-control mb-2" ${tieneDescripcion ? 'readonly' : ''}>${descExistente}</textarea>
+                    <textarea id="sw-desc" class="form-control mb-2" ${tieneDesc ? 'readonly' : ''}>${descVal}</textarea>
                     <label class="small fw-bold">Status</label>
                     <select id="sw-status" class="form-select mb-2">
                         <option value="EN COTIZACION">EN COTIZACION</option>
@@ -285,32 +274,16 @@
                     </select>
                     <label class="small fw-bold">Comentario</label>
                     <textarea id="sw-coment" class="form-control mb-2"></textarea>
-                </div>
-            `,
+                </div>`,
             showCancelButton: true,
-            confirmButtonText: 'Registrar Seguimiento',
-            preConfirm: () => {
-                return {
-                    descripcion: document.getElementById('sw-desc').value,
-                    status: document.getElementById('sw-status').value,
-                    comentario: document.getElementById('sw-coment').value
-                }
-            }
+            preConfirm: () => ({ desc: document.getElementById('sw-desc').value, sts: document.getElementById('sw-status').value, com: document.getElementById('sw-coment').value })
         });
 
-        if (formValues) {
+        if (fv) {
             window.mostrarCargando();
-            const nuevoSeg = {
-                folio: fol,
-                status: formValues.status,
-                descripcionArt: formValues.descripcion.toUpperCase(),
-                comentarios: formValues.comentario.toUpperCase(),
-                fechaRegistro: new Date().toISOString(),
-                usuario: window.nombreSesion
-            };
-            await push(seguimientoRef, nuevoSeg);
+            await push(seguimientoRef, { folio: fol, status: fv.sts, descripcionArt: fv.desc.toUpperCase(), comentarios: fv.com.toUpperCase(), fechaRegistro: new Date().toISOString(), usuario: window.nombreSesion });
             window.ocultarCargando();
-            Swal.fire("Éxito", "Seguimiento registrado", "success");
+            Swal.fire("Éxito", "Seguimiento guardado", "success");
         }
     };
 
@@ -339,11 +312,9 @@
                     soporte: window.nombreSesion, sucursal: suc.toUpperCase(),
                     archivoData: reader.result, status: isLocal ? "EN COTIZACION" : "PENDIENTE", 
                     fechaEnvio: new Date().toLocaleString(), fechaISO: new Date().toISOString(),
-                    usuario: window.usuarioSesion, eliminado: false,
-                    isLocal: isLocal
+                    usuario: window.usuarioSesion, eliminado: false, solicitudLocal: isLocal
                 };
                 await push(solicitudesRef, data);
-                
                 document.getElementById("formTec").reset();
                 document.getElementById("preview-container").innerHTML = `<small class="text-muted">Vista previa no disponible</small>`;
                 Swal.fire("Guardado", "Solicitud generada con éxito", "success");
@@ -352,39 +323,24 @@
         reader.readAsDataURL(arc);
     };
 
+    // Funciones de soporte
     window.editarRegistro = async (idKey) => {
         const snap = await get(ref(database, `tecnologia/${idKey}`));
         const d = snap.val();
         const { value: fv } = await Swal.fire({
             title: 'Editar Solicitud',
-            html: `
-                <div class="text-start">
-                    <label class="small fw-bold">Zona</label><input id="edt-zon" class="form-control mb-2 text-uppercase" value="${d.zona}">
-                    <label class="small fw-bold">Sucursal</label><input id="edt-suc" class="form-control mb-2 text-uppercase" value="${d.sucursal}">
-                    <label class="small fw-bold">Cambiar Archivo (Opcional)</label><input type="file" id="edt-arc" class="form-control">
-                </div>`,
+            html: `<div class="text-start"><label class="small fw-bold">Zona</label><input id="edt-zon" class="form-control mb-2 text-uppercase" value="${d.zona}"><label class="small fw-bold">Sucursal</label><input id="edt-suc" class="form-control mb-2 text-uppercase" value="${d.sucursal}"><label class="small fw-bold">Archivo</label><input type="file" id="edt-arc" class="form-control"></div>`,
             showCancelButton: true,
-            confirmButtonText: 'Guardar Cambios',
             preConfirm: () => ({ z: document.getElementById('edt-zon').value, s: document.getElementById('edt-suc').value, a: document.getElementById('edt-arc').files[0] })
         });
-
         if (fv) {
             window.mostrarCargando();
             const upds = { zona: fv.z.toUpperCase(), sucursal: fv.s.toUpperCase() };
             if (fv.a) {
                 const reader = new FileReader();
-                reader.onload = async () => {
-                    upds.archivoData = reader.result;
-                    await update(ref(database, `tecnologia/${idKey}`), upds);
-                    window.ocultarCargando();
-                    Swal.fire("Éxito", "Datos actualizados", "success");
-                };
+                reader.onload = async () => { upds.archivoData = reader.result; await update(ref(database, `tecnologia/${idKey}`), upds); window.ocultarCargando(); Swal.fire("Éxito", "Actualizado", "success"); };
                 reader.readAsDataURL(fv.a);
-            } else {
-                await update(ref(database, `tecnologia/${idKey}`), upds);
-                window.ocultarCargando();
-                Swal.fire("Éxito", "Datos actualizados", "success");
-            }
+            } else { await update(ref(database, `tecnologia/${idKey}`), upds); window.ocultarCargando(); Swal.fire("Éxito", "Actualizado", "success"); }
         }
     };
 
@@ -399,8 +355,7 @@
             const reader = new FileReader();
             reader.onload = async () => {
                 await push(seguimientoRef, { folio: fol, status: "CONFIRMADO", comentarios: fv.c.toUpperCase(), fotoEvidencia: reader.result, fechaRegistro: new Date().toISOString(), usuario: window.nombreSesion });
-                Swal.fire("Confirmado", "Entrega registrada", "success");
-                window.ocultarCargando();
+                Swal.fire("Confirmado", "Entrega registrada", "success"); window.ocultarCargando();
             };
             reader.readAsDataURL(fv.i);
         }
@@ -417,8 +372,7 @@
             const reader = new FileReader();
             reader.onload = async () => {
                 await push(seguimientoRef, { folio: fol, status: "DEVOLUCION", comentarios: fv.c.toUpperCase(), fotoEvidencia: reader.result, fechaRegistro: new Date().toISOString(), usuario: window.nombreSesion });
-                window.ocultarCargando();
-                Swal.fire("Devuelto", "Estado actualizado", "info");
+                window.ocultarCargando(); Swal.fire("Devuelto", "Estado actualizado", "info");
             };
             reader.readAsDataURL(fv.i);
         }
@@ -426,13 +380,13 @@
 
     window.verPDF = (base64, folio) => {
         const w = window.open();
-        w.document.write(`
-            <div style="background:#333; color:white; padding:10px; font-family:sans-serif; display:flex; justify-content:space-between; align-items:center;">
-                <span>Documento Folio: ${folio}</span>
-                <a href="${base64}" download="SOLICITUD_${folio}" style="color:white; background:#28a745; padding:5px 15px; text-decoration:none; border-radius:5px;">Descargar Archivo</a>
-            </div>
-            <iframe src="${base64}" style="width:100%; height:92vh; border:none;"></iframe>
-        `);
+        w.document.write(`<div style="background:#333; color:white; padding:10px; font-family:sans-serif; display:flex; justify-content:space-between; align-items:center;"><span>Folio: ${folio}</span><a href="${base64}" download="SOLICITUD_${folio}" style="color:white; background:#28a745; padding:5px 15px; text-decoration:none; border-radius:5px;">Descargar</a></div><iframe src="${base64}" style="width:100%; height:92vh; border:none;"></iframe>`);
+    };
+
+    window.verHistorialFolio = fol => {
+        const segs = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
+        let html = `<div class="table-responsive"><table class="table table-sm mt-2"><thead><tr><th>Fecha</th><th>Status</th><th>Comentario</th><th>Evidencia</th></tr></thead><tbody>${segs.map(h => `<tr><td><small>${new Date(h.fechaRegistro).toLocaleString()}</small></td><td>${h.status}</td><td>${h.comentarios||''}</td><td>${h.fotoEvidencia ? `<button class="btn btn-sm btn-info" onclick="window.verPDF('${h.fotoEvidencia}','${fol}')">📸</button>` : '-'}</td></tr>`).join('')}</tbody></table></div>`;
+        Swal.fire({ title: `Historial: ${fol}`, html: html, width: '800px' });
     };
 
     window.depurarRegistroPermanente = async (id, fol) => {
@@ -442,19 +396,12 @@
             const snap = await get(ref(database, `tecnologia/${id}`));
             await set(ref(database, `historial_permanente/${id}`), { ...snap.val(), fechaArchivado: new Date().toISOString() });
             await remove(ref(database, `tecnologia/${id}`));
-            window.ocultarCargando();
-            Swal.fire("Archivado", "Registro movido", "success");
+            window.ocultarCargando(); Swal.fire("Archivado", "Movido con éxito", "success");
         }
     };
 
-    window.verHistorialFolio = fol => {
-        const segs = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
-        let html = `<div class="table-responsive"><table class="table table-sm mt-2"><thead><tr><th>Fecha</th><th>Status</th><th>Comentario</th><th>Evidencia</th></tr></thead><tbody>${segs.map(h => `<tr><td><small>${new Date(h.fechaRegistro).toLocaleString()}</small></td><td>${h.status}</td><td>${h.comentarios||''}</td><td>${h.fotoEvidencia ? `<button class="btn btn-sm btn-info" onclick="window.verPDF('${h.fotoEvidencia}','${fol}')">📸</button>` : '-'}</td></tr>`).join('')}</tbody></table></div>`;
-        Swal.fire({ title: `Historial: ${fol}`, html: html, width: '800px' });
-    };
-
     window.exportarExcel = async () => {
-        if(dataParaExportar.length === 0) return Swal.fire("Aviso", "No hay datos para exportar", "info");
+        if(dataParaExportar.length === 0) return Swal.fire("Aviso", "No hay datos", "info");
         const workbook = new ExcelJS.Workbook();
         const sheet = workbook.addWorksheet('Solicitudes');
         sheet.columns = [
@@ -469,10 +416,7 @@
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Reporte_Tecnologia.xlsx`;
-        a.click();
+        const a = document.createElement('a'); a.href = url; a.download = `Reporte_Tecnologia.xlsx`; a.click();
     };
 
     window.irSeguimiento = f => location.href = "seguimiento.html?folio=" + encodeURIComponent(f);
