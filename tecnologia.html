@@ -22,13 +22,13 @@
         .user-info-box { background: white; padding: 10px 20px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: inline-block; }
         .aviso-devolucion { background: #fff3cd; border-left: 5px solid #ffc107; padding: 10px 15px; border-radius: 10px; font-size: 0.85rem; color: #856404; max-width: 600px; }
         
-        /* Estilos de Status y Diferenciación */
-        .fila-local { background-color: #fff8e1 !important; } 
+        /* FIX: Sombreado de fila local forzando a las celdas */
+        .fila-local td { background-color: #fff8e1 !important; } 
+        
         .st-compras { background-color: #0d6efd !important; color: white; } 
         .st-zona { background-color: #ffc107 !important; color: black; }    
         .st-pendiente { background-color: #dc3545 !important; color: white; } 
         .st-devolucion { background-color: #6f42c1 !important; color: white; }
-        /* Nuevo Resaltado para Compras Locales según Status */
         .st-local-cotizacion { background-color: #fd7e14 !important; color: white; }
         
         #loader { 
@@ -168,8 +168,7 @@
 
             const esLocal = s.solicitudLocal === true || s.isLocal === true;
             
-            // Lógica de resaltado de Badge según status y tipo
-            let badgeClass = "st-compras"; // Default azul
+            let badgeClass = "st-compras"; 
             if (statusActual === "EN ZONA") badgeClass = "st-zona";
             else if (statusActual === "EN COTIZACION") badgeClass = "st-local-cotizacion";
             else if (statusActual === "DEVOLUCION") badgeClass = "st-devolucion";
@@ -177,6 +176,7 @@
 
             if (window.esAdmin || s.usuario === window.usuarioSesion) {
                 dataExportar.push({ ...s, statusActual });
+                // Se agrega la clase fila-local al TR
                 tbody.innerHTML += `
                     <tr class="${esLocal ? 'fila-local' : ''}">
                         <td class="fw-bold">${s.folio}</td>
@@ -216,10 +216,20 @@
         const arc = document.getElementById("archivo").files[0];
         const local = document.getElementById("checkLocal").checked;
         if(!emp || !zon || !suc || !arc) return Swal.fire("Error", "Faltan campos", "error");
+        
         document.getElementById("loader").style.display = "flex";
+
+        // Obtener el consecutivo real contando los registros en Firebase
+        const snap = await get(solicitudesRef);
+        let contador = 1;
+        if(snap.exists()){
+            contador = Object.keys(snap.val()).length + 1;
+        }
+        const numFolio = contador.toString().padStart(4, '0');
+
         const reader = new FileReader();
         reader.onload = async () => {
-            const fol = `TEC-${emp}-${zon}-${Date.now().toString().slice(-4)}`.toUpperCase();
+            const fol = `TEC-${emp}-${zon}-${numFolio}`.toUpperCase();
             await push(solicitudesRef, {
                 folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
                 sucursal: suc.toUpperCase(), soporte: window.nombreSesion,
@@ -228,7 +238,8 @@
                 fechaISO: new Date().toISOString(), usuario: window.usuarioSesion, eliminado: false
             });
             document.getElementById("formTec").reset();
-            Swal.fire("Éxito", "Solicitud guardada", "success");
+            document.getElementById("preview-container").innerHTML = '<small class="text-muted">Vista previa</small>';
+            Swal.fire("Éxito", "Solicitud guardada con folio: " + fol, "success");
         };
         reader.readAsDataURL(arc);
     };
@@ -328,7 +339,6 @@
 </script>
 
 <script>
-    // Protección y bloqueo de teclas
     document.addEventListener('contextmenu', (e) => e.preventDefault());
     document.onkeydown = function(e) {
         if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) || (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0))) return false;
