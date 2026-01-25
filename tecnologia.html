@@ -58,7 +58,7 @@
                 <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
             </div>
             <div class="aviso-devolucion d-none d-md-block">
-                <strong>⚠️ Aviso:</strong> Para devoluciones, los empaques deben estar intactos.
+                <strong>⚠️ Aviso:</strong> Se les recuerda que para hacer una devolución de mercancía los empaques deben de estar lo más intactos posibles (sin rayaduras, enmendaduras, rotos) de lo contrario no procedera.
             </div>
         </div>
         <div class="dropdown">
@@ -310,7 +310,16 @@
     };
 
     window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
+    };
+
+document.addEventListener('contextmenu', (e) => e.preventDefault());
+document.onkeydown = function(e) {
+    if(e.keyCode == 123) return false;
+    if(e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) return false;
+    if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+};
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+
