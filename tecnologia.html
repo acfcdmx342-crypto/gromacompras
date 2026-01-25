@@ -249,8 +249,13 @@
         });
     }
 
-    // --- NUEVA FUNCIÓN PARA MODAL JR (ACTUALIZADA CON DESCRIPCION) ---
+    // --- NUEVA FUNCIÓN PARA MODAL JR (MODIFICADA: BLOQUEO DE DESCRIPCIÓN SI EXISTE) ---
     window.abrirModalSeguimientoJR = async (fol) => {
+        // Buscamos si ya existe una descripción en el historial para este folio
+        const segAnterior = globalSeguimientos.find(x => x.folio === fol && x.descripcion && x.descripcion.trim() !== "");
+        const descExistente = segAnterior ? segAnterior.descripcion : "";
+        const isDescDisabled = descExistente !== "" ? "disabled" : "";
+
         const { value: formValues } = await Swal.fire({
             title: `Seguimiento: ${fol}`,
             html: `
@@ -269,7 +274,9 @@
                     </select>
 
                     <label class="small fw-bold">Descripción del Artículo</label>
-                    <input type="text" id="jr-desc" class="form-control mb-3 text-uppercase" placeholder="Ej. Impresora L3210, SSD 500GB...">
+                    <input type="text" id="jr-desc" class="form-control mb-3 text-uppercase" 
+                        placeholder="Ej. Impresora L3210, SSD 500GB..." 
+                        value="${descExistente}" ${isDescDisabled}>
                     
                     <label class="small fw-bold">Observaciones</label>
                     <textarea id="jr-obs" class="form-control" rows="3" placeholder="Escribe aquí los detalles..."></textarea>
@@ -296,7 +303,7 @@
                 await push(seguimientoRef, {
                     folio: fol,
                     status: formValues.status,
-                    descripcion: formValues.desc.toUpperCase(), // Guardamos la descripción
+                    descripcion: formValues.desc.toUpperCase(),
                     comentarios: formValues.obs.toUpperCase(),
                     fechaRegistro: new Date(formValues.fecha).toISOString(),
                     usuario: window.nombreSesion
@@ -399,7 +406,7 @@
                     fechaEnvio: new Date().toLocaleString(), fechaISO: new Date().toISOString(),
                     usuario: window.usuarioSesion, eliminado: false,
                     responsableSeguimiento: "",
-                    descripcion: "" // Inicialmente vacío
+                    descripcion: "" 
                 };
                 await push(solicitudesRef, data);
                 
