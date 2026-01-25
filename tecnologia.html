@@ -31,12 +31,13 @@
         .st-pendiente { background-color: #dc3545 !important; color: white; } 
         .st-sistemas { background-color: #198754 !important; color: white; }  
         .st-devolucion { background-color: #6f42c1 !important; color: white; }
+        .st-local { background-color: #20c997 !important; color: white; }
         .st-default { background-color: #6c757d !important; color: white; }   
         .tiempo-badge { font-size: 0.75rem; font-weight: bold; color: #555; }
         /* Mejora Vista Previa */
         #preview-container { border: 2px dashed #ccc; border-radius: 10px; min-height: 100px; display: flex; align-items: center; justify-content: center; background: #fff; overflow: hidden; margin-top: 5px; }
         #preview-container iframe, #preview-container img { width: 100%; height: 200px; object-fit: contain; border: none; }
-       #loader { 
+        #loader { 
             display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(255,255,255,0.9); z-index: 9999; justify-content: center; 
             align-items: center; flex-direction: column; 
@@ -111,7 +112,13 @@
             <div class="col-md-3"><label class="small fw-bold">Sucursal</label><input id="sucursal" class="form-control text-uppercase"></div>
             <div class="col-md-6">
                 <label class="small fw-bold">Requisición (PDF o Imagen)</label>
-                <input id="archivo" type="file" class="form-control" onchange="window.previewArchivo(this)">
+                <div class="d-flex gap-2">
+                    <input id="archivo" type="file" class="form-control" onchange="window.previewArchivo(this)">
+                    <div class="form-check d-flex align-items-center bg-light px-3 border rounded">
+                        <input class="form-check-input mt-0" type="checkbox" id="checkLocal">
+                        <label class="form-check-label ms-2 small fw-bold text-nowrap" for="checkLocal">Solicitud Local</label>
+                    </div>
+                </div>
                 <div id="preview-container"><small class="text-muted">Vista previa no disponible</small></div>
             </div>
             <div class="col-12 mt-4">
@@ -128,7 +135,7 @@
         <div class="table-responsive">
             <table class="table table-bordered align-middle text-center bg-white">
                 <thead class="table-primary">
-                    <tr><th>Folio</th><th>Empresa</th><th>Zona</th><th>Soporte</th><th>Sucursal</th><th>Archivo</th><th>Status</th><th>Tiempo</th><th>Fecha</th><th>Acciones</th></tr>
+                    <tr><th>Folio</th><th>Empresa</th><th>Zona</th><th>Soporte</th><th>Sucursal</th><th>Tipo</th><th>Archivo</th><th>Status</th><th>Tiempo</th><th>Fecha</th><th>Acciones</th></tr>
                 </thead>
                 <tbody id="tablaTecBody"></tbody>
             </table>
@@ -183,6 +190,7 @@
             try { renderTable(snapSolicitudes); } catch (e) { console.error(e); } finally { window.ocultarCargando(); }
         });
     }, () => window.ocultarCargando());
+
     function renderTable(snap) {
         const tbody = document.getElementById("tablaTecBody");
         tbody.innerHTML = "";
@@ -194,16 +202,19 @@
             const statusActual = segsDelFolio.length > 0 ? segsDelFolio[0].status : (s.status || "PENDIENTE");
            if (s.eliminado === true || statusActual === "CONFIRMADO") return;
            if(window.puedeVerBase || s.usuario === window.usuarioSesion) {
-                const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas", "DEVOLUCION": "st-devolucion"};
+                const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas", "DEVOLUCION": "st-devolucion", "EN COTIZACION": "st-local", "EN AUTORIZACION": "st-local", "EN COMPRA": "st-local"};
                 const claseColor = colores[statusActual] || "st-default";
-               dataParaExportar.push({ ...s, statusActual, segs: segsDelFolio.reverse() });
-               tbody.innerHTML += `
-                    <tr>
+                const esLocal = s.tipoSolicitud === "LOCAL";
+                
+                dataParaExportar.push({ ...s, statusActual, segs: segsDelFolio.reverse() });
+                tbody.innerHTML += `
+                    <tr class="${esLocal ? 'table-info' : ''}">
                         <td><small class="fw-bold">${s.folio}</small></td>
                         <td>${s.empresa}</td>
                         <td>${s.zona}</td>
                         <td>${s.soporte}</td>
                         <td>${s.sucursal}</td>
+                        <td><span class="badge ${esLocal ? 'bg-info' : 'bg-secondary'}">${s.tipoSolicitud || 'COMPRAS'}</span></td>
                         <td><button class="btn btn-sm btn-success" onclick="window.verPDF('${s.archivoData}', '${s.folio}')">👁️</button></td>
                         <td><span class="badge ${claseColor} p-2 w-100">${statusActual}</span></td>
                         <td class="tiempo-badge">${calcularTranscurrido(s.fechaISO || s.fechaEnvio)}</td>
@@ -213,14 +224,18 @@
                                 <span class="action-btn" onclick="window.verHistorialFolio('${s.folio}')" title="Historial">📜</span>
                                 <span class="action-btn text-primary" onclick="window.editarRegistro('${idKey}')" title="Editar">✏️</span>
                                 
-                                ${window.esSoporteJR && statusActual === "ENVIADO A ZONA" ? `
+                                ${esLocal ? `
+                                    <span class="action-btn text-info" onclick="window.modalSeguimientoLocal('${s.folio}', '${s.tipoSolicitud}')" title="Seguimiento Local">📋</span>
+                                ` : ''}
+
+                                ${(window.esSoporteJR && statusActual === "ENVIADO A ZONA") || (esLocal && statusActual === "EN ZONA") ? `
                                     <span class="action-btn text-success" onclick="window.confirmarEntrega('${s.folio}')" title="Confirmar">✅</span>
                                     <span class="action-btn text-warning" onclick="window.enviarDevolucion('${s.folio}')" title="Devolucion">🔄</span>
-                                ` : `
+                                ` : !esLocal ? `
                                     <span class="action-btn ${window.esSoporteJR ? 'action-disabled' : ''}" 
                                           onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}" 
                                           title="Seguimiento">📋</span>
-                                `}
+                                ` : ''}
 
                                 ${window.puedeVerBase ? `
                                     <span class="action-btn text-secondary" onclick="window.depurarRegistroPermanente('${idKey}', '${s.folio}')" title="Archivar">📦</span>
@@ -231,6 +246,60 @@
             }
         });
     }
+
+    // --- MODAL SEGUIMIENTO LOCAL ---
+    window.modalSeguimientoLocal = async (fol, tipo) => {
+        const segs = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
+        const descInicial = segs.length > 0 ? (segs.find(x => x.descripcion) ? segs.find(x => x.descripcion).descripcion : '') : '';
+        const soloLecturaDesc = descInicial !== '' ? 'readonly' : '';
+
+        const { value: fv } = await Swal.fire({
+            title: 'Seguimiento Local',
+            html: `
+                <div class="text-start">
+                    <label class="small fw-bold">Tipo de Solicitud</label>
+                    <input class="form-control mb-2 bg-light" value="${tipo}" readonly>
+                    <label class="small fw-bold">Fecha de Seguimiento</label>
+                    <input class="form-control mb-2 bg-light" value="${new Date().toLocaleDateString()}" readonly>
+                    <label class="small fw-bold">Descripción del Artículo</label>
+                    <textarea id="loc-desc" class="form-control mb-2" ${soloLecturaDesc}>${descInicial}</textarea>
+                    <label class="small fw-bold">Status</label>
+                    <select id="loc-stat" class="form-select mb-2">
+                        <option value="EN COTIZACION">EN COTIZACION</option>
+                        <option value="EN AUTORIZACION">EN AUTORIZACION</option>
+                        <option value="EN COMPRA">EN COMPRA</option>
+                        <option value="EN ZONA">EN ZONA</option>
+                        <option value="DEVOLUCION">DEVOLUCION</option>
+                    </select>
+                    <label class="small fw-bold">Comentario</label>
+                    <textarea id="loc-com" class="form-control"></textarea>
+                </div>`,
+            showCancelButton: true,
+            confirmButtonText: 'Registrar Seguimiento',
+            preConfirm: () => {
+                return {
+                    desc: document.getElementById('loc-desc').value,
+                    stat: document.getElementById('loc-stat').value,
+                    com: document.getElementById('loc-com').value
+                };
+            }
+        });
+
+        if(fv) {
+            window.mostrarCargando();
+            await push(seguimientoRef, {
+                folio: fol,
+                status: fv.stat,
+                descripcion: fv.desc.toUpperCase(),
+                comentarios: fv.com.toUpperCase(),
+                fechaRegistro: new Date().toISOString(),
+                usuario: window.nombreSesion
+            });
+            window.ocultarCargando();
+            Swal.fire("Éxito", "Seguimiento registrado", "success");
+        }
+    };
+
     // --- FUNCIÓN EDITAR ---
     window.editarRegistro = async (idKey) => {
         const snap = await get(ref(database, `tecnologia/${idKey}`));
@@ -274,9 +343,7 @@
         }
     };
 
-    // --- FUNCIÓN VER Y DESCARGAR ---
     window.verPDF = (base64, folio) => {
-        const type = base64.split(';')[0].split(':')[1];
         const w = window.open();
         w.document.write(`
             <div style="background:#333; color:white; padding:10px; font-family:sans-serif; display:flex; justify-content:space-between; align-items:center;">
@@ -286,12 +353,14 @@
             <iframe src="${base64}" style="width:100%; height:92vh; border:none;"></iframe>
         `);
     };
-    // --- LÓGICA DE GUARDADO ---
+
     window.guardarSolicitud = async () => {
         const emp = document.getElementById("empresa").value;
         const zon = document.getElementById("zona").value;
         const suc = document.getElementById("sucursal").value;
         const arc = document.getElementById("archivo").files[0];
+        const esLocal = document.getElementById("checkLocal").checked;
+
         if (!emp || !zon || !suc || !arc) return Swal.fire("Error", "Complete todos los campos", "error");
         
         window.mostrarCargando();
@@ -308,13 +377,13 @@
                 const data = {
                     folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
                     soporte: window.nombreSesion, sucursal: suc.toUpperCase(),
-                    archivoData: reader.result, status: "PENDIENTE", 
+                    archivoData: reader.result, status: esLocal ? "EN COTIZACION" : "PENDIENTE", 
+                    tipoSolicitud: esLocal ? "LOCAL" : "COMPRAS",
                     fechaEnvio: new Date().toLocaleString(), fechaISO: new Date().toISOString(),
                     usuario: window.usuarioSesion, eliminado: false
                 };
                 await push(solicitudesRef, data);
                 
-                // EmailJS (Opcional según tu lógica)
                 emailjs.send("service_mya4ogg", "template_apg1whs", {
                     to_name: "Sistemas", from_name: window.nombreSesion,
                     folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(), sucursal: suc.toUpperCase()
@@ -328,7 +397,6 @@
         reader.readAsDataURL(arc);
     };
 
-    // --- RESTO DE FUNCIONES ORIGINALES ---
     window.exportarExcel = async () => {
         if(dataParaExportar.length === 0) return Swal.fire("Aviso", "No hay datos para exportar", "info");
         const workbook = new ExcelJS.Workbook();
@@ -338,6 +406,7 @@
             { header: 'EMPRESA', key: 'empresa', width: 15 },
             { header: 'ZONA', key: 'zona', width: 15 },
             { header: 'SUCURSAL', key: 'sucursal', width: 20 },
+            { header: 'TIPO', key: 'tipoSolicitud', width: 15 },
             { header: 'STATUS', key: 'statusActual', width: 20 },
             { header: 'FECHA', key: 'fechaEnvio', width: 20 }
         ];
@@ -424,4 +493,3 @@
 </script>
 </body>
 </html>
-
