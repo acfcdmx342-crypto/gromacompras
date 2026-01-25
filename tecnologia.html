@@ -344,7 +344,6 @@
             confirmButtonText: 'Guardar Cambios',
             preConfirm: () => ({ z: document.getElementById('edt-zon').value, s: document.getElementById('edt-suc').value, a: document.getElementById('edt-arc').files[0] })
         });
-
         if (fv) {
             window.mostrarCargando();
             const upds = { zona: fv.z.toUpperCase(), sucursal: fv.s.toUpperCase() };
@@ -364,7 +363,6 @@
             }
         }
     };
-
     window.verPDF = (base64, folio) => {
         const w = window.open();
         w.document.write(`
@@ -375,7 +373,6 @@
             <iframe src="${base64}" style="width:100%; height:92vh; border:none;"></iframe>
         `);
     };
-
     window.confirmarEntrega = async (fol) => {
         const { value: fv } = await Swal.fire({
             title: 'Confirmar Entrega',
@@ -393,7 +390,6 @@
             reader.readAsDataURL(fv.i);
         }
     };
-
     window.enviarDevolucion = async (fol) => {
         const { value: fv } = await Swal.fire({
             title: 'Motivo Devolución',
@@ -411,7 +407,6 @@
             reader.readAsDataURL(fv.i);
         }
     };
-
     window.depurarRegistroPermanente = async (id, fol) => {
         const res = await Swal.fire({ title: '¿Archivar?', text: "Se moverá al historial permanente.", icon: 'warning', showCancelButton: true });
         if(res.isConfirmed) {
@@ -423,13 +418,11 @@
             Swal.fire("Archivado", "Registro movido", "success");
         }
     };
-
     window.verHistorialFolio = fol => {
         const segs = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
         let html = `<div class="table-responsive"><table class="table table-sm mt-2"><thead><tr><th>Fecha</th><th>Status</th><th>Comentario</th><th>Evidencia</th></tr></thead><tbody>${segs.map(h => `<tr><td><small>${new Date(h.fechaRegistro).toLocaleString()}</small></td><td>${h.status}</td><td>${h.comentarios||''}</td><td>${h.fotoEvidencia ? `<button class="btn btn-sm btn-info" onclick="window.verPDF('${h.fotoEvidencia}','${fol}')">📸</button>` : '-'}</td></tr>`).join('')}</tbody></table></div>`;
         Swal.fire({ title: `Historial: ${fol}`, html: html, width: '800px' });
     };
-
     window.irSeguimiento = f => location.href = "seguimiento.html?folio=" + encodeURIComponent(f);
 
     function calcularTranscurrido(f) {
@@ -440,4 +433,3 @@
 </script>
 </body>
 </html>
-
