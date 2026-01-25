@@ -24,12 +24,10 @@
     </style>
 </head>
 <body>
-
 <div id="loader">
     <div class="spinner-border text-primary" role="status"></div>
     <span class="ms-2 fw-bold">Cargando Historial...</span>
 </div>
-
 <div class="container-fluid">
     <div class="card p-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -43,7 +41,6 @@
                 </a>
             </div>
         </div>
-        
         <div class="table-responsive">
             <table class="table table-hover align-middle text-center border">
                 <thead class="table-dark">
@@ -65,19 +62,15 @@
         </div>
     </div>
 </div>
-
 <script type="module">
 import { database, ref, onValue, get } from "./firebase.js";
-
 const sesionRaw = localStorage.getItem("usuarioLogueado");
 if (!sesionRaw) location.href = "index.html";
 const sesion = JSON.parse(sesionRaw);
-
 // --- LÓGICA DE PERMISOS ---
 const puestoUser = (sesion.puesto || "").toUpperCase();
 const nombreSesion = (sesion.nombre || "").toUpperCase();
 const usuarioSesion = (sesion.usuario || "").toUpperCase();
-
 const superPuestos = [
     "GERENTE DE SISTEMAS", 
     "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", 
@@ -87,17 +80,13 @@ const superPuestos = [
     "BECARIOS SISTEMAS",
     "BECARIO"
 ];
-
 const puedeVerTodo = superPuestos.includes(puestoUser);
 window.esSoporteJR = puestoUser === "SOPORTE TECNICO JR";
-
 if (window.esSoporteJR) {
     const btnExp = document.getElementById("btnExportar");
     if(btnExp) btnExp.style.display = "none";
 }
-
 let datosParaExportar = [];
-
 const limpiarFecha = (str) => {
     if(!str || str === "---") return null;
     if(str.includes('T')) return new Date(str);
@@ -112,13 +101,10 @@ const limpiarFecha = (str) => {
         return new Date(anio, mes, dia, hora, min);
     } catch(e) { return null; }
 };
-
 window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
 window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
-
 // --- CARGA DE DATOS ---
 onValue(ref(database, "historial_permanente"), () => cargarHistorial());
-
 async function cargarHistorial() {
     window.mostrarCargando();
     try {
@@ -126,16 +112,13 @@ async function cargarHistorial() {
         const body = document.getElementById("historialBody");
         body.innerHTML = "";
         datosParaExportar = [];
-
         if (!snapPerm.exists()) {
             body.innerHTML = "<tr><td colspan='10'>No hay registros en el historial</td></tr>";
             return;
         }
-
-        snapPerm.forEach(c => {
+       snapPerm.forEach(c => {
             const s = c.val();
-            
-            // --- FILTRO DE PRIVACIDAD MEJORADO (INCLUYE ELIMINADOS) ---
+         // --- FILTRO DE PRIVACIDAD MEJORADO (INCLUYE ELIMINADOS) ---
             const soporteAsignado = (s.soporte || "").toUpperCase();
             const usuarioCreador = (s.usuario || "").toUpperCase();
             const usuarioElimino = (s.usuarioElimino || "").toUpperCase();
