@@ -34,6 +34,7 @@
         .st-default { background-color: #6c757d !important; color: white; }   
         .tiempo-badge { font-size: 0.75rem; font-weight: bold; color: #555; }
         
+        /* Mejora Vista Previa */
         #preview-container { border: 2px dashed #ccc; border-radius: 10px; min-height: 100px; display: flex; align-items: center; justify-content: center; background: #fff; overflow: hidden; margin-top: 5px; }
         #preview-container iframe, #preview-container img { width: 100%; height: 200px; object-fit: contain; border: none; }
 
@@ -130,7 +131,7 @@
         <div class="table-responsive">
             <table class="table table-bordered align-middle text-center bg-white">
                 <thead class="table-primary">
-                    <tr><th>Folio</th><th>Descripción</th><th>Empresa</th><th>Zona</th><th>Soporte</th><th>Sucursal</th><th>Archivo</th><th>Status</th><th>Tiempo</th><th>Fecha</th><th>Acciones</th></tr>
+                    <tr><th>Folio</th><th>Empresa</th><th>Zona</th><th>Soporte</th><th>Sucursal</th><th>Archivo</th><th>Status</th><th>Tiempo</th><th>Fecha</th><th>Acciones</th></tr>
                 </thead>
                 <tbody id="tablaTecBody"></tbody>
             </table>
@@ -163,6 +164,7 @@
     let globalSeguimientos = [];
     let dataParaExportar = [];
 
+    // --- FUNCIÓN VISTA PREVIA ---
     window.previewArchivo = (input) => {
         const container = document.getElementById("preview-container");
         const file = input.files[0];
@@ -202,13 +204,10 @@
             const segsDelFolio = globalSeguimientos.filter(x => x.folio === s.folio).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
             const statusActual = segsDelFolio.length > 0 ? segsDelFolio[0].status : (s.status || "PENDIENTE");
             
-            // Obtenemos la última descripción registrada en seguimientos (si existe) o la de la solicitud inicial
-            const descripcionActual = segsDelFolio.length > 0 && segsDelFolio[0].descripcion ? segsDelFolio[0].descripcion : (s.descripcion || "SIN DESCRIPCIÓN");
-
             if (s.eliminado === true || statusActual === "CONFIRMADO") return;
             
             if(window.puedeVerBase || s.usuario === window.usuarioSesion) {
-                const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas", "DEVOLUCION": "st-devolucion", "EN PROCESO DE COTIZACION": "st-compras", "EN PROCESO DE COMPRA": "st-compras", "EN PROCESO DE AUTORIZACION": "st-pendiente", "ENZONA": "st-zona"};
+                const colores = {"ENVIADO A COMPRAS":"st-compras", "ENVIADO A ZONA":"st-zona", "PENDIENTE POR AUTORIZAR":"st-pendiente", "EN SISTEMAS":"st-sistemas", "DEVOLUCION": "st-devolucion"};
                 const claseColor = colores[statusActual] || "st-default";
                 
                 dataParaExportar.push({ ...s, statusActual, segs: segsDelFolio.reverse() });
@@ -216,7 +215,6 @@
                 tbody.innerHTML += `
                     <tr>
                         <td><small class="fw-bold">${s.folio}</small></td>
-                        <td><small>${descripcionActual}</small></td>
                         <td>${s.empresa}</td>
                         <td>${s.zona}</td>
                         <td>${s.soporte}</td>
@@ -233,11 +231,11 @@
                                 ${window.esSoporteJR && statusActual === "ENVIADO A ZONA" ? `
                                     <span class="action-btn text-success" onclick="window.confirmarEntrega('${s.folio}')" title="Confirmar">✅</span>
                                     <span class="action-btn text-warning" onclick="window.enviarDevolucion('${s.folio}')" title="Devolucion">🔄</span>
-                                ` : ``}
-
-                                <span class="action-btn text-info" 
-                                      onclick="${window.esSoporteJR ? `window.abrirModalSeguimientoJR('${s.folio}')` : `window.irSeguimiento('${s.folio}')`}" 
-                                      title="Seguimiento">📋</span>
+                                ` : `
+                                    <span class="action-btn ${window.esSoporteJR ? 'action-disabled' : ''}" 
+                                          onclick="${window.esSoporteJR ? '' : `window.irSeguimiento('${s.folio}')`}" 
+                                          title="Seguimiento">📋</span>
+                                `}
 
                                 ${window.puedeVerBase ? `
                                     <span class="action-btn text-secondary" onclick="window.depurarRegistroPermanente('${idKey}', '${s.folio}')" title="Archivar">📦</span>
@@ -249,90 +247,18 @@
         });
     }
 
-    // --- NUEVA FUNCIÓN PARA MODAL JR (MODIFICADA: BLOQUEO DE DESCRIPCIÓN SI EXISTE) ---
-    window.abrirModalSeguimientoJR = async (fol) => {
-        // Buscamos si ya existe una descripción en el historial para este folio
-        const segAnterior = globalSeguimientos.find(x => x.folio === fol && x.descripcion && x.descripcion.trim() !== "");
-        const descExistente = segAnterior ? segAnterior.descripcion : "";
-        const isDescDisabled = descExistente !== "" ? "disabled" : "";
-
-        const { value: formValues } = await Swal.fire({
-            title: `Seguimiento: ${fol}`,
-            html: `
-                <div class="text-start">
-                    <label class="small fw-bold">Fecha de Seguimiento</label>
-                    <input type="datetime-local" id="jr-fecha" class="form-control mb-3" value="${new Date().toISOString().slice(0, 16)}">
-                    
-                    <label class="small fw-bold">Nuevo Status</label>
-                    <select id="jr-status" class="form-select mb-3">
-                        <option value="EN PROCESO DE COTIZACION">En Proceso de Cotizacion</option>
-                        <option value="EN PROCESO DE COMPRA">En Proceso de Compra</option>
-                        <option value="EN PROCESO DE AUTORIZACION">En Proceso de Autorizacion</option>
-                        <option value="EN SISTEMAS">En sistemas</option>
-                        <option value="ENZONA">Enzona</option>
-                        <option value="CONFIRMADO">Confirmado</option>
-                    </select>
-
-                    <label class="small fw-bold">Descripción del Artículo</label>
-                    <input type="text" id="jr-desc" class="form-control mb-3 text-uppercase" 
-                        placeholder="Ej. Impresora L3210, SSD 500GB..." 
-                        value="${descExistente}" ${isDescDisabled}>
-                    
-                    <label class="small fw-bold">Observaciones</label>
-                    <textarea id="jr-obs" class="form-control" rows="3" placeholder="Escribe aquí los detalles..."></textarea>
-                </div>
-            `,
-            showCancelButton: true,
-            confirmButtonText: 'Registrar Seguimiento',
-            cancelButtonText: 'Cancelar',
-            preConfirm: () => {
-                const fecha = document.getElementById('jr-fecha').value;
-                const status = document.getElementById('jr-status').value;
-                const desc = document.getElementById('jr-desc').value;
-                const obs = document.getElementById('jr-obs').value;
-                if (!fecha || !status) {
-                    Swal.showValidationMessage('La fecha y el status son obligatorios');
-                }
-                return { fecha, status, desc, obs };
-            }
-        });
-
-        if (formValues) {
-            window.mostrarCargando();
-            try {
-                await push(seguimientoRef, {
-                    folio: fol,
-                    status: formValues.status,
-                    descripcion: formValues.desc.toUpperCase(),
-                    comentarios: formValues.obs.toUpperCase(),
-                    fechaRegistro: new Date(formValues.fecha).toISOString(),
-                    usuario: window.nombreSesion
-                });
-                Swal.fire("Éxito", "Seguimiento actualizado correctamente", "success");
-            } catch (e) {
-                console.error(e);
-                Swal.fire("Error", "No se pudo guardar el seguimiento", "error");
-            } finally {
-                window.ocultarCargando();
-            }
-        }
-    };
-
+    // --- FUNCIÓN EDITAR ---
     window.editarRegistro = async (idKey) => {
         const snap = await get(ref(database, `tecnologia/${idKey}`));
         const d = snap.val();
+        
         const { value: fv } = await Swal.fire({
             title: 'Editar Solicitud',
             html: `
                 <div class="text-start">
-                    <label class="small fw-bold">Zona</label>
-                    <input id="edt-zon" class="form-control mb-2 text-uppercase" value="${d.zona || ''}">
-                    <label class="small fw-bold">Sucursal</label>
-                    <input id="edt-suc" class="form-control mb-2 text-uppercase" value="${d.sucursal || ''}">
-                    <label class="small fw-bold">Responsable Seguimiento</label>
-                    <input id="edt-resp" class="form-control mb-2 text-uppercase" placeholder="Nombre del responsable" value="${d.responsableSeguimiento || ''}">
-                    <label class="small fw-bold">Cambiar Archivo (Opcional)</label>
-                    <input type="file" id="edt-arc" class="form-control">
+                    <label class="small fw-bold">Zona</label><input id="edt-zon" class="form-control mb-2 text-uppercase" value="${d.zona}">
+                    <label class="small fw-bold">Sucursal</label><input id="edt-suc" class="form-control mb-2 text-uppercase" value="${d.sucursal}">
+                    <label class="small fw-bold">Cambiar Archivo (Opcional)</label><input type="file" id="edt-arc" class="form-control">
                 </div>`,
             showCancelButton: true,
             confirmButtonText: 'Guardar Cambios',
@@ -340,7 +266,6 @@
                 return {
                     z: document.getElementById('edt-zon').value,
                     s: document.getElementById('edt-suc').value,
-                    r: document.getElementById('edt-resp').value,
                     a: document.getElementById('edt-arc').files[0]
                 };
             }
@@ -348,11 +273,7 @@
 
         if (fv) {
             window.mostrarCargando();
-            const upds = { 
-                zona: fv.z.toUpperCase(), 
-                sucursal: fv.s.toUpperCase(),
-                responsableSeguimiento: fv.r.toUpperCase()
-            };
+            const upds = { zona: fv.z.toUpperCase(), sucursal: fv.s.toUpperCase() };
             if (fv.a) {
                 const reader = new FileReader();
                 reader.onload = async () => {
@@ -370,7 +291,9 @@
         }
     };
 
+    // --- FUNCIÓN VER Y DESCARGAR ---
     window.verPDF = (base64, folio) => {
+        const type = base64.split(';')[0].split(':')[1];
         const w = window.open();
         w.document.write(`
             <div style="background:#333; color:white; padding:10px; font-family:sans-serif; display:flex; justify-content:space-between; align-items:center;">
@@ -381,6 +304,7 @@
         `);
     };
 
+    // --- LÓGICA DE GUARDADO ---
     window.guardarSolicitud = async () => {
         const emp = document.getElementById("empresa").value;
         const zon = document.getElementById("zona").value;
@@ -404,12 +328,11 @@
                     soporte: window.nombreSesion, sucursal: suc.toUpperCase(),
                     archivoData: reader.result, status: "PENDIENTE", 
                     fechaEnvio: new Date().toLocaleString(), fechaISO: new Date().toISOString(),
-                    usuario: window.usuarioSesion, eliminado: false,
-                    responsableSeguimiento: "",
-                    descripcion: "" 
+                    usuario: window.usuarioSesion, eliminado: false
                 };
                 await push(solicitudesRef, data);
                 
+                // EmailJS (Opcional según tu lógica)
                 emailjs.send("service_mya4ogg", "template_apg1whs", {
                     to_name: "Sistemas", from_name: window.nombreSesion,
                     folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(), sucursal: suc.toUpperCase()
@@ -423,6 +346,7 @@
         reader.readAsDataURL(arc);
     };
 
+    // --- RESTO DE FUNCIONES ORIGINALES ---
     window.exportarExcel = async () => {
         if(dataParaExportar.length === 0) return Swal.fire("Aviso", "No hay datos para exportar", "info");
         const workbook = new ExcelJS.Workbook();
@@ -495,7 +419,7 @@
 
     window.verHistorialFolio = fol => {
         const segs = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
-        let html = `<div class="table-responsive"><table class="table table-sm mt-2"><thead><tr><th>Fecha</th><th>Status</th><th>Descripción</th><th>Comentario</th><th>Evidencia</th></tr></thead><tbody>${segs.map(h => `<tr><td><small>${new Date(h.fechaRegistro).toLocaleString()}</small></td><td>${h.status}</td><td>${h.descripcion || '-'}</td><td>${h.comentarios||''}</td><td>${h.fotoEvidencia ? `<button class="btn btn-sm btn-info" onclick="window.verPDF('${h.fotoEvidencia}','${fol}')">📸</button>` : '-'}</td></tr>`).join('')}</tbody></table></div>`;
+        let html = `<div class="table-responsive"><table class="table table-sm mt-2"><thead><tr><th>Fecha</th><th>Status</th><th>Comentario</th><th>Evidencia</th></tr></thead><tbody>${segs.map(h => `<tr><td><small>${new Date(h.fechaRegistro).toLocaleString()}</small></td><td>${h.status}</td><td>${h.comentarios||''}</td><td>${h.fotoEvidencia ? `<button class="btn btn-sm btn-info" onclick="window.verPDF('${h.fotoEvidencia}','${fol}')">📸</button>` : '-'}</td></tr>`).join('')}</tbody></table></div>`;
         Swal.fire({ title: `Historial: ${fol}`, html: html, width: '800px' });
     };
 
