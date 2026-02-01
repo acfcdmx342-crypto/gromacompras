@@ -45,6 +45,9 @@
             50% { transform: scale(1.05); opacity: 1; }
             100% { transform: scale(0.95); opacity: 0.8; }
         }
+
+        /* CLASE PARA OCULTAR SECCIONES AL JR */
+        .hidden-jr { display: none !important; }
     </style>
 </head>
 <body class="p-4">
@@ -58,12 +61,14 @@
         <span class="ms-2 fw-bold text-dark">Procesando información...</span>
     </div>
 </div>
+
 <script>
     const sesion = JSON.parse(localStorage.getItem("usuarioLogueado"));
     if (!sesion) { location.href = "index.html"; }
     window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
     window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
 </script>
+
 <div class="container">
     <div class="navbar-custom d-flex justify-content-between align-items-center">
         <h2 class="fw-bold m-0 text-dark" style="font-size: 1.5rem;">
@@ -123,28 +128,22 @@
             <div class="col-md-6"><label class="form-label fw-bold small">QUIEN AUTORIZA</label><input id="autoriza" type="text" class="form-control"></div>
             <div class="col-md-6"><label class="form-label fw-bold small">FECHA AUTORIZACIÓN</label><input id="fechaAuto" type="date" class="form-control"></div>
 
-            <div class="section-header"><i class="fa-solid fa-box me-2"></i>Entrega y Facturación</div>
-            <div class="col-md-3"><label class="form-label fw-bold small">FECHA ENTREGA</label><input id="fechaEntrega" type="date" class="form-control"></div>
-            <div class="col-md-3"><label class="form-label fw-bold small">QUIEN RECIBE</label><input id="recibe" type="text" class="form-control"></div>
-            <div class="col-md-3"><label class="form-label fw-bold small">FOLIO FACTURA</label><input id="folioFactura" type="text" class="form-control"></div>
-            <div class="col-md-3"><label class="form-label fw-bold small">SUBIR FACTURA</label><input id="fileFactura" type="file" class="form-control"></div>
+            <div class="section-header sec-ocultable-jr"><i class="fa-solid fa-box me-2"></i>Entrega y Facturación</div>
+            <div class="col-md-3 sec-ocultable-jr"><label class="form-label fw-bold small">FECHA ENTREGA</label><input id="fechaEntrega" type="date" class="form-control"></div>
+            <div class="col-md-3 sec-ocultable-jr"><label class="form-label fw-bold small">QUIEN RECIBE</label><input id="recibe" type="text" class="form-control"></div>
+            <div class="col-md-3 sec-ocultable-jr"><label class="form-label fw-bold small">FOLIO FACTURA</label><input id="folioFactura" type="text" class="form-control"></div>
+            <div class="col-md-3 sec-ocultable-jr"><label class="form-label fw-bold small">SUBIR FACTURA</label><input id="fileFactura" type="file" class="form-control"></div>
 
-            <div class="section-header"><i class="fa-solid fa-truck-fast me-2"></i>Envío a Destino</div>
-            <div class="col-md-4"><label class="form-label fw-bold small">FECHA ENVÍO</label><input id="fechaEnvio" type="date" class="form-control"></div>
-            <div class="col-md-4"><label class="form-label fw-bold small">QUIEN ENVÍA</label><input id="envia" type="text" class="form-control"></div>
-            <div class="col-md-4"><label class="form-label fw-bold small">DESTINO (MAPS)</label><input id="adonde" type="text" class="form-control"></div>
+            <div class="section-header sec-ocultable-jr"><i class="fa-solid fa-truck-fast me-2"></i>Envío a Destino</div>
+            <div class="col-md-4 sec-ocultable-jr"><label class="form-label fw-bold small">FECHA ENVÍO</label><input id="fechaEnvio" type="date" class="form-control"></div>
+            <div class="col-md-4 sec-ocultable-jr"><label class="form-label fw-bold small">QUIEN ENVÍA</label><input id="envia" type="text" class="form-control"></div>
+            <div class="col-md-4 sec-ocultable-jr"><label class="form-label fw-bold small">DESTINO (MAPS)</label><input id="adonde" type="text" class="form-control"></div>
 
             <div class="section-header"><i class="fa-solid fa-flag-checkered me-2"></i>Finalización</div>
             <div class="col-md-4">
                 <label class="form-label fw-bold small">STATUS ACTUAL</label>
                 <select id="status" class="form-select">
-                    <option>ENVIADO A COMPRAS</option>
-                    <option>ENVIADO A ZONA</option>
-                    <option>PENDIENTE POR AUTORIZAR</option>
-                    <option>EN SISTEMAS</option>
-                    <option>DEVOLUCIÓN</option>
-                    <option>CONFIRMADO</option>
-                </select>
+                    </select>
             </div>
             <div class="col-md-8">
                 <label class="form-label fw-bold small">COMENTARIOS ADICIONALES</label>
@@ -162,7 +161,7 @@
             <h4 class="fw-bold m-0 text-secondary">
                 <i class="fa-solid fa-layer-group me-2"></i>Historial de Seguimientos Activos
             </h4>
-            <i class="fa-solid fa-broom text-primary fs-4" style="cursor: pointer;" title="Limpiar registros huérfanos" onclick="window.limpiezaAutomatica()"></i>
+            <i class="fa-solid fa-broom text-primary fs-4" style="cursor: pointer;" id="btnEscoba" title="Limpiar registros huérfanos" onclick="window.limpiezaAutomatica()"></i>
         </div>
         <div class="table-responsive">
             <table class="table table-hover align-middle">
@@ -181,23 +180,55 @@
         </div>
     </div>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script type="module">
     import { database, ref, get, push, update, onValue, query, orderByChild, equalTo, remove } from "./firebase.js";
-   const urlParams = new URLSearchParams(window.location.search);
+    
+    const urlParams = new URLSearchParams(window.location.search);
     const folioDesdeURL = urlParams.get('folio');
-  document.getElementById("nombreUsuarioMenu").textContent = sesion.nombre;
+    
+    document.getElementById("nombreUsuarioMenu").textContent = sesion.nombre;
     window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
-  const puestoUser = (sesion.puesto || "").toUpperCase();
+
+    const puestoUser = (sesion.puesto || "").toUpperCase();
     const usuarioActual = (sesion.nombre || "");
+    const esJR = puestoUser === "SOPORTE TECNICO JR";
+    
+    // Configuración de interfaz según ROL
+    const selectStatus = document.getElementById("status");
+    if (esJR) {
+        // Ocultar secciones de entrega/envío
+        document.querySelectorAll('.sec-ocultable-jr').forEach(el => el.classList.add('hidden-jr'));
+        // Ocultar escoba
+        document.getElementById("btnEscoba").style.display = "none";
+        // Limitar estatus
+        selectStatus.innerHTML = `
+            <option value="ENVIADO A COMPRAS">ENVIADO A COMPRAS COTIZACIÓN</option>
+            <option value="PENDIENTE POR AUTORIZAR">PENDIENTE POR AUTORIZAR</option>
+            <option value="ENVIADO A COMPRAS">ENVIADO A COMPRA AUTORIZACIÓN</option>
+        `;
+    } else {
+        selectStatus.innerHTML = `
+            <option>ENVIADO A COMPRAS</option>
+            <option>ENVIADO A ZONA</option>
+            <option>PENDIENTE POR AUTORIZAR</option>
+            <option>EN SISTEMAS</option>
+            <option>DEVOLUCIÓN</option>
+            <option>CONFIRMADO</option>
+        `;
+    }
+
     const perfilesSistemas = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO", "SOPORTE TECNICO JR", "BECARIOS SISTEMAS"];
     const tieneAccesoTotal = perfilesSistemas.includes(puestoUser);
-  const selectFolio = document.getElementById("folio");
+
+    const selectFolio = document.getElementById("folio");
     const solInput = document.getElementById("solicito");
     const sucInput = document.getElementById("sucursal");
     const btnArc = document.getElementById("btnArchivo");
     let dataArchivoActual = null;
-   const obtenerClaseEstatus = (status) => {
+
+    const obtenerClaseEstatus = (status) => {
         switch(status) {
             case 'ENVIADO A COMPRAS': return 'status-compras';
             case 'ENVIADO A ZONA': return 'status-zona';
@@ -208,6 +239,7 @@
             default: return 'bg-secondary text-white';
         }
     };
+
     const toBase64 = file => new Promise((resolve, reject) => {
         if (!file) resolve(null);
         const reader = new FileReader();
@@ -215,12 +247,14 @@
         reader.onload = () => resolve(reader.result);
         reader.onerror = error => reject(error);
     });
+
     window.verArchivoOrigen = () => {
         if (dataArchivoActual) {
             const win = window.open();
             win.document.write(`<iframe src="${dataArchivoActual}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
         }
     };
+
     window.cargarParaContinuar = (dataString) => {
         const data = JSON.parse(decodeURIComponent(dataString));
         if(data.eliminado) return;
@@ -259,6 +293,7 @@
         });
         if (folioDesdeURL) cargarInfoPorFolio(folioDesdeURL);
     });
+
     async function cargarInfoPorFolio(fol) {
         if (!fol) return;
         const q = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(fol));
@@ -273,8 +308,8 @@
     }
     selectFolio.addEventListener("change", (e) => cargarInfoPorFolio(e.target.value));
 
-    // --- MEJORA: ELIMINACIÓN SEGURA (Incluso si no existe en tecnología) ---
     window.eliminarPermanente = async (fol) => {
+        if (esJR) return Swal.fire("Acceso Denegado", "No tienes permisos para eliminar registros.", "error");
         const { value: motivo } = await Swal.fire({
             title: '¿Eliminar Solicitud?',
             text: "Se archivará el historial y se limpiará de la lista activa.",
@@ -323,8 +358,9 @@
             }
         }
     };
-    // --- NUEVA FUNCIÓN: LIMPIEZA AUTOMÁTICA (ICONO ESCOBA) ---
+
     window.limpiezaAutomatica = async () => {
+        if (esJR) return;
         const confirm = await Swal.fire({
             title: '¿Limpiar registros huérfanos?',
             text: "Se borrarán los seguimientos que ya no tienen origen o están marcados como eliminados.",
@@ -358,6 +394,7 @@
             }
         }
     };
+
     document.getElementById("btnGuardar").onclick = async () => {
         if (!selectFolio.value) return Swal.fire("Error", "Seleccione un folio", "error");
         window.mostrarCargando();
@@ -373,13 +410,14 @@
                 archivoCot: fCot ? await toBase64(fCot) : null,
                 autoriza: document.getElementById("autoriza").value.toUpperCase(),
                 fechaAuto: document.getElementById("fechaAuto").value,
-                fechaEntrega: document.getElementById("fechaEntrega").value,
-                recibe: document.getElementById("recibe").value.toUpperCase(),
-                folioFactura: document.getElementById("folioFactura").value.toUpperCase(),
-                archivoFac: fFac ? await toBase64(fFac) : null,
-                fechaEnvio: document.getElementById("fechaEnvio").value,
-                envia: document.getElementById("envia").value.toUpperCase(),
-                adonde: document.getElementById("adonde").value.toUpperCase(),
+                // Si es JR, guardar vacío en campos de entrega
+                fechaEntrega: esJR ? "" : document.getElementById("fechaEntrega").value,
+                recibe: esJR ? "" : document.getElementById("recibe").value.toUpperCase(),
+                folioFactura: esJR ? "" : document.getElementById("folioFactura").value.toUpperCase(),
+                archivoFac: (esJR || !fFac) ? null : await toBase64(fFac),
+                fechaEnvio: esJR ? "" : document.getElementById("fechaEnvio").value,
+                envia: esJR ? "" : document.getElementById("envia").value.toUpperCase(),
+                adonde: esJR ? "" : document.getElementById("adonde").value.toUpperCase(),
                 status: document.getElementById("status").value,
                 comentarios: document.getElementById("comentarios").value.toUpperCase(),
                 fechaRegistro: new Date().toISOString(),
@@ -397,6 +435,7 @@
             Swal.fire("Éxito", "Guardado", "success").then(() => location.reload());
         } catch (e) { window.ocultarCargando(); Swal.fire("Error", "Error al guardar", "error"); }
     };
+
     onValue(ref(database, "seguimiento"), (snap) => {
         const tbody = document.getElementById("tablaSegBody");
         tbody.innerHTML = "";
@@ -412,7 +451,9 @@
         Object.keys(grupos).forEach((folio, idx) => {
             const historial = grupos[folio].sort((a, b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
             const ultimo = historial[0];
-            if (!tieneAccesoTotal && ultimo.usuario !== usuarioActual) return;
+            
+            // Restricción JR: Solo ve sus propios movimientos
+            if (esJR && ultimo.usuario !== usuarioActual) return;
             if (ultimo.status === "CONFIRMADO" || ultimo.eliminado) return;
 
             const collId = `coll_${idx}`;
@@ -425,7 +466,7 @@
                     <td><span class="badge bg-light text-dark">${historial.length} mov.</span></td>
                     <td>
                         <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#${collId}">Historial</button>
-                        <i class="fa-solid fa-trash-can text-danger ms-2 fs-5" style="cursor:pointer" onclick="window.eliminarPermanente('${folio}')"></i>
+                        ${!esJR ? `<i class="fa-solid fa-trash-can text-danger ms-2 fs-5" style="cursor:pointer" onclick="window.eliminarPermanente('${folio}')"></i>` : ''}
                     </td>
                 </tr>
                 <tr>
@@ -454,4 +495,3 @@
 </script>
 </body>
 </html>
-
