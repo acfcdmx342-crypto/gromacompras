@@ -164,7 +164,6 @@ async function cargarHistorial() {
             let badgeTexto = estaEliminado ? "ELIMINADO" : (s.status || "CONFIRMADO");
             let badge = `<span class="badge ${estaEliminado ? 'badge-del' : 'badge-ok'}"><i class="fa-solid ${estaEliminado ? 'fa-trash-can' : 'fa-check-double'} me-1"></i>${badgeTexto}</span>`;
             
-            // Cambio sugerido: Verificación de foto en el nuevo formato de historial
             let fotoUrl = segConf?.fotoEvidencia || segConf?.evidenciaFoto || s.evidenciaFoto;
             let fotoBtn = fotoUrl 
                 ? `<img src="${fotoUrl}" width="40" height="40" class="img-preview shadow-sm" onclick="window.verFoto('${fotoUrl}', '${s.folio}')">` 
@@ -179,6 +178,9 @@ async function cargarHistorial() {
                 tiempo: tiempoEntrega 
             });
 
+            // SOLUCIÓN PARA FECHA VACÍA: Validamos múltiples campos de fecha
+            const fechaMostrar = s.fechaEnvio || s.fechaRegistro || s.fechaISO || s.fecha || "---";
+
             body.innerHTML += `
                 <tr class="${claseFila}">
                     <td class="fw-bold">${s.folio}</td>
@@ -192,7 +194,7 @@ async function cargarHistorial() {
                             <i class="fa-solid fa-file-pdf"></i>
                         </button>
                     </td>
-                    <td><small>${s.fechaEnvio || s.fechaRegistro || '---'}</small></td>
+                    <td><small>${fechaMostrar}</small></td>
                     <td><small class="fw-bold">${fechaCierreRaw.includes('T') ? fechaCierreRaw.split('T')[0] : fechaCierreRaw}</small></td>
                     <td class="fw-bold text-primary">${tiempoEntrega}</td>
                 </tr>
