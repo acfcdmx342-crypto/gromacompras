@@ -195,7 +195,7 @@
                             <span class="action-btn text-primary" title="Editar" onclick="editarRegistro('${idKey}')">✏️</span>
                             ${esLocal ? 
                                 `<span class="action-btn text-info" title="Seguimiento Local" onclick="modalSegLocal('${idKey}', '${s.folio}')">📋</span>` :
-                                `<span class="action-btn text-primary ${window.esSoporteJR ? 'action-disabled' : ''}" title="Seguimiento Compras" onclick="window.location.href='seguimiento.html?folio=${s.folio}'">📋</span>`
+                                `<span class="action-btn text-primary" title="Seguimiento Compras" onclick="window.location.href='seguimiento.html?folio=${s.folio}'">📋</span>`
                             }
                             ${(window.esSoporteJR || window.esAdmin) && (statusActual === "EN ZONA" || statusActual === "ENVIADO A ZONA") ? `
                                 <span class="action-btn text-success" title="Confirmar" onclick="confirmarEntrega('${s.folio}')">✅</span>
