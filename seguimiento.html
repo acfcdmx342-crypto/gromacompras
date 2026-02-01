@@ -26,12 +26,16 @@
         .status-devolucion { background: lawngreen !important; color: #000 !important; border-radius: 20px; }
         .status-confirmado { background: #6f42c1 !important; color: white !important; border-radius: 20px; }
         
-        .registro-eliminado { background-color: #ffe5e5 !important; color: #b00000 !important; }
-        
         input[type="text"], input[type="date"], textarea, .form-select { border-radius: 10px; border: 1px solid #dee2e6; padding: 10px; text-transform: uppercase; }
         .field-locked { background-color: #e9ecef !important; cursor: not-allowed; pointer-events: none; border: 1px solid #cbd5e0 !important; }
         .group-header { cursor: pointer; transition: background 0.2s; }
+        .group-header:hover { background: #f8f9fa; }
         .chevron-icon { transition: transform 0.3s; font-size: 0.8rem; }
+
+        /* Estilos Acordeón */
+        .accordion-item { border: 1px solid #eee; margin-bottom: 10px; border-radius: 12px !important; overflow: hidden; }
+        .accordion-button { font-weight: 600; background-color: #f8f9fa; }
+        .accordion-button:not(.collapsed) { background-color: #e7f1ff; color: #0d6efd; box-shadow: none; }
 
         #loader { 
             display: none; position: fixed; 
@@ -54,16 +58,11 @@
         <img src="https://gruporoma.com/wp-content/uploads/2023/06/cropped-cropped-procomex-pachuca-logo-350-%C3%97-100-px-1.png" alt="Cargando..." style="width: 250px; height: auto;">
     </div>
     <div class="mt-3">
-        <div class="spinner-border text-primary" role="status" style="width: 1.5rem; height: 1.5rem; vertical-align: middle;"></div>
+        <div class="spinner-border text-primary" role="status" style="width: 1.5rem; height: 1.5rem;"></div>
         <span class="ms-2 fw-bold text-dark">Procesando información...</span>
     </div>
 </div>
-<script>
-    const sesion = JSON.parse(localStorage.getItem("usuarioLogueado"));
-    if (!sesion) { location.href = "index.html"; }
-    window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
-    window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
-</script>
+
 <div class="container">
     <div class="navbar-custom d-flex justify-content-between align-items-center">
         <h2 class="fw-bold m-0 text-dark" style="font-size: 1.5rem;">
@@ -85,74 +84,131 @@
 
     <div class="card shadow p-4 mb-5">
         <h4 class="fw-bold mb-4 text-secondary">Registrar Nuevo Seguimiento</h4>
-        <form id="formSeg" class="row g-3">
+        
+        <form id="formSeg">
             <div class="section-header"><i class="fa-solid fa-info-circle me-2"></i>Origen de la Solicitud</div>
-            <div class="col-md-3">
-                <label class="form-label fw-bold small">FOLIO</label>
-                <select id="folio" class="form-select"></select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label fw-bold small">SOLICITÓ</label>
-                <input id="solicito" class="form-control" readonly>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label fw-bold small">SUCURSAL</label>
-                <input id="sucursal" class="form-control" readonly>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label fw-bold small">DOCUMENTO ORIGEN</label>
-                <button type="button" class="btn btn-outline-secondary w-100" id="btnArchivo" disabled style="height: 45px;" onclick="verArchivoOrigen()">VER PDF</button>
-            </div>
-
-            <div class="section-header"><i class="fa-solid fa-laptop-code me-2"></i>Depto. de Sistemas</div>
-            <div class="col-md-4">
-                <label class="form-label fw-bold small">FECHA SOLICITUD COMPRAS</label>
-                <input id="fechaCompras" type="date" class="form-control">
-            </div>
-            <div class="col-md-8">
-                <label class="form-label fw-bold small">DESCRIPCIÓN DEL ARTÍCULO</label>
-                <input id="descripcion" type="text" class="form-control">
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small">FOLIO</label>
+                    <select id="folio" class="form-select"></select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small">SOLICITÓ</label>
+                    <input id="solicito" class="form-control" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small">SUCURSAL</label>
+                    <input id="sucursal" class="form-control" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small">DOCUMENTO ORIGEN</label>
+                    <button type="button" class="btn btn-outline-secondary w-100" id="btnArchivo" disabled style="height: 45px;" onclick="verArchivoOrigen()">VER PDF</button>
+                </div>
             </div>
 
-            <div class="section-header"><i class="fa-solid fa-cart-shopping me-2"></i>Seguimiento Compras</div>
-            <div class="col-md-3"><label class="form-label fw-bold small">FECHA COTIZACIÓN</label><input id="fechaCot" type="date" class="form-control"></div>
-            <div class="col-md-3"><label class="form-label fw-bold small">FOLIO COTIZACIÓN</label><input id="folioCot" type="text" class="form-control"></div>
-            <div class="col-md-6"><label class="form-label fw-bold small">SUBIR COTIZACIÓN</label><input id="fileCot" type="file" class="form-control"></div>
+            <div class="accordion mb-4" id="acordeonPasos">
+                
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#step1">
+                            <i class="fa-solid fa-laptop-code me-2"></i> ETAPA 1: DEPTO. DE SISTEMAS
+                        </button>
+                    </h2>
+                    <div id="step1" class="accordion-collapse collapse show" data-bs-parent="#acordeonPasos">
+                        <div class="accordion-body row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small">FECHA SOLICITUD COMPRAS</label>
+                                <input id="fechaCompras" type="date" class="form-control">
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label fw-bold small">DESCRIPCIÓN DEL ARTÍCULO</label>
+                                <input id="descripcion" type="text" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-            <div class="section-header"><i class="fa-solid fa-user-check me-2"></i>Autorización</div>
-            <div class="col-md-6"><label class="form-label fw-bold small">QUIEN AUTORIZA</label><input id="autoriza" type="text" class="form-control"></div>
-            <div class="col-md-6"><label class="form-label fw-bold small">FECHA AUTORIZACIÓN</label><input id="fechaAuto" type="date" class="form-control"></div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step2">
+                            <i class="fa-solid fa-cart-shopping me-2"></i> ETAPA 2: SEGUIMIENTO COMPRAS
+                        </button>
+                    </h2>
+                    <div id="step2" class="accordion-collapse collapse" data-bs-parent="#acordeonPasos">
+                        <div class="accordion-body row g-3">
+                            <div class="col-md-3"><label class="form-label fw-bold small">FECHA COTIZACIÓN</label><input id="fechaCot" type="date" class="form-control"></div>
+                            <div class="col-md-3"><label class="form-label fw-bold small">FOLIO COTIZACIÓN</label><input id="folioCot" type="text" class="form-control"></div>
+                            <div class="col-md-6"><label class="form-label fw-bold small">SUBIR COTIZACIÓN</label><input id="fileCot" type="file" class="form-control"></div>
+                        </div>
+                    </div>
+                </div>
 
-            <div class="section-header"><i class="fa-solid fa-box me-2"></i>Entrega y Facturación</div>
-            <div class="col-md-3"><label class="form-label fw-bold small">FECHA ENTREGA</label><input id="fechaEntrega" type="date" class="form-control"></div>
-            <div class="col-md-3"><label class="form-label fw-bold small">QUIEN RECIBE</label><input id="recibe" type="text" class="form-control"></div>
-            <div class="col-md-3"><label class="form-label fw-bold small">FOLIO FACTURA</label><input id="folioFactura" type="text" class="form-control"></div>
-            <div class="col-md-3"><label class="form-label fw-bold small">SUBIR FACTURA</label><input id="fileFactura" type="file" class="form-control"></div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step3">
+                            <i class="fa-solid fa-user-check me-2"></i> ETAPA 3: AUTORIZACIÓN
+                        </button>
+                    </h2>
+                    <div id="step3" class="accordion-collapse collapse" data-bs-parent="#acordeonPasos">
+                        <div class="accordion-body row g-3">
+                            <div class="col-md-6"><label class="form-label fw-bold small">QUIEN AUTORIZA</label><input id="autoriza" type="text" class="form-control"></div>
+                            <div class="col-md-6"><label class="form-label fw-bold small">FECHA AUTORIZACIÓN</label><input id="fechaAuto" type="date" class="form-control"></div>
+                        </div>
+                    </div>
+                </div>
 
-            <div class="section-header"><i class="fa-solid fa-truck-fast me-2"></i>Envío a Destino</div>
-            <div class="col-md-4"><label class="form-label fw-bold small">FECHA ENVÍO</label><input id="fechaEnvio" type="date" class="form-control"></div>
-            <div class="col-md-4"><label class="form-label fw-bold small">QUIEN ENVÍA</label><input id="envia" type="text" class="form-control"></div>
-            <div class="col-md-4"><label class="form-label fw-bold small">DESTINO (MAPS)</label><input id="adonde" type="text" class="form-control"></div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step4">
+                            <i class="fa-solid fa-box me-2"></i> ETAPA 4: ENTREGA Y FACTURACIÓN
+                        </button>
+                    </h2>
+                    <div id="step4" class="accordion-collapse collapse" data-bs-parent="#acordeonPasos">
+                        <div class="accordion-body row g-3">
+                            <div class="col-md-3"><label class="form-label fw-bold small">FECHA ENTREGA</label><input id="fechaEntrega" type="date" class="form-control"></div>
+                            <div class="col-md-3"><label class="form-label fw-bold small">QUIEN RECIBE</label><input id="recibe" type="text" class="form-control"></div>
+                            <div class="col-md-3"><label class="form-label fw-bold small">FOLIO FACTURA</label><input id="folioFactura" type="text" class="form-control"></div>
+                            <div class="col-md-3"><label class="form-label fw-bold small">SUBIR FACTURA</label><input id="fileFactura" type="file" class="form-control"></div>
+                        </div>
+                    </div>
+                </div>
 
-            <div class="section-header"><i class="fa-solid fa-flag-checkered me-2"></i>Finalización</div>
-            <div class="col-md-4">
-                <label class="form-label fw-bold small">STATUS ACTUAL</label>
-                <select id="status" class="form-select">
-                    <option>ENVIADO A COMPRAS</option>
-                    <option>ENVIADO A ZONA</option>
-                    <option>PENDIENTE POR AUTORIZAR</option>
-                    <option>EN SISTEMAS</option>
-                    <option>DEVOLUCIÓN</option>
-                    <option>CONFIRMADO</option>
-                </select>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step5">
+                            <i class="fa-solid fa-truck-fast me-2"></i> ETAPA 5: ENVÍO A DESTINO
+                        </button>
+                    </h2>
+                    <div id="step5" class="accordion-collapse collapse" data-bs-parent="#acordeonPasos">
+                        <div class="accordion-body row g-3">
+                            <div class="col-md-4"><label class="form-label fw-bold small">FECHA ENVÍO</label><input id="fechaEnvio" type="date" class="form-control"></div>
+                            <div class="col-md-4"><label class="form-label fw-bold small">QUIEN ENVÍA</label><input id="envia" type="text" class="form-control"></div>
+                            <div class="col-md-4"><label class="form-label fw-bold small">DESTINO (MAPS)</label><input id="adonde" type="text" class="form-control"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-8">
-                <label class="form-label fw-bold small">COMENTARIOS ADICIONALES</label>
-                <textarea id="comentarios" class="form-control" rows="2"></textarea>
-            </div>
 
-            <div class="col-12 text-center mt-5">
-                <button id="btnGuardar" type="button" class="btn btn-modern btn-save">GUARDAR SEGUIMIENTO COMPLETO</button>
+            <div class="section-header"><i class="fa-solid fa-flag-checkered me-2"></i> Finalización</div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold small">STATUS ACTUAL</label>
+                    <select id="status" class="form-select">
+                        <option>ENVIADO A COMPRAS</option>
+                        <option>ENVIADO A ZONA</option>
+                        <option>PENDIENTE POR AUTORIZAR</option>
+                        <option>EN SISTEMAS</option>
+                        <option>DEVOLUCIÓN</option>
+                        <option>CONFIRMADO</option>
+                    </select>
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label fw-bold small">COMENTARIOS ADICIONALES</label>
+                    <textarea id="comentarios" class="form-control" rows="2"></textarea>
+                </div>
+                <div class="col-12 text-center mt-4">
+                    <button id="btnGuardar" type="button" class="btn btn-modern btn-save">GUARDAR SEGUIMIENTO COMPLETO</button>
+                </div>
             </div>
         </form>
     </div>
@@ -162,7 +218,7 @@
             <h4 class="fw-bold m-0 text-secondary">
                 <i class="fa-solid fa-layer-group me-2"></i>Historial de Seguimientos Activos
             </h4>
-            <i class="fa-solid fa-broom text-primary fs-4" style="cursor: pointer;" title="Limpiar registros huérfanos" onclick="window.limpiezaAutomatica()"></i>
+            <i class="fa-solid fa-broom text-primary fs-4" style="cursor: pointer;" title="Limpiar registros residuales" onclick="window.limpiezaAutomatica()"></i>
         </div>
         <div class="table-responsive">
             <table class="table table-hover align-middle">
@@ -181,33 +237,44 @@
         </div>
     </div>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script type="module">
     import { database, ref, get, push, update, onValue, query, orderByChild, equalTo, remove } from "./firebase.js";
-   const urlParams = new URLSearchParams(window.location.search);
-    const folioDesdeURL = urlParams.get('folio');
-  document.getElementById("nombreUsuarioMenu").textContent = sesion.nombre;
+
+    // --- Sesión ---
+    const sesion = JSON.parse(localStorage.getItem("usuarioLogueado"));
+    if (!sesion) { location.href = "index.html"; }
+    document.getElementById("nombreUsuarioMenu").textContent = sesion.nombre;
     window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
-  const puestoUser = (sesion.puesto || "").toUpperCase();
+
+    const puestoUser = (sesion.puesto || "").toUpperCase();
     const usuarioActual = (sesion.nombre || "");
     const perfilesSistemas = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO", "SOPORTE TECNICO JR", "BECARIOS SISTEMAS"];
     const tieneAccesoTotal = perfilesSistemas.includes(puestoUser);
-  const selectFolio = document.getElementById("folio");
+
+    const selectFolio = document.getElementById("folio");
     const solInput = document.getElementById("solicito");
     const sucInput = document.getElementById("sucursal");
     const btnArc = document.getElementById("btnArchivo");
     let dataArchivoActual = null;
-   const obtenerClaseEstatus = (status) => {
-        switch(status) {
-            case 'ENVIADO A COMPRAS': return 'status-compras';
-            case 'ENVIADO A ZONA': return 'status-zona';
-            case 'PENDIENTE POR AUTORIZAR': return 'status-pendiente';
-            case 'EN SISTEMAS': return 'status-sistemas';
-            case 'DEVOLUCIÓN': return 'status-devolucion';
-            case 'CONFIRMADO': return 'status-confirmado';
-            default: return 'bg-secondary text-white';
-        }
+
+    // --- Helpers ---
+    window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
+    window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
+
+    const obtenerClaseEstatus = (status) => {
+        const clases = {
+            'ENVIADO A COMPRAS': 'status-compras',
+            'ENVIADO A ZONA': 'status-zona',
+            'PENDIENTE POR AUTORIZAR': 'status-pendiente',
+            'EN SISTEMAS': 'status-sistemas',
+            'DEVOLUCIÓN': 'status-devolucion',
+            'CONFIRMADO': 'status-confirmado'
+        };
+        return clases[status] || 'bg-secondary text-white';
     };
+
     const toBase64 = file => new Promise((resolve, reject) => {
         if (!file) resolve(null);
         const reader = new FileReader();
@@ -215,38 +282,8 @@
         reader.onload = () => resolve(reader.result);
         reader.onerror = error => reject(error);
     });
-    window.verArchivoOrigen = () => {
-        if (dataArchivoActual) {
-            const win = window.open();
-            win.document.write(`<iframe src="${dataArchivoActual}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
-        }
-    };
-    window.cargarParaContinuar = (dataString) => {
-        const data = JSON.parse(decodeURIComponent(dataString));
-        if(data.eliminado) return;
-        const campos = ["fechaCompras", "descripcion", "fechaCot", "folioCot", "autoriza", "fechaAuto", "fechaEntrega", "recibe", "folioFactura", "fechaEnvio", "envia", "adonde", "status", "comentarios"];
-        
-        selectFolio.value = data.folio;
-        campos.forEach(id => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            if (id === "comentarios") {
-                el.value = ""; el.readOnly = false; el.disabled = false; el.classList.remove("field-locked");
-            } else {
-                el.value = data[id] || "";
-                if (el.value !== "" && id !== "status") {
-                    el.readOnly = true; el.classList.add("field-locked");
-                } else {
-                    el.readOnly = false; el.disabled = false; el.classList.remove("field-locked");
-                }
-            }
-        });
-        cargarInfoPorFolio(data.folio);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
 
-    window.mostrarCargando();
-
+    // --- Lógica Firebase ---
     onValue(ref(database, "tecnologia"), (snap) => {
         selectFolio.innerHTML = '<option value="">Seleccione un folio</option>';
         snap.forEach(child => {
@@ -254,11 +291,10 @@
             if (d.eliminado || d.status === "CONFIRMADO") return;
             const option = document.createElement("option");
             option.value = d.folio; option.textContent = d.folio;
-            if (folioDesdeURL && d.folio === folioDesdeURL) option.selected=true;
             selectFolio.appendChild(option);
         });
-        if (folioDesdeURL) cargarInfoPorFolio(folioDesdeURL);
     });
+
     async function cargarInfoPorFolio(fol) {
         if (!fol) return;
         const q = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(fol));
@@ -273,40 +309,48 @@
     }
     selectFolio.addEventListener("change", (e) => cargarInfoPorFolio(e.target.value));
 
-    // --- MEJORA: ELIMINACIÓN SEGURA (Incluso si no existe en tecnología) ---
+    window.verArchivoOrigen = () => {
+        if (dataArchivoActual) {
+            const win = window.open();
+            win.document.write(`<iframe src="${dataArchivoActual}" frameborder="0" style="width:100%; height:100%;" allowfullscreen></iframe>`);
+        }
+    };
+
+    // --- Cargar para continuar ---
+    window.cargarParaContinuar = (dataString) => {
+        const data = JSON.parse(decodeURIComponent(dataString));
+        const campos = ["fechaCompras", "descripcion", "fechaCot", "folioCot", "autoriza", "fechaAuto", "fechaEntrega", "recibe", "folioFactura", "fechaEnvio", "envia", "adonde", "status", "comentarios"];
+        
+        selectFolio.value = data.folio;
+        campos.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.value = (id === "comentarios") ? "" : (data[id] || "");
+            if (el.value !== "" && id !== "status" && id !== "comentarios") {
+                el.readOnly = true; el.classList.add("field-locked");
+            } else {
+                el.readOnly = false; el.classList.remove("field-locked");
+            }
+        });
+        cargarInfoPorFolio(data.folio);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    // --- Eliminar ---
     window.eliminarPermanente = async (fol) => {
         const { value: motivo } = await Swal.fire({
             title: '¿Eliminar Solicitud?',
-            text: "Se archivará el historial y se limpiará de la lista activa.",
+            text: "Se archivará y removerá de la lista activa.",
             icon: 'warning',
             input: 'textarea',
-            inputPlaceholder: 'Motivo de eliminación...',
+            inputPlaceholder: 'Escriba el motivo...',
             showCancelButton: true,
             confirmButtonColor: '#d33',
-            confirmButtonText: 'Sí, eliminar',
-            inputValidator: (value) => { if (!value) return 'El motivo es obligatorio' }
+            confirmButtonText: 'Eliminar'
         });
         if (motivo) {
             window.mostrarCargando();
             try {
-                const qTec = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(fol));
-                const snapTec = await get(qTec);
-                let infoOrig = {};
-                let keyTec = null;
-
-                if(snapTec.exists()){
-                    keyTec = Object.keys(snapTec.val())[0];
-                    infoOrig = snapTec.val()[keyTec];
-                }
-                const objetoParaHistorial = {
-                    ...infoOrig,
-                    folio: fol,
-                    status: "ELIMINADO",
-                    motivoEliminacion: motivo.toUpperCase(),
-                    usuarioElimino: sesion.nombre,
-                    fechaDepuracion: new Date().toISOString()
-                };
-                await push(ref(database, "historial_permanente"), objetoParaHistorial);
                 const qSeg = query(ref(database, "seguimiento"), orderByChild("folio"), equalTo(fol));
                 const snapSeg = await get(qSeg);
                 if(snapSeg.exists()){
@@ -314,50 +358,37 @@
                     Object.keys(snapSeg.val()).forEach(k => updates[`seguimiento/${k}`] = null);
                     await update(ref(database), updates);
                 }
-                if(keyTec) await remove(ref(database, `tecnologia/${keyTec}`));
+                const qTec = query(ref(database, "tecnologia"), orderByChild("folio"), equalTo(fol));
+                const snapTec = await get(qTec);
+                if(snapTec.exists()){
+                    const keyTec = Object.keys(snapTec.val())[0];
+                    await remove(ref(database, `tecnologia/${keyTec}`));
+                }
                 window.ocultarCargando();
-                Swal.fire("Éxito", "Registros removidos.", "success");
-            } catch (e) {
-                window.ocultarCargando();
-                Swal.fire("Error", "No se pudo eliminar.", "error");
-            }
+                Swal.fire("Éxito", "Removido.", "success");
+            } catch (e) { window.ocultarCargando(); Swal.fire("Error", "No se pudo eliminar.", "error"); }
         }
     };
-    // --- NUEVA FUNCIÓN: LIMPIEZA AUTOMÁTICA (ICONO ESCOBA) ---
+
+    // --- Limpieza masiva ---
     window.limpiezaAutomatica = async () => {
-        const confirm = await Swal.fire({
-            title: '¿Limpiar registros huérfanos?',
-            text: "Se borrarán los seguimientos que ya no tienen origen o están marcados como eliminados.",
-            icon: 'info',
-            showCancelButton: true,
-            confirmButtonText: 'Iniciar Limpieza'
-        });
+        const confirm = await Swal.fire({ title: '¿Limpiar huerfanos?', icon: 'info', showCancelButton: true });
         if (confirm.isConfirmed) {
             window.mostrarCargando();
-            try {
-                const [snapSeg, snapTec] = await Promise.all([get(ref(database, "seguimiento")), get(ref(database, "tecnologia"))]);
-                const tecData = snapTec.exists() ? snapTec.val() : {};
-                const segData = snapSeg.exists() ? snapSeg.val() : {};
-                const foliosActivos = new Set(Object.values(tecData).map(t => t.folio));
-                
-                const updates = {};
-                let count = 0;
-                Object.keys(segData).forEach(key => {
-                    if (segData[key].eliminado === true || !foliosActivos.has(segData[key].folio)) {
-                        updates[`seguimiento/${key}`] = null;
-                        count++;
-                    }
-                });
-
-                if (count > 0) await update(ref(database), updates);
-                window.ocultarCargando();
-                Swal.fire("Limpieza completa", `Se removieron ${count} registros residuales.`, "success");
-            } catch (e) {
-                window.ocultarCargando();
-                Swal.fire("Error", "Error en limpieza masiva.", "error");
-            }
+            const [snapSeg, snapTec] = await Promise.all([get(ref(database, "seguimiento")), get(ref(database, "tecnologia"))]);
+            const tecFolios = new Set(Object.values(snapTec.val() || {}).map(t => t.folio));
+            const updates = {};
+            let count = 0;
+            snapSeg.forEach(c => {
+                if(!tecFolios.has(c.val().folio)) { updates[`seguimiento/${c.key}`] = null; count++; }
+            });
+            if (count > 0) await update(ref(database), updates);
+            window.ocultarCargando();
+            Swal.fire("Limpieza completa", `Removidos ${count}`, "success");
         }
     };
+
+    // --- Guardar ---
     document.getElementById("btnGuardar").onclick = async () => {
         if (!selectFolio.value) return Swal.fire("Error", "Seleccione un folio", "error");
         window.mostrarCargando();
@@ -370,13 +401,13 @@
                 descripcion: document.getElementById("descripcion").value.toUpperCase(),
                 fechaCot: document.getElementById("fechaCot").value,
                 folioCot: document.getElementById("folioCot").value.toUpperCase(),
-                archivoCot: fCot ? await toBase64(fCot) : null,
+                archivoCot: await toBase64(fCot),
                 autoriza: document.getElementById("autoriza").value.toUpperCase(),
                 fechaAuto: document.getElementById("fechaAuto").value,
                 fechaEntrega: document.getElementById("fechaEntrega").value,
                 recibe: document.getElementById("recibe").value.toUpperCase(),
                 folioFactura: document.getElementById("folioFactura").value.toUpperCase(),
-                archivoFac: fFac ? await toBase64(fFac) : null,
+                archivoFac: await toBase64(fFac),
                 fechaEnvio: document.getElementById("fechaEnvio").value,
                 envia: document.getElementById("envia").value.toUpperCase(),
                 adonde: document.getElementById("adonde").value.toUpperCase(),
@@ -397,6 +428,8 @@
             Swal.fire("Éxito", "Guardado", "success").then(() => location.reload());
         } catch (e) { window.ocultarCargando(); Swal.fire("Error", "Error al guardar", "error"); }
     };
+
+    // --- Render Historial ---
     onValue(ref(database, "seguimiento"), (snap) => {
         const tbody = document.getElementById("tablaSegBody");
         tbody.innerHTML = "";
@@ -424,7 +457,7 @@
                     <td><span class="px-3 py-1 fw-bold small ${obtenerClaseEstatus(ultimo.status)}">${ultimo.status}</span></td>
                     <td><span class="badge bg-light text-dark">${historial.length} mov.</span></td>
                     <td>
-                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#${collId}">Historial</button>
+                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#${collId}">Ver Logs</button>
                         <i class="fa-solid fa-trash-can text-danger ms-2 fs-5" style="cursor:pointer" onclick="window.eliminarPermanente('${folio}')"></i>
                     </td>
                 </tr>
@@ -432,7 +465,7 @@
                     <td colspan="6" class="p-0">
                         <div id="${collId}" class="collapse">
                             <table class="table table-sm m-0 bg-light">
-                                <thead class="small text-muted"><tr><th>FECHA</th><th>ESTATUS</th><th>USUARIO</th><th>ACCIONES</th></tr></thead>
+                                <thead class="small text-muted"><tr><th>FECHA</th><th>ESTATUS</th><th>USUARIO</th><th>EDITAR</th></tr></thead>
                                 <tbody>
                                     ${historial.map(h => `
                                         <tr>
@@ -454,4 +487,3 @@
 </script>
 </body>
 </html>
-
