@@ -24,7 +24,7 @@
         .aviso-devolucion { background: #fff3cd; border-left: 5px solid #ffc107; padding: 10px 15px; border-radius: 10px; font-size: 0.85rem; color: #856404; max-width: 600px; }
         .fila-local td { background-color: #fff8e1 !important; } 
         .st-compras { background-color: #0d6efd !important; color: white; } 
-        .st-zona { background-color: #ffc107 !important; color: black; }    
+        .st-zona { background-color: #ffc107 !important; color: black; }     
         .st-pendiente { background-color: #dc3545 !important; color: white; } 
         .st-devolucion { background-color: #6f42c1 !important; color: white; }
         .st-local-cotizacion { background-color: #fd7e14 !important; color: white; }
@@ -130,13 +130,13 @@
         document.getElementById("contenedorExportar").innerHTML = `<button class="btn btn-outline-success btn-sm fw-bold px-3" onclick="exportarExcel()">📊 Descargar Reporte</button>`;
     }
 
-    // Botón para Coordinador
     if (window.puestoSesion === "COORDINADOR DE SOPORTE TECNICO") {
         document.getElementById("liReset").innerHTML = `<a class="dropdown-item text-danger fw-bold" href="#" onclick="reiniciarSistemaMaster()">🔥 Reiniciar Información</a>`;
     }
 
     const solicitudesRef = ref(database, "tecnologia");
     const seguimientoRef = ref(database, "seguimiento");
+    const historialRef = ref(database, "historial_permanente");
     let globalSeguimientos = [];
     let dataExportar = [];
 
@@ -185,7 +185,7 @@
                                 `<span class="action-btn text-primary" title="Seguimiento Compras" onclick="window.location.href='seguimiento.html?folio=${s.folio}'">📋</span>`
                             }
                             ${(window.esSoporteJR || window.esAdmin) && (statusActual === "EN ZONA" || statusActual === "ENVIADO A ZONA") ? `
-                                <span class="action-btn text-success" title="Confirmar" onclick="confirmarEntrega('${s.folio}')">✅</span>
+                                <span class="action-btn text-success" title="Confirmar" onclick="confirmarEntrega('${idKey}', '${s.folio}')">✅</span>
                                 <span class="action-btn text-warning" title="Devolución" onclick="enviarDevolucion('${s.folio}')">🔄</span>
                             ` : ''}
                             ${window.esAdmin ? `<span class="action-btn text-danger" title="Archivar" onclick="depurarRegistro('${idKey}')">📦</span>` : ''}
@@ -205,7 +205,6 @@
         return horas + "h";
     }
 
-    // --- FUNCIONES CORE ---
     window.reiniciarSistemaMaster = async () => {
         const { value: confirm } = await Swal.fire({
             title: '¿Reiniciar Base de Datos?',
@@ -269,7 +268,7 @@
         }
     };
 
-    window.confirmarEntrega = async (fol) => {
+    window.confirmarEntrega = async (id, fol) => {
         const { value: formValues } = await Swal.fire({
             title: 'Confirmar Entrega de Mercancía',
             html: `
@@ -294,15 +293,27 @@
             document.getElementById("loader").style.display = "flex";
             const reader = new FileReader();
             reader.onload = async () => {
-                await push(seguimientoRef, { 
-                    folio: fol, 
-                    status: "CONFIRMADO", 
+                const snap = await get(ref(database, `tecnologia/${id}`));
+                const originalData = snap.val();
+
+                const registroHistorial = {
+                    ...originalData,
+                    status: "CONFIRMADO",
+                    fechaCierre: new Date().toISOString(),
                     comentarios: formValues.com.toUpperCase(),
-                    evidenciaFoto: reader.result,
-                    fechaRegistro: new Date().toISOString(), 
-                    usuario: window.nombreSesion 
-                });
-                Swal.fire("¡Entregado!", "La solicitud se ha cerrado correctamente", "success");
+                    seguimientos: [{ 
+                        status: "CONFIRMADO", 
+                        comentarios: formValues.com.toUpperCase(), 
+                        fotoEvidencia: reader.result,
+                        fechaRegistro: new Date().toISOString(),
+                        usuario: window.nombreSesion
+                    }]
+                };
+
+                await push(historialRef, registroHistorial);
+                await remove(ref(database, `tecnologia/${id}`));
+                
+                Swal.fire("¡Entregado!", "Solicitud movida al historial", "success");
             };
             reader.readAsDataURL(formValues.file);
         }
@@ -317,10 +328,32 @@
     };
 
     window.depurarRegistro = async (id) => {
-        const res = await Swal.fire({ title: '¿Archivar?', icon: 'warning', showCancelButton: true });
-        if(res.isConfirmed) {
-            await update(ref(database, `tecnologia/${id}`), { eliminado: true });
-            Swal.fire("Archivado", "", "success");
+        const { value: motivo } = await Swal.fire({
+            title: '¿Archivar Solicitud?',
+            input: 'text',
+            inputLabel: 'Indique el motivo de la eliminación para el historial',
+            showCancelButton: true,
+            inputValidator: (value) => !value && 'Necesitas escribir un motivo'
+        });
+
+        if (motivo) {
+            document.getElementById("loader").style.display = "flex";
+            const snap = await get(ref(database, `tecnologia/${id}`));
+            const data = snap.val();
+
+            const registroEliminado = {
+                ...data,
+                status: "ELIMINADO",
+                eliminado: true,
+                motivoEliminacion: motivo.toUpperCase(),
+                fechaDepuracion: new Date().toISOString(),
+                usuarioElimino: window.nombreSesion
+            };
+
+            await push(historialRef, registroEliminado);
+            await remove(ref(database, `tecnologia/${id}`));
+            
+            Swal.fire("Archivado", "Movido al historial como eliminado", "info");
         }
     };
 
