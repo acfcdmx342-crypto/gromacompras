@@ -194,7 +194,8 @@
                 <div class="col-md-4">
                     <label class="form-label fw-bold small">STATUS ACTUAL</label>
                     <select id="status" class="form-select">
-                        <option>ENVIADO A COMPRAS</option>
+                        <option>ENVIADO A COMPRAS COTIZACION</option>
+                        <option>ENVIADO A COMPRAS AUTORIZACION</option>
                         <option>ENVIADO A ZONA</option>
                         <option>PENDIENTE POR AUTORIZAR</option>
                         <option>EN SISTEMAS</option>
@@ -265,7 +266,8 @@
 
     const obtenerClaseEstatus = (status) => {
         const clases = {
-            'ENVIADO A COMPRAS': 'status-compras',
+            'ENVIADO A COMPRAS COTIZACION': 'status-compras cotizacion',
+            'ENVIADO A COMPRAS AUTORIZACION': 'status-compras autorizacion',
             'ENVIADO A ZONA': 'status-zona',
             'PENDIENTE POR AUTORIZAR': 'status-pendiente',
             'EN SISTEMAS': 'status-sistemas',
@@ -322,6 +324,9 @@
         const campos = ["fechaCompras", "descripcion", "fechaCot", "folioCot", "autoriza", "fechaAuto", "fechaEntrega", "recibe", "folioFactura", "fechaEnvio", "envia", "adonde", "status", "comentarios"];
         
         selectFolio.value = data.folio;
+        // CORRECCIÓN: Se dispara la carga de información de origen (Solicitó y Sucursal)
+        cargarInfoPorFolio(data.folio);
+
         campos.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
@@ -332,7 +337,6 @@
                 el.readOnly = false; el.classList.remove("field-locked");
             }
         });
-        cargarInfoPorFolio(data.folio);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
