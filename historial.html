@@ -67,10 +67,11 @@ import { database, ref, onValue, get } from "./firebase.js";
 const sesionRaw = localStorage.getItem("usuarioLogueado");
 if (!sesionRaw) location.href = "index.html";
 const sesion = JSON.parse(sesionRaw);
-// --- LÓGICA DE PERMISOS ---
+
 const puestoUser = (sesion.puesto || "").toUpperCase();
 const nombreSesion = (sesion.nombre || "").toUpperCase();
 const usuarioSesion = (sesion.usuario || "").toUpperCase();
+
 const superPuestos = [
     "GERENTE DE SISTEMAS", 
     "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", 
@@ -82,11 +83,14 @@ const superPuestos = [
 ];
 const puedeVerTodo = superPuestos.includes(puestoUser);
 window.esSoporteJR = puestoUser === "SOPORTE TECNICO JR";
+
 if (window.esSoporteJR) {
     const btnExp = document.getElementById("btnExportar");
     if(btnExp) btnExp.style.display = "none";
 }
+
 let datosParaExportar = [];
+
 const limpiarFecha = (str) => {
     if(!str || str === "---") return null;
     if(str.includes('T')) return new Date(str);
@@ -101,10 +105,12 @@ const limpiarFecha = (str) => {
         return new Date(anio, mes, dia, hora, min);
     } catch(e) { return null; }
 };
+
 window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
 window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
-// --- CARGA DE DATOS ---
+
 onValue(ref(database, "historial_permanente"), () => cargarHistorial());
+
 async function cargarHistorial() {
     window.mostrarCargando();
     try {
@@ -116,15 +122,13 @@ async function cargarHistorial() {
             body.innerHTML = "<tr><td colspan='10'>No hay registros en el historial</td></tr>";
             return;
         }
+
        snapPerm.forEach(c => {
             const s = c.val();
-         // --- FILTRO DE PRIVACIDAD MEJORADO (INCLUYE ELIMINADOS) ---
             const soporteAsignado = (s.soporte || "").toUpperCase();
             const usuarioCreador = (s.usuario || "").toUpperCase();
             const usuarioElimino = (s.usuarioElimino || "").toUpperCase();
             
-            // Regla de Visibilidad:
-            // Se muestra si: Es admin OU es el soporte asignado OU es el creador OU es quien eliminó
             if (!puedeVerTodo) {
                 const esInvolucrado = (soporteAsignado === nombreSesion || 
                                       usuarioCreador === nombreSesion || 
@@ -138,7 +142,6 @@ async function cargarHistorial() {
             const estaEliminado = s.status === "ELIMINADO" || s.eliminado === true;
             const segConf = segs.find(x => x.status === "CONFIRMADO");
             
-            // Lógica de Motivo y Fecha de Cierre según el caso
             let motivo = estaEliminado 
                 ? `❌ ELIMINADO: ${s.motivoEliminacion || "SIN MOTIVO"}` 
                 : (segConf?.comentarios || s.comentarios || "ENTREGA REALIZADA");
@@ -161,8 +164,10 @@ async function cargarHistorial() {
             let badgeTexto = estaEliminado ? "ELIMINADO" : (s.status || "CONFIRMADO");
             let badge = `<span class="badge ${estaEliminado ? 'badge-del' : 'badge-ok'}"><i class="fa-solid ${estaEliminado ? 'fa-trash-can' : 'fa-check-double'} me-1"></i>${badgeTexto}</span>`;
             
-            let fotoBtn = segConf?.fotoEvidencia 
-                ? `<img src="${segConf.fotoEvidencia}" width="40" height="40" class="img-preview shadow-sm" onclick="window.verFoto('${segConf.fotoEvidencia}', '${s.folio}')">` 
+            // Cambio sugerido: Verificación de foto en el nuevo formato de historial
+            let fotoUrl = segConf?.fotoEvidencia || segConf?.evidenciaFoto || s.evidenciaFoto;
+            let fotoBtn = fotoUrl 
+                ? `<img src="${fotoUrl}" width="40" height="40" class="img-preview shadow-sm" onclick="window.verFoto('${fotoUrl}', '${s.folio}')">` 
                 : "---";
 
             datosParaExportar.push({ 
