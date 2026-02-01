@@ -63,6 +63,7 @@
             <ul class="dropdown-menu dropdown-menu-end shadow">
                 <li><a class="dropdown-item" href="historial.html">📜 Ver Historial</a></li>
                 <li id="liBase"></li>
+                <li id="liReset"></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item text-danger" href="#" onclick="cerrarSesion()">🚪 Cerrar Sesión</a></li>
             </ul>
@@ -117,25 +118,34 @@
     window.nombreSesion = sesion.nombre;
     window.usuarioSesion = sesion.usuario;
     window.puestoSesion = (sesion.puesto || "").toUpperCase();
-   const adminPuestos = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO SR", "SOPORTE TECNICO"];
+    const adminPuestos = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO SR", "SOPORTE TECNICO"];
     window.esSoporteJR = window.puestoSesion === "SOPORTE TECNICO JR";
     window.esAdmin = adminPuestos.includes(window.puestoSesion);
     document.getElementById("usuarioActivo").textContent = window.nombreSesion;
     document.getElementById("puestoActivo").textContent = window.puestoSesion;
     document.getElementById("soporte").value = window.nombreSesion;
+
     if (window.esAdmin) {
         document.getElementById("liBase").innerHTML = '<a class="dropdown-item" href="base.html">🏠 Página Base</a>';
         document.getElementById("contenedorExportar").innerHTML = `<button class="btn btn-outline-success btn-sm fw-bold px-3" onclick="exportarExcel()">📊 Descargar Reporte</button>`;
     }
+
+    // Botón para Coordinador
+    if (window.puestoSesion === "COORDINADOR DE SOPORTE TECNICO") {
+        document.getElementById("liReset").innerHTML = `<a class="dropdown-item text-danger fw-bold" href="#" onclick="reiniciarSistemaMaster()">🔥 Reiniciar Información</a>`;
+    }
+
     const solicitudesRef = ref(database, "tecnologia");
     const seguimientoRef = ref(database, "seguimiento");
     let globalSeguimientos = [];
     let dataExportar = [];
+
     onValue(seguimientoRef, snap => {
         globalSeguimientos = [];
         snap.forEach(c => { globalSeguimientos.push({ ...c.val(), id: c.key }); });
         onValue(solicitudesRef, sSnap => renderTable(sSnap));
     });
+
     function renderTable(snap) {
         const tbody = document.getElementById("tablaTecBody");
         tbody.innerHTML = ""; 
@@ -155,7 +165,7 @@
             else if (statusActual === "PENDIENTE") badgeClass = "st-pendiente";
             if (window.esAdmin || s.usuario === window.usuarioSesion) {
                 dataExportar.push({ ...s, statusActual });
-               const tr = document.createElement("tr");
+                const tr = document.createElement("tr");
                 if(esLocal) tr.classList.add("fila-local");
                 tr.innerHTML = `
                     <td class="fw-bold">${s.folio}</td>
@@ -196,6 +206,23 @@
     }
 
     // --- FUNCIONES CORE ---
+    window.reiniciarSistemaMaster = async () => {
+        const { value: confirm } = await Swal.fire({
+            title: '¿Reiniciar Base de Datos?',
+            text: "Se borrarán todos los registros y seguimientos. Esta acción es irreversible.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'SÍ, REINICIAR TODO'
+        });
+        if(confirm) {
+            document.getElementById("loader").style.display = "flex";
+            await set(ref(database, "tecnologia"), null);
+            await set(ref(database, "seguimiento"), null);
+            location.reload();
+        }
+    };
+
     window.guardarSolicitud = async () => {
         const emp = document.getElementById("empresa").value;
         const zon = document.getElementById("zona").value;
@@ -243,10 +270,41 @@
     };
 
     window.confirmarEntrega = async (fol) => {
-        const res = await Swal.fire({ title: '¿Confirmar Entrega?', icon: 'question', showCancelButton: true });
-        if(res.isConfirmed) {
-            await push(seguimientoRef, { folio: fol, status: "CONFIRMADO", fechaRegistro: new Date().toISOString(), usuario: window.nombreSesion });
-            Swal.fire("Confirmado", "", "success");
+        const { value: formValues } = await Swal.fire({
+            title: 'Confirmar Entrega de Mercancía',
+            html: `
+                <div class="text-start">
+                    <label class="small fw-bold">Comentarios de Entrega:</label>
+                    <textarea id="conf-com" class="form-control mb-3" placeholder="Ej. Se entrega equipo funcionando..."></textarea>
+                    <label class="small fw-bold">Evidencia (Imagen):</label>
+                    <input id="conf-img" type="file" class="form-control" accept="image/*">
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Confirmar Entrega',
+            preConfirm: () => {
+                const com = document.getElementById('conf-com').value;
+                const file = document.getElementById('conf-img').files[0];
+                if (!com || !file) return Swal.showValidationMessage('Comentario y foto obligatorios');
+                return { com, file };
+            }
+        });
+
+        if (formValues) {
+            document.getElementById("loader").style.display = "flex";
+            const reader = new FileReader();
+            reader.onload = async () => {
+                await push(seguimientoRef, { 
+                    folio: fol, 
+                    status: "CONFIRMADO", 
+                    comentarios: formValues.com.toUpperCase(),
+                    evidenciaFoto: reader.result,
+                    fechaRegistro: new Date().toISOString(), 
+                    usuario: window.nombreSesion 
+                });
+                Swal.fire("¡Entregado!", "La solicitud se ha cerrado correctamente", "success");
+            };
+            reader.readAsDataURL(formValues.file);
         }
     };
 
@@ -353,4 +411,3 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
