@@ -7,8 +7,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        body { background:#f2f4f7; padding: 20px; }
-        .card { border-radius:20px; border:none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        /* --- ESTILOS ORIGINALES --- */
+        body { background:#f2f4f7; padding: 20px; transition: background 0.3s ease; }
+        .card { border-radius:20px; border:none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: background 0.3s ease; }
         .st-eliminado { background-color: #f8d7da !important; color: #721c24; }
         .st-confirmado { background-color: #d1e7dd !important; color: #0f5132; }
         .badge-del { background: #dc3545; color: white; }
@@ -16,23 +17,54 @@
         .img-preview { cursor: pointer; border-radius: 8px; transition: 0.2s; border: 1px solid #ddd; }
         .img-preview:hover { transform: scale(1.1); }
         .btn-rounded { border-radius: 50px; }
+        
         #loader { 
             display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(255,255,255,0.95); z-index: 9999; justify-content: center; 
             align-items: center; flex-direction: column; 
         }
+
+        /* --- ESTILOS MODO OSCURO --- */
+        body.dark-mode { background: #121416 !important; color: #ffffff; }
+        body.dark-mode .card { background: #1d1f21 !important; color: #ffffff; border: 1px solid #333; }
+        body.dark-mode .table { color: #ffffff; border-color: #444; }
+        body.dark-mode .table-dark { background-color: #000 !important; }
+        body.dark-mode #loader { background: rgba(18, 20, 22, 0.95); color: white; }
+        
+        /* Ajuste de contraste para filas de colores en modo oscuro */
+        body.dark-mode .st-eliminado { background-color: #44272a !important; color: #ffbabb !important; }
+        body.dark-mode .st-confirmado { background-color: #1e3028 !important; color: #a3cfbb !important; }
+        
+        .mode-toggle-btn {
+            width: 40px; height: 40px; border-radius: 50%; border: none;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: 0.3s;
+        }
     </style>
+    <script>
+        // Aplicar tema antes de renderizar para evitar destello blanco
+        if(localStorage.getItem('themeSeguimiento') === 'dark') {
+            document.documentElement.classList.add('dark-mode');
+        }
+    </script>
 </head>
-<body>
+<body class="p-4">
+
 <div id="loader">
     <div class="spinner-border text-primary" role="status"></div>
     <span class="ms-2 fw-bold">Cargando Historial...</span>
 </div>
+
 <div class="container-fluid">
     <div class="card p-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h3 class="fw-bold m-0 text-primary">📜 Historial de Solicitudes Finalizadas</h3>
-            <div class="d-flex gap-2">
+            
+            <div class="d-flex align-items-center gap-2">
+                <button id="btnDarkMode" class="mode-toggle-btn shadow-sm btn btn-light">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+
                 <button id="btnExportar" class="btn btn-success btn-rounded fw-bold" onclick="window.descargarExcel()">
                     <i class="fa-solid fa-file-excel me-2"></i>Exportar Excel
                 </button>
@@ -41,6 +73,7 @@
                 </a>
             </div>
         </div>
+
         <div class="table-responsive">
             <table class="table table-hover align-middle text-center border">
                 <thead class="table-dark">
@@ -62,8 +95,37 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Lógica de intercambio de Tema (Light/Dark)
+    const btnMode = document.getElementById('btnDarkMode');
+    const iconMode = btnMode.querySelector('i');
+
+    // Sincronizar estado inicial al cargar
+    if(localStorage.getItem('themeSeguimiento') === 'dark') {
+        document.body.classList.add('dark-mode');
+        iconMode.classList.replace('fa-moon', 'fa-sun');
+        btnMode.classList.replace('btn-light', 'btn-dark');
+    }
+
+    btnMode.onclick = () => {
+        const isDark = document.body.classList.toggle('dark-mode');
+        localStorage.setItem('themeSeguimiento', isDark ? 'dark' : 'light');
+        
+        if(isDark) {
+            iconMode.classList.replace('fa-moon', 'fa-sun');
+            btnMode.classList.replace('btn-light', 'btn-dark');
+        } else {
+            iconMode.classList.replace('fa-sun', 'fa-moon');
+            btnMode.classList.replace('btn-dark', 'btn-light');
+        }
+    };
+</script>
+
 <script type="module">
 import { database, ref, onValue, get } from "./firebase.js";
+
+// --- LÓGICA DE SESIÓN ---
 const sesionRaw = localStorage.getItem("usuarioLogueado");
 if (!sesionRaw) location.href = "index.html";
 const sesion = JSON.parse(sesionRaw);
@@ -91,6 +153,7 @@ if (window.esSoporteJR) {
 
 let datosParaExportar = [];
 
+// --- FUNCIONES DE UTILIDAD ---
 const limpiarFecha = (str) => {
     if(!str || str === "---") return null;
     if(str.includes('T')) return new Date(str);
@@ -109,6 +172,7 @@ const limpiarFecha = (str) => {
 window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
 window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
 
+// --- CARGA DE DATOS ---
 onValue(ref(database, "historial_permanente"), () => cargarHistorial());
 
 async function cargarHistorial() {
@@ -178,7 +242,6 @@ async function cargarHistorial() {
                 tiempo: tiempoEntrega 
             });
 
-            // SOLUCIÓN PARA FECHA VACÍA: Validamos múltiples campos de fecha
             const fechaMostrar = s.fechaEnvio || s.fechaRegistro || s.fechaISO || s.fecha || "---";
 
             body.innerHTML += `
@@ -213,6 +276,7 @@ async function cargarHistorial() {
     }
 }
 
+// --- ACCIONES DE VENTANA ---
 window.verPDF = d => { 
     if(d && d !== '#' && d !== 'undefined') { 
         const w = window.open(); 
@@ -242,6 +306,7 @@ window.descargarExcel = () => {
     link.click();
 };
 
+// --- SEGURIDAD ---
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 document.onkeydown = function(e) {
     if(e.keyCode == 123) return false;
