@@ -7,13 +7,19 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        /* --- ESTILOS ORIGINALES --- */
+        /* --- ESTILOS BASE --- */
         body { background:#f2f4f7; padding: 20px; transition: background 0.3s ease; }
         .card { border-radius:20px; border:none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: background 0.3s ease; }
-        .st-eliminado { background-color: #f8d7da !important; color: #721c24; }
-        .st-confirmado { background-color: #d1e7dd !important; color: #0f5132; }
+        
+        /* Colores de Fila Modo Claro */
+        .st-eliminado { background-color: #f8d7da !important; color: #721c24 !important; }
+        .st-confirmado { background-color: #d1e7dd !important; color: #0f5132 !important; }
+        .st-pendiente { background-color: #fff3cd !important; color: #856404 !important; }
+
         .badge-del { background: #dc3545; color: white; }
         .badge-ok { background: #198754; color: white; }
+        .badge-warn { background: #ffc107; color: black; }
+
         .img-preview { cursor: pointer; border-radius: 8px; transition: 0.2s; border: 1px solid #ddd; }
         .img-preview:hover { transform: scale(1.1); }
         .btn-rounded { border-radius: 50px; }
@@ -24,16 +30,21 @@
             align-items: center; flex-direction: column; 
         }
 
-        /* --- ESTILOS MODO OSCURO --- */
+        /* --- CORRECCIÓN MODO OSCURO --- */
         body.dark-mode { background: #121416 !important; color: #ffffff; }
         body.dark-mode .card { background: #1d1f21 !important; color: #ffffff; border: 1px solid #333; }
-        body.dark-mode .table { color: #ffffff; border-color: #444; }
-        body.dark-mode .table-dark { background-color: #000 !important; }
-        body.dark-mode #loader { background: rgba(18, 20, 22, 0.95); color: white; }
+        body.dark-mode .table { color: #ffffff !important; border-color: #444 !important; }
         
-        /* Ajuste de contraste para filas de colores en modo oscuro */
+        /* Cabecera de tabla en modo oscuro */
+        body.dark-mode .table thead { background-color: #000 !important; }
+        body.dark-mode .table thead th { color: #0d6efd !important; border-bottom: 2px solid #333; }
+        
+        /* Filas dinámicas en modo oscuro */
         body.dark-mode .st-eliminado { background-color: #44272a !important; color: #ffbabb !important; }
         body.dark-mode .st-confirmado { background-color: #1e3028 !important; color: #a3cfbb !important; }
+        body.dark-mode .st-pendiente { background-color: #332b00 !important; color: #ffe69c !important; }
+        
+        body.dark-mode #loader { background: rgba(18, 20, 22, 0.95); color: white; }
         
         .mode-toggle-btn {
             width: 40px; height: 40px; border-radius: 50%; border: none;
@@ -42,13 +53,13 @@
         }
     </style>
     <script>
-        // Aplicar tema antes de renderizar para evitar destello blanco
+        // Evitar destello blanco aplicando el tema al cargar el DOM
         if(localStorage.getItem('themeSeguimiento') === 'dark') {
             document.documentElement.classList.add('dark-mode');
         }
     </script>
 </head>
-<body class="p-4">
+<body>
 
 <div id="loader">
     <div class="spinner-border text-primary" role="status"></div>
@@ -76,7 +87,7 @@
 
         <div class="table-responsive">
             <table class="table table-hover align-middle text-center border">
-                <thead class="table-dark">
+                <thead id="tablaHead" class="table-dark">
                     <tr>
                         <th>Folio</th>
                         <th>Empresa</th>
@@ -97,51 +108,47 @@
 </div>
 
 <script>
-    // Lógica de intercambio de Tema (Light/Dark)
+    // LÓGICA DE INTERFAZ DEL MODO OSCURO
     const btnMode = document.getElementById('btnDarkMode');
     const iconMode = btnMode.querySelector('i');
 
-    // Sincronizar estado inicial al cargar
-    if(localStorage.getItem('themeSeguimiento') === 'dark') {
-        document.body.classList.add('dark-mode');
-        iconMode.classList.replace('fa-moon', 'fa-sun');
-        btnMode.classList.replace('btn-light', 'btn-dark');
-    }
-
-    btnMode.onclick = () => {
-        const isDark = document.body.classList.toggle('dark-mode');
-        localStorage.setItem('themeSeguimiento', isDark ? 'dark' : 'light');
-        
+    function aplicarTema(isDark) {
         if(isDark) {
+            document.body.classList.add('dark-mode');
             iconMode.classList.replace('fa-moon', 'fa-sun');
             btnMode.classList.replace('btn-light', 'btn-dark');
         } else {
+            document.body.classList.remove('dark-mode');
             iconMode.classList.replace('fa-sun', 'fa-moon');
             btnMode.classList.replace('btn-dark', 'btn-light');
         }
+    }
+
+    // Inicializar
+    if(localStorage.getItem('themeSeguimiento') === 'dark') aplicarTema(true);
+
+    btnMode.onclick = () => {
+        const isDark = !document.body.classList.contains('dark-mode');
+        localStorage.setItem('themeSeguimiento', isDark ? 'dark' : 'light');
+        aplicarTema(isDark);
     };
 </script>
 
 <script type="module">
 import { database, ref, onValue, get } from "./firebase.js";
 
-// --- LÓGICA DE SESIÓN ---
+// --- SEGURIDAD Y SESIÓN ---
 const sesionRaw = localStorage.getItem("usuarioLogueado");
 if (!sesionRaw) location.href = "index.html";
 const sesion = JSON.parse(sesionRaw);
 
 const puestoUser = (sesion.puesto || "").toUpperCase();
 const nombreSesion = (sesion.nombre || "").toUpperCase();
-const usuarioSesion = (sesion.usuario || "").toUpperCase();
 
 const superPuestos = [
-    "GERENTE DE SISTEMAS", 
-    "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", 
-    "COORDINADOR DE SOPORTE TECNICO", 
-    "SOPORTE TECNICO", 
-    "SOPORTE TECNICO SR",
-    "BECARIOS SISTEMAS",
-    "BECARIO"
+    "GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", 
+    "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO", "SOPORTE TECNICO SR",
+    "BECARIOS SISTEMAS", "BECARIO"
 ];
 const puedeVerTodo = superPuestos.includes(puestoUser);
 window.esSoporteJR = puestoUser === "SOPORTE TECNICO JR";
@@ -153,7 +160,7 @@ if (window.esSoporteJR) {
 
 let datosParaExportar = [];
 
-// --- FUNCIONES DE UTILIDAD ---
+// --- UTILIDADES ---
 const limpiarFecha = (str) => {
     if(!str || str === "---") return null;
     if(str.includes('T')) return new Date(str);
@@ -182,8 +189,9 @@ async function cargarHistorial() {
         const body = document.getElementById("historialBody");
         body.innerHTML = "";
         datosParaExportar = [];
+        
         if (!snapPerm.exists()) {
-            body.innerHTML = "<tr><td colspan='10'>No hay registros en el historial</td></tr>";
+            body.innerHTML = "<tr><td colspan='10'>No hay registros</td></tr>";
             return;
         }
 
@@ -191,20 +199,20 @@ async function cargarHistorial() {
             const s = c.val();
             const soporteAsignado = (s.soporte || "").toUpperCase();
             const usuarioCreador = (s.usuario || "").toUpperCase();
-            const usuarioElimino = (s.usuarioElimino || "").toUpperCase();
             
             if (!puedeVerTodo) {
-                const esInvolucrado = (soporteAsignado === nombreSesion || 
-                                      usuarioCreador === nombreSesion || 
-                                      usuarioElimino === nombreSesion);
-                if (!esInvolucrado) return; 
+                if (soporteAsignado !== nombreSesion && usuarioCreador !== nombreSesion) return; 
             }
 
             const segsRaw = s.seguimientos || [];
             const segs = Array.isArray(segsRaw) ? segsRaw : Object.values(segsRaw);
-            
             const estaEliminado = s.status === "ELIMINADO" || s.eliminado === true;
             const segConf = segs.find(x => x.status === "CONFIRMADO");
+            
+            // Lógica de Clases y Badges
+            let claseFila = estaEliminado ? "st-eliminado" : (s.status === "PENDIENTE" ? "st-pendiente" : "st-confirmado");
+            let badgeClass = estaEliminado ? 'badge-del' : (s.status === "PENDIENTE" ? 'badge-warn' : 'badge-ok');
+            let iconBadge = estaEliminado ? 'fa-trash-can' : (s.status === "PENDIENTE" ? 'fa-clock' : 'fa-check-double');
             
             let motivo = estaEliminado 
                 ? `❌ ELIMINADO: ${s.motivoEliminacion || "SIN MOTIVO"}` 
@@ -214,6 +222,7 @@ async function cargarHistorial() {
                 ? (s.fechaDepuracion || "---") 
                 : (segConf?.fechaRegistro || s.fechaCierre || "---");
             
+            // Cálculo de tiempo
             let fInicio = s.fechaISO ? new Date(s.fechaISO) : limpiarFecha(s.fechaEnvio);
             let fFin = limpiarFecha(fechaCierreRaw);
             let tiempoEntrega = "N/A";
@@ -224,94 +233,56 @@ async function cargarHistorial() {
                 tiempoEntrega = dias > 0 ? `${dias}d ${horas}h` : horas > 0 ? `${horas}h ${mins}m` : `${mins}m`;
             }
 
-            let claseFila = estaEliminado ? "st-eliminado" : "st-confirmado";
-            let badgeTexto = estaEliminado ? "ELIMINADO" : (s.status || "CONFIRMADO");
-            let badge = `<span class="badge ${estaEliminado ? 'badge-del' : 'badge-ok'}"><i class="fa-solid ${estaEliminado ? 'fa-trash-can' : 'fa-check-double'} me-1"></i>${badgeTexto}</span>`;
-            
-            let fotoUrl = segConf?.fotoEvidencia || segConf?.evidenciaFoto || s.evidenciaFoto;
-            let fotoBtn = fotoUrl 
-                ? `<img src="${fotoUrl}" width="40" height="40" class="img-preview shadow-sm" onclick="window.verFoto('${fotoUrl}', '${s.folio}')">` 
-                : "---";
-
             datosParaExportar.push({ 
-                folio: s.folio, 
-                empresa: s.empresa,
-                sucursal: s.sucursal,
-                status: badgeTexto, 
-                motivo, 
-                tiempo: tiempoEntrega 
+                folio: s.folio, empresa: s.empresa, sucursal: s.sucursal, status: s.status || 'FINALIZADO', motivo, tiempo: tiempoEntrega 
             });
-
-            const fechaMostrar = s.fechaEnvio || s.fechaRegistro || s.fechaISO || s.fecha || "---";
 
             body.innerHTML += `
                 <tr class="${claseFila}">
                     <td class="fw-bold">${s.folio}</td>
                     <td>${s.empresa || '---'}</td>
                     <td>${s.sucursal || '---'}</td>
-                    <td>${badge}</td>
+                    <td><span class="badge ${badgeClass}"><i class="fa-solid ${iconBadge} me-1"></i>${s.status || 'FINALIZADO'}</span></td>
                     <td class="small text-start">${motivo}</td>
-                    <td>${fotoBtn}</td>
+                    <td>${segConf?.fotoEvidencia || s.evidenciaFoto ? `<img src="${segConf?.fotoEvidencia || s.evidenciaFoto}" width="40" height="40" class="img-preview shadow-sm" onclick="window.verFoto('${segConf?.fotoEvidencia || s.evidenciaFoto}', '${s.folio}')">` : '---'}</td>
                     <td>
                         <button onclick="window.verPDF('${s.archivoData}')" class="btn btn-sm btn-secondary ${!s.archivoData ? 'disabled' : ''}">
                             <i class="fa-solid fa-file-pdf"></i>
                         </button>
                     </td>
-                    <td><small>${fechaMostrar}</small></td>
+                    <td><small>${s.fechaEnvio || s.fechaRegistro || '---'}</small></td>
                     <td><small class="fw-bold">${fechaCierreRaw.includes('T') ? fechaCierreRaw.split('T')[0] : fechaCierreRaw}</small></td>
                     <td class="fw-bold text-primary">${tiempoEntrega}</td>
                 </tr>
             `;
         });
-
-        if (body.innerHTML === "") {
-            body.innerHTML = `<tr><td colspan='10'>No se encontraron registros finalizados para su usuario.</td></tr>`;
-        }
-
     } catch (error) {
-        console.error("Error cargando historial:", error);
-        Swal.fire("Error", "No se pudo sincronizar el historial.", "error");
-    } finally { 
-        window.ocultarCargando(); 
-    }
+        console.error(error);
+        Swal.fire("Error", "No se pudo cargar el historial.", "error");
+    } finally { window.ocultarCargando(); }
 }
 
-// --- ACCIONES DE VENTANA ---
-window.verPDF = d => { 
-    if(d && d !== '#' && d !== 'undefined') { 
-        const w = window.open(); 
-        w.document.write(`<iframe src="${d}" style="width:100%;height:100%; border:none;"></iframe>`); 
-    } 
-};
-
-window.verFoto = (url, folio) => Swal.fire({ 
-    title: `Evidencia - ${folio}`, 
-    imageUrl: url, 
-    imageAlt: 'Evidencia', 
-    width: '600px',
-    confirmButtonText: 'Cerrar'
-});
+// --- FUNCIONES GLOBALES ---
+window.verPDF = d => { if(d && d !== '#') { const w = window.open(); w.document.write(`<iframe src="${d}" style="width:100%;height:100%; border:none;"></iframe>`); } };
+window.verFoto = (url, folio) => Swal.fire({ title: `Evidencia - ${folio}`, imageUrl: url, width: '600px', confirmButtonText: 'Cerrar' });
 
 window.descargarExcel = () => {
     if (window.esSoporteJR) return;
-    let csvContent = "\uFEFF"; 
-    csvContent += "Folio,Empresa,Sucursal,Status Final,Motivo,Tiempo de Entrega\n";
-    datosParaExportar.forEach(d => {
-        csvContent += `"${d.folio}","${d.empresa}","${d.sucursal}","${d.status}","${d.motivo.replace(/"/g, '""')}","${d.tiempo}"\n`;
+    let csvContent = "\uFEFFLine,Folio,Empresa,Sucursal,Status,Motivo,Tiempo\n";
+    datosParaExportar.forEach((d, i) => {
+        csvContent += `${i+1},"${d.folio}","${d.empresa}","${d.sucursal}","${d.status}","${d.motivo.replace(/"/g, '""')}","${d.tiempo}"\n`;
     });
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `Historial_Tecnologia_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `Historial_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
 };
 
-// --- SEGURIDAD ---
-document.addEventListener('contextmenu', (e) => e.preventDefault());
-document.onkeydown = function(e) {
-    if(e.keyCode == 123) return false;
-    if(e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) return false;
-    if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+// Bloqueos de seguridad
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.onkeydown = e => {
+    if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
 };
 </script>
 </body>
