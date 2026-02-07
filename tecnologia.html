@@ -13,18 +13,18 @@
         (function(){ emailjs.init("0aHlArLgvHrj2Xbk8"); })();
     </script>
     <style>
-        body { background:#f2f4f7; }
-        .card { border-radius:20px; border: none; }
+        body { background:#f2f4f7; transition: background 0.3s ease; }
+        .card { border-radius:20px; border: none; transition: background 0.3s ease; }
         .action-btn { cursor:pointer; font-size:22px; transition: 0.2s; display: inline-block; padding: 0 4px; }
         .action-btn:hover { transform: scale(1.2); }
         .action-disabled { color:#adb5bd; cursor:not-allowed; opacity: 0.5; filter: grayscale(1); pointer-events: none; }
         .table thead { background:#0d6efd; color:white; }
         .btn-rounded { border-radius:50px; }
-        .user-info-box { background: white; padding: 10px 20px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: inline-block; }
+        .user-info-box { background: white; padding: 10px 20px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: inline-block; transition: background 0.3s ease; }
         .aviso-devolucion { background: #fff3cd; border-left: 5px solid #ffc107; padding: 10px 15px; border-radius: 10px; font-size: 0.85rem; color: #856404; max-width: 600px; }
         .fila-local td { background-color: #fff8e1 !important; } 
         .st-compras { background-color: #0d6efd !important; color: white; } 
-        .st-zona { background-color: #ffc107 !important; color: black; }     
+        .st-zona { background-color: #ffc107 !important; color: black; }      
         .st-pendiente { background-color: #dc3545 !important; color: white; } 
         .st-devolucion { background-color: #6f42c1 !important; color: white; }
         .st-local-cotizacion { background-color: #fd7e14 !important; color: white; }
@@ -35,6 +35,20 @@
         }
         #preview-container { border: 2px dashed #ccc; border-radius: 10px; min-height: 100px; display: flex; align-items: center; justify-content: center; background: #fff; overflow: hidden; margin-top: 5px; }
         #preview-container iframe, #preview-container img { width: 100%; height: 200px; object-fit: contain; }
+
+        /* --- ESTILOS MODO OSCURO --- */
+        body.dark-mode { background: #1a1d21; color: #e9ecef; }
+        body.dark-mode .card, body.dark-mode .user-info-box { background: #2b3035; color: #fff; border: 1px solid #444; }
+        body.dark-mode .table { color: #fff; }
+        body.dark-mode .table td { background: #2b3035; border-color: #444; }
+        body.dark-mode .form-control, body.dark-mode .form-select { background: #343a40; border-color: #495057; color: #fff; }
+        body.dark-mode .input-group-text { background: #343a40; color: #fff; border-color: #495057; }
+        body.dark-mode #loader { background: rgba(26, 29, 33, 0.95); color: #fff; }
+        body.dark-mode .fila-local td { background-color: #3d351c !important; color: #fff; }
+        body.dark-mode .aviso-devolucion { background: #332b00; color: #ffda6a; border-color: #997404; }
+        body.dark-mode .text-secondary { color: #adb5bd !important; }
+        
+        .dark-mode-btn { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; border: none; transition: 0.3s; }
     </style>
 </head>
 <body class="p-4">
@@ -58,15 +72,22 @@
                 <strong>⚠️ Aviso:</strong> Se les recuerda que para hacer una devolución de mercancía los empaques deben de estar lo más intactos posibles.
             </div>
         </div>
-        <div class="dropdown">
-            <button class="btn btn-primary btn-rounded dropdown-toggle fw-bold px-4 shadow-sm" data-bs-toggle="dropdown">☰ Menú</button>
-            <ul class="dropdown-menu dropdown-menu-end shadow">
-                <li><a class="dropdown-item" href="historial.html">📜 Ver Historial</a></li>
-                <li id="liBase"></li>
-                <li id="liReset"></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item text-danger" href="#" onclick="cerrarSesion()">🚪 Cerrar Sesión</a></li>
-            </ul>
+        
+        <div class="d-flex align-items-center gap-2">
+            <button id="darkModeToggle" class="dark-mode-btn btn btn-light shadow-sm">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+
+            <div class="dropdown">
+                <button class="btn btn-primary btn-rounded dropdown-toggle fw-bold px-4 shadow-sm" data-bs-toggle="dropdown">☰ Menú</button>
+                <ul class="dropdown-menu dropdown-menu-end shadow">
+                    <li><a class="dropdown-item" href="historial.html">📜 Ver Historial</a></li>
+                    <li id="liBase"></li>
+                    <li id="liReset"></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="#" onclick="cerrarSesion()">🚪 Cerrar Sesión</a></li>
+                </ul>
+            </div>
         </div>
     </div>
     <div class="card shadow p-4 mb-4">
@@ -80,7 +101,7 @@
                 <label class="small fw-bold">Requisición</label>
                 <div class="input-group">
                     <input id="archivo" type="file" class="form-control" onchange="previewArchivo(this)">
-                    <div class="input-group-text bg-white">
+                    <div class="input-group-text">
                         <input class="form-check-input" type="checkbox" id="checkLocal">
                         <label class="form-check-label small fw-bold ms-2" for="checkLocal">Solicitud local</label>
                     </div>
@@ -98,7 +119,7 @@
             <div id="contenedorExportar"></div>
         </div>
         <div class="table-responsive">
-            <table class="table table-bordered align-middle text-center bg-white">
+            <table class="table table-bordered align-middle text-center bg-white" id="tablaSolicitudes">
                 <thead class="table-primary">
                     <tr>
                         <th>Folio</th><th>Empresa</th><th>Zona</th><th>Sucursal</th>
@@ -110,6 +131,34 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Lógica Modo Oscuro
+    const btnDark = document.getElementById('darkModeToggle');
+    const body = document.body;
+    const iconDark = btnDark.querySelector('i');
+
+    if (localStorage.getItem('theme') === 'dark') {
+        body.classList.add('dark-mode');
+        iconDark.classList.replace('fa-moon', 'fa-sun');
+        btnDark.classList.replace('btn-light', 'btn-dark');
+    }
+
+    btnDark.onclick = () => {
+        body.classList.toggle('dark-mode');
+        const isDark = body.classList.contains('dark-mode');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        
+        if (isDark) {
+            iconDark.classList.replace('fa-moon', 'fa-sun');
+            btnDark.classList.replace('btn-light', 'btn-dark');
+        } else {
+            iconDark.classList.replace('fa-sun', 'fa-moon');
+            btnDark.classList.replace('btn-dark', 'btn-light');
+        }
+    };
+</script>
+
 <script type="module">
     import { database, ref, push, set, get, onValue, update, remove } from "./firebase.js";
 
