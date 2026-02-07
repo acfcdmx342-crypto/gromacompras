@@ -18,6 +18,7 @@ body {
   align-items:center;
   justify-content:center;
   padding:15px;
+  transition: background 0.3s ease;
 }
 .container {
   width:100%;
@@ -76,6 +77,47 @@ button:hover {
   margin-top:10px;
 }
 
+/* --- MODO OSCURO CSS --- */
+body.dark-mode {
+  background: #1a1a1a;
+  color: #ffffff;
+}
+body.dark-mode .card {
+  background: #2d2d2d;
+  border-color: #444;
+}
+body.dark-mode h2 {
+  color: #fff;
+}
+body.dark-mode .input-group input {
+  background: #3d3d3d;
+  color: #fff;
+  border: 1px solid #555;
+}
+body.dark-mode .input-group i {
+  color: #ccc;
+}
+#darkModeToggle {
+  position: fixed;
+  top: 15px;
+  right: 15px;
+  z-index: 10000; /* Por encima de todo */
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #333;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+body.dark-mode #darkModeToggle {
+  background: #eee;
+  color: #333;
+}
+
 /* --- ESTILOS DEL LOADER --- */
 #loader { 
   display: none; 
@@ -87,6 +129,9 @@ button:hover {
   justify-content: center; 
   align-items: center; 
   flex-direction: column; 
+}
+body.dark-mode #loader {
+  background: rgba(26,26,26,0.95);
 }
 .loader-logo-container {
   animation: pulse-procomex 1.5s ease-in-out infinite;
@@ -104,6 +149,10 @@ button:hover {
 </style>
 </head>
 <body>
+
+<button id="darkModeToggle">
+    <i class="fa-solid fa-moon"></i>
+</button>
 
 <div id="loader">
     <div class="loader-logo-container">
@@ -136,17 +185,36 @@ button:hover {
 <script>emailjs.init("0aHlArLgvHrj2Xbk8");</script>
 
 <script>
-    // Funciones globales de control del loader
+    // 1. LÓGICA MODO OSCURO (Síncrona para evitar parpadeos)
+    const btnToggle = document.getElementById('darkModeToggle');
+    const iconDark = btnToggle.querySelector('i');
+
+    if (localStorage.getItem('theme') === 'dark') {
+        document.body.classList.add('dark-mode');
+        iconDark.classList.replace('fa-moon', 'fa-sun');
+    }
+
+    btnToggle.onclick = () => {
+        document.body.classList.toggle('dark-mode');
+        const isDark = document.body.classList.contains('dark-mode');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        iconDark.classList.toggle('fa-moon', !isDark);
+        iconDark.classList.toggle('fa-sun', isDark);
+    };
+
+    // 2. CONTROL DEL LOADER
     const mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
     const ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
 </script>
 
 <script type="module">
     import { database, ref, get } from "./firebase.js";
+    
     const loginUser = document.getElementById("loginUser");
     const loginPass = document.getElementById("loginPass");
     const toggleBtn = document.getElementById("toggleBtn");
 
+    // Mostrar/Ocultar contraseña
     toggleBtn.onclick = () => {
         const isPass = loginPass.type === "password";
         loginPass.type = isPass ? "text" : "password";
@@ -154,13 +222,13 @@ button:hover {
         toggleBtn.classList.toggle("fa-eye-slash");
     };
 
+    // Login
     document.getElementById("btnLogin").onclick = async () => {
         const usuario = loginUser.value.trim().toUpperCase();
         const pass = loginPass.value.trim();
         if (!usuario || !pass) return alert("Completa todos los campos");
 
-        mostrarCargando(); // MOSTRAR LOADER
-
+        mostrarCargando();
         try {
             const snap = await get(ref(database, "usuarios/" + usuario));
             if (!snap.exists()) {
@@ -182,22 +250,19 @@ button:hover {
                 nombre: data.nombre,
                 puesto: data.puesto.toUpperCase()
             }));
-            
-            // Redirigir (el loader se quita al cargar la otra página)
             window.location.href = "tecnologia.html";
-
         } catch (error) {
             ocultarCargando();
             alert("❌ Error de conexión.");
         }
     };
 
+    // Recuperar Contraseña
     document.getElementById("btnRecover").onclick = async () => {
         const usuario = prompt("Ingresa tu NOMBRE DE USUARIO para recuperar la contraseña:");
         if (!usuario) return;
 
-        mostrarCargando(); // MOSTRAR LOADER
-
+        mostrarCargando();
         const userUpper = usuario.trim().toUpperCase();
         try {
             const snap = await get(ref(database, "usuarios/" + userUpper));
@@ -225,22 +290,20 @@ button:hover {
                     ocultarCargando();
                     alert("❌ Error al enviar el correo.");
                 });
-
         } catch (error) {
             ocultarCargando();
-            alert("❌ Ocurrió un error al consultar la base de datos.");
+            alert("❌ Ocurrió un error.");
         }
     };
 </script>
 
 <script>
-  // Seguridad de código fuente
+  // Seguridad
   document.addEventListener('contextmenu', (e) => e.preventDefault());
   document.onkeydown = function(e) {
     if(e.keyCode == 123) return false;
-    if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
-    if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
-    if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+    if(e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) return false;
+    if(e.ctrlKey && e.keyCode == 85) return false;
   };
 </script>
 </body>
