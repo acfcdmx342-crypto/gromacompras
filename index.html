@@ -188,12 +188,10 @@ body.dark-mode #loader {
     // 1. LÓGICA MODO OSCURO (Síncrona para evitar parpadeos)
     const btnToggle = document.getElementById('darkModeToggle');
     const iconDark = btnToggle.querySelector('i');
-
     if (localStorage.getItem('theme') === 'dark') {
         document.body.classList.add('dark-mode');
         iconDark.classList.replace('fa-moon', 'fa-sun');
     }
-
     btnToggle.onclick = () => {
         document.body.classList.toggle('dark-mode');
         const isDark = document.body.classList.contains('dark-mode');
@@ -201,15 +199,12 @@ body.dark-mode #loader {
         iconDark.classList.toggle('fa-moon', !isDark);
         iconDark.classList.toggle('fa-sun', isDark);
     };
-
     // 2. CONTROL DEL LOADER
     const mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
     const ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
 </script>
-
 <script type="module">
     import { database, ref, get } from "./firebase.js";
-    
     const loginUser = document.getElementById("loginUser");
     const loginPass = document.getElementById("loginPass");
     const toggleBtn = document.getElementById("toggleBtn");
@@ -221,13 +216,11 @@ body.dark-mode #loader {
         toggleBtn.classList.toggle("fa-eye");
         toggleBtn.classList.toggle("fa-eye-slash");
     };
-
     // Login
     document.getElementById("btnLogin").onclick = async () => {
         const usuario = loginUser.value.trim().toUpperCase();
         const pass = loginPass.value.trim();
         if (!usuario || !pass) return alert("Completa todos los campos");
-
         mostrarCargando();
         try {
             const snap = await get(ref(database, "usuarios/" + usuario));
@@ -244,7 +237,6 @@ body.dark-mode #loader {
                 ocultarCargando();
                 return alert("❌ Este usuario está desactivado. Contacta a sistemas.");
             }
-
             localStorage.setItem("usuarioLogueado", JSON.stringify({
                 usuario: data.usuario,
                 nombre: data.nombre,
@@ -256,12 +248,10 @@ body.dark-mode #loader {
             alert("❌ Error de conexión.");
         }
     };
-
     // Recuperar Contraseña
     document.getElementById("btnRecover").onclick = async () => {
         const usuario = prompt("Ingresa tu NOMBRE DE USUARIO para recuperar la contraseña:");
         if (!usuario) return;
-
         mostrarCargando();
         const userUpper = usuario.trim().toUpperCase();
         try {
@@ -275,13 +265,11 @@ body.dark-mode #loader {
                 ocultarCargando();
                 return alert("❌ El usuario no tiene un correo electrónico registrado.");
             }
-
             const templateParams = {
                 to_name: data.nombre,
                 user_email: data.correo,
                 user_pass: data.contrasena
             };
-
             emailjs.send('default_service', 'template_ub0ksu5', templateParams)
                 .then(() => {
                     ocultarCargando();
@@ -296,7 +284,6 @@ body.dark-mode #loader {
         }
     };
 </script>
-
 <script>
   // Seguridad
   document.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -308,3 +295,4 @@ body.dark-mode #loader {
 </script>
 </body>
 </html>
+
