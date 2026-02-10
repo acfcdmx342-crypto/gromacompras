@@ -36,14 +36,12 @@
             align-items: center; flex-direction: column; 
         }
 
-        /* Modo Oscuro */
+        /* Dark Mode */
         body.dark-mode { background: #121416 !important; color: #ffffff; }
         body.dark-mode .card { background: #1d1f21 !important; color: #ffffff; border: 1px solid #333; }
         body.dark-mode .user-info-box { background: #1d1f21 !important; color: #ffffff; }
-        body.dark-mode .table { color: #ffffff !important; }
         body.dark-mode .table td { background-color: #1d1f21 !important; color: #ffffff !important; border-color: #444; }
-        body.dark-mode .form-control { background-color: #2b3035 !important; color: #fff !important; border-color: #495057; }
-        body.dark-mode #loader { background: rgba(18, 20, 22, 0.95); }
+        body.dark-mode .fila-local td { background-color: #2c2610 !important; }
 
         .mode-toggle-btn { width: 42px; height: 42px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; transition: 0.3s; margin-right: 10px; }
         #preview-container { border: 2px dashed #ccc; border-radius: 10px; min-height: 100px; display: flex; align-items: center; justify-content: center; background: #fff; overflow: hidden; margin-top: 5px; }
@@ -52,13 +50,8 @@
 </head>
 <body class="p-4">
 <div id="loader">
-    <div style="animation: pulse 1.5s infinite;">
-        <img src="https://gruporoma.com/wp-content/uploads/2023/06/cropped-cropped-procomex-pachuca-logo-350-%C3%97-100-px-1.png" style="width: 250px;">
-    </div>
-    <div class="mt-3">
-        <div class="spinner-border text-primary" role="status"></div>
-        <span class="ms-2 fw-bold">Procesando...</span>
-    </div>
+    <div style="animation: pulse 1.5s infinite;"><img src="https://gruporoma.com/wp-content/uploads/2023/06/cropped-cropped-procomex-pachuca-logo-350-%C3%97-100-px-1.png" style="width: 250px;"></div>
+    <div class="mt-3"><div class="spinner-border text-primary"></div><span class="ms-2 fw-bold">Cargando Sistema...</span></div>
 </div>
 
 <div class="container">
@@ -75,7 +68,7 @@
         <div class="d-flex align-items-center">
             <button id="btnDarkMode" class="mode-toggle-btn shadow-sm btn btn-light"><i class="fa-solid fa-moon"></i></button>
             <div class="dropdown">
-                <button class="btn btn-primary btn-rounded dropdown-toggle fw-bold px-4 shadow-sm" data-bs-toggle="dropdown">☰ Menú</button>
+                <button class="btn btn-primary btn-rounded dropdown-toggle fw-bold px-4" data-bs-toggle="dropdown">☰ Menú</button>
                 <ul class="dropdown-menu dropdown-menu-end shadow">
                     <li><a class="dropdown-item" href="historial.html">📜 Ver Historial</a></li>
                     <li id="liBase"></li>
@@ -130,7 +123,6 @@
 </div>
 
 <script>
-    // Lógica rápida de tema
     const btnMode = document.getElementById('btnDarkMode');
     const aplicarTema = (t) => {
         document.body.classList.toggle('dark-mode', t === 'dark');
@@ -147,7 +139,6 @@
 <script type="module">
     import { database, ref, push, set, get, onValue, update, remove } from "./firebase.js";
 
-    // Sesión
     const sesion = JSON.parse(localStorage.getItem("usuarioLogueado") || "{}");
     if(!sesion.usuario) location.href = "index.html";
     window.nombreSesion = sesion.nombre;
@@ -156,6 +147,7 @@
     
     const adminPuestos = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO SR", "SOPORTE TECNICO"];
     window.esAdmin = adminPuestos.includes(window.puestoSesion);
+    window.esSoporteJR = window.puestoSesion === "SOPORTE TECNICO JR";
 
     document.getElementById("usuarioActivo").textContent = window.nombreSesion;
     document.getElementById("puestoActivo").textContent = window.puestoSesion;
@@ -171,7 +163,6 @@
     let globalSeguimientos = [];
     let dataExportar = [];
 
-    // Carga de Datos
     onValue(seguimientoRef, snap => {
         globalSeguimientos = [];
         snap.forEach(c => { globalSeguimientos.push({ ...c.val(), id: c.key }); });
@@ -185,20 +176,26 @@
         snap.forEach(doc => {
             const s = doc.val();
             if (s.eliminado) return;
-            const segs = globalSeguimientos.filter(x => x.folio === s.folio).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
-            const statusActual = segs.length > 0 ? segs[0].status : (s.status || "PENDIENTE");
+            
+            const segsFolio = globalSeguimientos.filter(x => x.folio === s.folio).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
+            const statusActual = segsFolio.length > 0 ? segsFolio[0].status : (s.status || "PENDIENTE");
             
             if (statusActual === "CONFIRMADO") return;
 
-            const esLocal = s.solicitudLocal === true;
-            let badgeClass = "st-pendiente";
-            if(statusActual === "EN ZONA") badgeClass = "st-zona";
-            if(statusActual === "DEVOLUCION") badgeClass = "st-devolucion";
-            if(statusActual === "EN COTIZACION") badgeClass = "st-local-cotizacion";
+            // RESTAURACIÓN DE LÓGICA DE ICONO DE SEGUIMIENTO
+            const esLocal = s.solicitudLocal === true || s.isLocal === true;
+            
+            let badgeClass = "st-compras"; 
+            if (statusActual === "EN ZONA") badgeClass = "st-zona";
+            else if (statusActual === "EN COTIZACION") badgeClass = "st-local-cotizacion";
+            else if (statusActual === "DEVOLUCION") badgeClass = "st-devolucion";
+            else if (statusActual === "PENDIENTE") badgeClass = "st-pendiente";
 
             if (window.esAdmin || s.usuario === window.usuarioSesion) {
                 dataExportar.push({ ...s, statusActual });
                 const tr = document.createElement("tr");
+                if(esLocal) tr.classList.add("fila-local");
+                
                 tr.innerHTML = `
                     <td class="fw-bold">${s.folio}</td>
                     <td>${s.empresa}</td>
@@ -207,13 +204,18 @@
                     <td><span class="badge ${esLocal ? 'bg-warning text-dark' : 'bg-secondary'}">${esLocal ? 'LOCAL' : 'COMPRAS'}</span></td>
                     <td><button class="btn btn-sm btn-success" onclick="verPDF('${s.archivoData}', '${s.folio}')">👁️</button></td>
                     <td><span class="badge ${badgeClass} p-2 w-100">${statusActual}</span></td>
-                    <td><small>${Math.floor((new Date() - new Date(s.fechaISO))/3600000)}h</small></td>
+                    <td><small>${Math.floor((new Date() - new Date(s.fechaISO || s.fechaEnvio))/3600000)}h</small></td>
                     <td>
                         <div class="d-flex justify-content-center gap-2">
                             <span class="action-btn" onclick="verHistorial('${s.folio}')">📜</span>
                             <span class="action-btn text-primary" onclick="editarRegistro('${doc.key}')">✏️</span>
-                            <span class="action-btn text-info" onclick="window.location.href='seguimiento.html?folio=${s.folio}'">📋</span>
-                            ${statusActual === "EN ZONA" ? `
+                            
+                            ${esLocal ? 
+                                `<span class="action-btn text-info" onclick="modalSegLocal('${doc.key}', '${s.folio}')">📋</span>` :
+                                `<span class="action-btn text-primary" onclick="window.location.href='seguimiento.html?folio=${s.folio}'">📋</span>`
+                            }
+
+                            ${(window.esSoporteJR || window.esAdmin) && (statusActual === "EN ZONA" || statusActual === "ENVIADO A ZONA") ? `
                                 <span class="action-btn text-success" onclick="confirmarEntrega('${doc.key}', '${s.folio}')">✅</span>
                                 <span class="action-btn text-warning" onclick="enviarDevolucion('${s.folio}')">🔄</span>
                             ` : ''}
@@ -227,7 +229,7 @@
         document.getElementById("loader").style.display = "none";
     }
 
-    // --- FUNCIONES GLOBALES ---
+    // --- FUNCIONES GLOBALES REINSTALADAS ---
     window.guardarSolicitud = async () => {
         const emp = document.getElementById("empresa").value;
         const zon = document.getElementById("zona").value;
@@ -238,39 +240,55 @@
         if(!emp || !zon || !suc || !arc) return Swal.fire("Error", "Faltan campos", "error");
         
         document.getElementById("loader").style.display = "flex";
+        const snap = await get(solicitudesRef);
+        const contador = snap.exists() ? Object.keys(snap.val()).length + 1 : 1;
+        const numFolio = contador.toString().padStart(4, '0');
+        
         const reader = new FileReader();
         reader.onload = async () => {
-            const fol = `TEC-${emp}-${zon}-${Date.now().toString().slice(-4)}`.toUpperCase();
+            const fol = `TEC-${emp}-${zon}-${numFolio}`.toUpperCase();
             await push(solicitudesRef, {
                 folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
-                sucursal: suc.toUpperCase(), archivoData: reader.result,
-                status: local ? "EN COTIZACION" : "PENDIENTE", solicitudLocal: local,
+                sucursal: suc.toUpperCase(), soporte: window.nombreSesion,
+                archivoData: reader.result, status: local ? "EN COTIZACION" : "PENDIENTE",
+                solicitudLocal: local, isLocal: local,
                 fechaISO: new Date().toISOString(), usuario: window.usuarioSesion, eliminado: false
             });
             document.getElementById("formTec").reset();
-            Swal.fire("Guardado", fol, "success");
+            document.getElementById("preview-container").innerHTML = '';
+            Swal.fire("Éxito", "Guardado: " + fol, "success");
         };
         reader.readAsDataURL(arc);
+    };
+
+    window.modalSegLocal = async (id, folio) => {
+        const { value: status } = await Swal.fire({
+            title: 'Actualizar Status Local',
+            input: 'select',
+            inputOptions: { 'EN COTIZACION': 'EN COTIZACION', 'EN ZONA': 'EN ZONA', 'DEVOLUCION': 'DEVOLUCION' },
+            showCancelButton: true
+        });
+        if(status) {
+            await push(seguimientoRef, { folio, status, fechaRegistro: new Date().toISOString(), comentarios: "Actualización Local" });
+            Swal.fire("Actualizado", "", "success");
+        }
     };
 
     window.confirmarEntrega = async (id, folio) => {
         const res = await Swal.fire({ title: '¿Confirmar entrega?', icon: 'question', showCancelButton: true });
         if(res.isConfirmed) {
-            await push(seguimientoRef, { folio, status: "CONFIRMADO", fechaRegistro: new Date().toISOString(), comentarios: "Entregado" });
-            Swal.fire("Éxito", "Folio finalizado", "success");
+            await push(seguimientoRef, { folio, status: "CONFIRMADO", fechaRegistro: new Date().toISOString(), comentarios: "Confirmado por Soporte" });
         }
     };
 
     window.enviarDevolucion = async (folio) => {
-        const { value: mot } = await Swal.fire({ title: 'Motivo Devolución', input: 'textarea', showCancelButton: true });
-        if(mot) {
-            await push(seguimientoRef, { folio, status: "DEVOLUCION", fechaRegistro: new Date().toISOString(), comentarios: mot });
-            Swal.fire("Procesado", "En devolución", "warning");
-        }
+        const { value: mot } = await Swal.fire({ title: 'Motivo de Devolución', input: 'textarea', showCancelButton: true });
+        if(mot) await push(seguimientoRef, { folio, status: "DEVOLUCION", fechaRegistro: new Date().toISOString(), comentarios: mot });
     };
 
     window.editarRegistro = async (id) => {
-        const { value: nSuc } = await Swal.fire({ title: 'Nueva Sucursal', input: 'text' });
+        const s = (await get(ref(database, `tecnologia/${id}`))).val();
+        const { value: nSuc } = await Swal.fire({ title: 'Editar Sucursal', input: 'text', inputValue: s.sucursal });
         if(nSuc) await update(ref(database, `tecnologia/${id}`), { sucursal: nSuc.toUpperCase() });
     };
 
@@ -280,13 +298,13 @@
 
     window.exportarExcel = async () => {
         const wb = new ExcelJS.Workbook();
-        const ws = wb.addWorksheet('Reporte');
-        ws.columns = [{header:'Folio', key:'folio'}, {header:'Sucursal', key:'sucursal'}, {header:'Status', key:'statusActual'}];
+        const ws = wb.addWorksheet('Solicitudes');
+        ws.columns = [{header:'Folio', key:'folio'}, {header:'Empresa', key:'empresa'}, {header:'Sucursal', key:'sucursal'}, {header:'Status', key:'statusActual'}];
         ws.addRows(dataExportar);
         const buf = await wb.xlsx.writeBuffer();
         const link = document.createElement('a');
         link.href = URL.createObjectURL(new Blob([buf]));
-        link.download = "Reporte.xlsx";
+        link.download = `Reporte_${new Date().getTime()}.xlsx`;
         link.click();
     };
 
@@ -296,9 +314,9 @@
     };
 
     window.verHistorial = (fol) => {
-        const h = globalSeguimientos.filter(x => x.folio === fol);
-        let html = h.map(i => `<li>${i.status} - ${i.comentarios || ''}</li>`).join('');
-        Swal.fire({ title: 'Historial', html: `<ul>${html}</ul>` });
+        const h = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
+        let rows = h.map(i => `<tr><td>${new Date(i.fechaRegistro).toLocaleString()}</td><td>${i.status}</td><td>${i.comentarios || '-'}</td></tr>`).join('');
+        Swal.fire({ title: 'Historial ' + fol, html: `<table class="table table-sm small"><thead><tr><th>Fecha</th><th>Status</th><th>Comentario</th></tr></thead><tbody>${rows}</tbody></table>`, width: '600px' });
     };
 
     window.previewArchivo = (input) => {
