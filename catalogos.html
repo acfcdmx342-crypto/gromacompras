@@ -20,6 +20,9 @@
         th { font-size: 0.7rem; color: #64748b; text-transform: uppercase; text-align: center; background: #f8fafc !important; }
         td { vertical-align: middle; text-align: center; font-size: 0.85rem; }
         .empty-state { padding: 60px; text-align: center; color: #94a3b8; }
+        
+        /* Forzar mayúsculas visuales en los inputs */
+        input[type="text"], select { text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -67,7 +70,7 @@
 
                 <div class="mb-3">
                     <label class="form-label fw-bold small">Nombre / Descripción</label>
-                    <input type="text" id="fNom" class="form-control" placeholder="Nombre del registro">
+                    <input type="text" id="fNom" class="form-control" placeholder="NOMBRE DEL REGISTRO">
                 </div>
                 
                 <div class="form-check form-switch mb-3">
@@ -158,7 +161,7 @@
         if (path === 'zonas') {
             secEmpresa.classList.remove('d-none');
             const emps = Object.values(store.empresas).map(e => e.nombre).sort();
-            document.getElementById("fEmp").innerHTML = emps.map(e => `<option value="${e}" ${item.empresa === e ? 'selected' : ''}>${e}</option>`).join('') || '<option value="">Cree empresas primero</option>';
+            document.getElementById("fEmp").innerHTML = emps.map(e => `<option value="${e}" ${item.empresa === e ? 'selected' : ''}>${e}</option>`).join('') || '<option value="">CREE EMPRESAS PRIMERO</option>';
         }
 
         if (path === 'sucursales') {
@@ -166,8 +169,8 @@
             secZona.classList.remove('d-none');
             const emps = Object.values(store.empresas).map(e => e.nombre).sort();
             const zons = Object.values(store.zonas).map(z => z.nombre).sort();
-            document.getElementById("fEmp").innerHTML = emps.map(e => `<option value="${e}" ${item.empresa === e ? 'selected' : ''}>${e}</option>`).join('') || '<option value="">Cree empresas primero</option>';
-            document.getElementById("fZona").innerHTML = zons.map(z => `<option value="${z}" ${item.zona === z ? 'selected' : ''}>${z}</option>`).join('') || '<option value="">Cree zonas primero</option>';
+            document.getElementById("fEmp").innerHTML = emps.map(e => `<option value="${e}" ${item.empresa === e ? 'selected' : ''}>${e}</option>`).join('') || '<option value="">CREE EMPRESAS PRIMERO</option>';
+            document.getElementById("fZona").innerHTML = zons.map(z => `<option value="${z}" ${item.zona === z ? 'selected' : ''}>${z}</option>`).join('') || '<option value="">CREE ZONAS PRIMERO</option>';
         }
 
         new bootstrap.Modal(document.getElementById("modalApp")).show();
@@ -175,18 +178,23 @@
 
     document.getElementById("btnSave").onclick = async () => {
         const id = document.getElementById("fID").value;
-        const nombre = document.getElementById("fNom").value.trim();
+        // Transformar a MAYÚSCULAS antes de guardar
+        const nombre = document.getElementById("fNom").value.trim().toUpperCase();
+        
         if(!nombre) return Swal.fire("Error", "Nombre obligatorio", "error");
 
-        const data = { nombre, activo: document.getElementById("fAct").checked };
+        const data = { 
+            nombre: nombre, 
+            activo: document.getElementById("fAct").checked 
+        };
         
         if (currentPath === 'zonas') {
-            data.empresa = document.getElementById("fEmp").value;
+            data.empresa = document.getElementById("fEmp").value.toUpperCase();
         }
 
         if (currentPath === 'sucursales') {
-            data.empresa = document.getElementById("fEmp").value;
-            data.zona = document.getElementById("fZona").value;
+            data.empresa = document.getElementById("fEmp").value.toUpperCase();
+            data.zona = document.getElementById("fZona").value.toUpperCase();
         }
 
         try {
