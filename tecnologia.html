@@ -225,8 +225,13 @@
         document.getElementById("loader").style.display = "none";
     }
 
-    // --- CAMBIO SOLICITADO: MODAL SEGUIMIENTO LOCAL ORIGINAL ---
+    // --- CAMBIO SOLICITADO: MODAL SEGUIMIENTO LOCAL ACTUALIZADO ---
     window.modalSegLocal = async (id, folio) => {
+        // Buscamos si ya existe un seguimiento para este folio
+        const historialPrevio = globalSeguimientos.filter(x => x.folio === folio).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
+        const articuloExistente = historialPrevio.length > 0 ? historialPrevio[0].descripcionArt : "";
+        const esPrimerSeguimiento = historialPrevio.length === 0;
+
         const { value: formValues } = await Swal.fire({
             title: `<i class="fa-solid fa-truck-ramp-box text-primary"></i><br>Seguimiento Local<br><small class="text-muted" style="font-size:14px;">Folio: ${folio}</small>`,
             html: `
@@ -237,18 +242,16 @@
                         <option value="EN ZONA">🟡 EN ZONA</option>
                         <option value="DEVOLUCION">🟣 DEVOLUCION</option>
                     </select>
+                    
                     <label class="fw-bold mb-1"><i class="fa-solid fa-box-open"></i> Artículo / Equipo</label>
-                    <input id="swal-art" class="form-control mb-3 shadow-sm text-uppercase" placeholder="Ej: Monitor, Teclado, etc.">
-                    <div class="row">
-                        <div class="col-6">
-                            <label class="fw-bold mb-1"><i class="fa-solid fa-hashtag"></i> Cantidad</label>
-                            <input id="swal-cant" type="number" class="form-control mb-3 shadow-sm" placeholder="0">
-                        </div>
-                        <div class="col-6">
-                            <label class="fw-bold mb-1"><i class="fa-solid fa-calendar-day"></i> Fecha</label>
-                            <input type="text" class="form-control mb-3 bg-light" value="${new Date().toLocaleDateString()}" readonly>
-                        </div>
-                    </div>
+                    <input id="swal-art" class="form-control mb-3 shadow-sm text-uppercase" 
+                        value="${articuloExistente}" 
+                        ${!esPrimerSeguimiento ? 'readonly' : ''} 
+                        placeholder="Ej: Monitor, Teclado, etc.">
+                    
+                    <label class="fw-bold mb-1"><i class="fa-solid fa-calendar-day"></i> Fecha (Sistema)</label>
+                    <input type="text" class="form-control mb-3 bg-light" value="${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}" readonly>
+                    
                     <label class="fw-bold mb-1"><i class="fa-solid fa-comment-dots"></i> Observaciones</label>
                     <textarea id="swal-com" class="form-control shadow-sm text-uppercase" style="height: 100px;" placeholder="Detalles..."></textarea>
                 </div>
@@ -261,7 +264,6 @@
                 return {
                     status: document.getElementById('swal-status').value,
                     descripcionArt: art.toUpperCase(),
-                    cantidadArt: document.getElementById('swal-cant').value,
                     comentarios: document.getElementById('swal-com').value.toUpperCase()
                 }
             }
@@ -269,13 +271,15 @@
 
         if (formValues) {
             await push(seguimientoRef, {
-                folio, ...formValues, fechaRegistro: new Date().toISOString(), usuario: window.nombreSesion
+                folio, 
+                ...formValues, 
+                fechaRegistro: new Date().toISOString(), 
+                usuario: window.nombreSesion
             });
             Swal.fire("Éxito", "Actualizado", "success");
         }
     };
 
-    // Funciones base del original
     window.guardarSolicitud = async () => {
         const emp = document.getElementById("empresa").value;
         const zon = document.getElementById("zona").value;
@@ -308,8 +312,17 @@
 
     window.verHistorial = (fol) => {
         const h = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
-        let rows = h.map(i => `<tr><td>${new Date(i.fechaRegistro).toLocaleString()}</td><td>${i.status}</td><td>${i.descripcionArt || i.comentarios || '-'}</td></tr>`).join('');
-        Swal.fire({ title: 'Historial ' + fol, html: `<table class="table table-sm small"><thead><tr><th>Fecha</th><th>Status</th><th>Detalle</th></tr></thead><tbody>${rows}</tbody></table>`, width: '800px' });
+        // Se visualiza el Artículo y las Observaciones
+        let rows = h.map(i => `
+            <tr>
+                <td>${new Date(i.fechaRegistro).toLocaleString()}</td>
+                <td><span class="badge bg-info">${i.status}</span></td>
+                <td>
+                    <b>ART:</b> ${i.descripcionArt || '-'}<br>
+                    <b>OBS:</b> ${i.comentarios || '-'}
+                </td>
+            </tr>`).join('');
+        Swal.fire({ title: 'Historial ' + fol, html: `<div class="table-responsive"><table class="table table-sm small"><thead><tr><th>Fecha</th><th>Status</th><th>Detalle</th></tr></thead><tbody>${rows}</tbody></table></div>`, width: '800px' });
     };
 
     window.previewArchivo = (input) => {
