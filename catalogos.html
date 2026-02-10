@@ -44,7 +44,7 @@
         th { font-size: 0.7rem; color: #64748b; text-transform: uppercase; text-align: center; background: #f8fafc !important; }
         td { vertical-align: middle; text-align: center; font-size: 0.85rem; }
         .empty-state { padding: 60px; text-align: center; color: #94a3b8; }
-        input[type="text"], select { text-transform: uppercase; }
+        input[type="text"], select, textarea { text-transform: uppercase; }
 
         .btn-toggle {
             display: none;
@@ -96,6 +96,7 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="fID">
+                
                 <div id="secEmpresa" class="d-none mb-3">
                     <label class="form-label fw-bold small">Empresa Responsable</label>
                     <select id="fEmp" class="form-select"></select>
@@ -104,9 +105,27 @@
                     <label class="form-label fw-bold small">Zona</label>
                     <select id="fZona" class="form-select"></select>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold small">Nombre / Descripción</label>
-                    <input type="text" id="fNom" class="form-control" placeholder="NOMBRE DEL REGISTRO">
+
+                <hr id="hrSucursal" class="d-none">
+
+                <div id="secIndividual">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Nombre / Descripción</label>
+                        <input type="text" id="fNom" class="form-control" placeholder="NOMBRE DEL REGISTRO">
+                    </div>
+                </div>
+
+                <div id="secMasivo" class="d-none mt-3">
+                    <div class="alert alert-info py-2 small">
+                        <i class="bi bi-info-circle me-1"></i> Pegue una lista de nombres (uno por línea).
+                    </div>
+                    <label class="form-label fw-bold small">Lista de Sucursales</label>
+                    <textarea id="fMasivo" class="form-control" rows="5" placeholder="SUCURSAL 1&#10;SUCURSAL 2&#10;SUCURSAL 3"></textarea>
+                </div>
+
+                <div id="secToggleMasivo" class="form-check form-switch d-none mb-3">
+                    <input class="form-check-input" type="checkbox" id="checkMasivo">
+                    <label class="form-check-label small fw-bold" for="checkMasivo">Activar Carga Masiva</label>
                 </div>
             </div>
             <div class="modal-footer bg-light">
@@ -140,7 +159,6 @@
         });
     });
 
-    // Función para llenar zonas filtradas por empresa
     const updateZonasDropdown = (selectedEmpresa, selectedZona = "") => {
         const fZona = document.getElementById("fZona");
         const zonasFiltradas = Object.values(store.zonas)
@@ -157,11 +175,15 @@
         }
     };
 
-    // Evento al cambiar empresa en el modal
     document.getElementById("fEmp").onchange = (e) => {
-        if (currentPath === 'sucursales') {
-            updateZonasDropdown(e.target.value);
-        }
+        if (currentPath === 'sucursales') updateZonasDropdown(e.target.value);
+    };
+
+    // Toggle para mostrar/ocultar carga masiva
+    document.getElementById("checkMasivo").onchange = (e) => {
+        const isMasivo = e.target.checked;
+        document.getElementById("secIndividual").classList.toggle('d-none', isMasivo);
+        document.getElementById("secMasivo").classList.toggle('d-none', !isMasivo);
     };
 
     window.render = (path) => {
@@ -211,12 +233,20 @@
         const item = id ? store[path][id] : { nombre: "", empresa: "", zona: "" };
         document.getElementById("fID").value = id;
         document.getElementById("fNom").value = item.nombre;
+        document.getElementById("fMasivo").value = "";
+        document.getElementById("checkMasivo").checked = false;
         
         const secEmpresa = document.getElementById("secEmpresa");
         const secZona = document.getElementById("secZona");
-        
+        const secToggle = document.getElementById("secToggleMasivo");
+        const hr = document.getElementById("hrSucursal");
+
         secEmpresa.classList.add('d-none');
         secZona.classList.add('d-none');
+        secToggle.classList.add('d-none');
+        hr.classList.add('d-none');
+        document.getElementById("secIndividual").classList.remove('d-none');
+        document.getElementById("secMasivo").classList.add('d-none');
 
         const emps = Object.values(store.empresas).map(e => e.nombre).sort();
         const fEmp = document.getElementById("fEmp");
@@ -228,9 +258,9 @@
 
         if (path === 'sucursales') {
             secZona.classList.remove('d-none');
-            // Carga inicial de zonas basada en la empresa seleccionada o la primera de la lista
-            const empresaInicial = item.empresa || fEmp.value;
-            updateZonasDropdown(empresaInicial, item.zona);
+            hr.classList.remove('d-none');
+            if(!id) secToggle.classList.remove('d-none'); // Solo mostrar carga masiva en nuevos registros
+            updateZonasDropdown(item.empresa || fEmp.value, item.zona);
         }
 
         new bootstrap.Modal(document.getElementById("modalApp")).show();
@@ -238,19 +268,40 @@
 
     document.getElementById("btnSave").onclick = async () => {
         const id = document.getElementById("fID").value;
-        const nombre = document.getElementById("fNom").value.trim().toUpperCase();
-        if(!nombre) return Swal.fire("Error", "Nombre obligatorio", "error");
+        const isMasivo = document.getElementById("checkMasivo").checked;
+        const empresa = document.getElementById("fEmp").value;
+        const zona = document.getElementById("fZona").value;
 
-        const data = { nombre };
-        if (currentPath === 'zonas' || currentPath === 'sucursales') data.empresa = document.getElementById("fEmp").value;
+        // Validación común para Sucursales
         if (currentPath === 'sucursales') {
-            const zonaVal = document.getElementById("fZona").value;
-            if(!zonaVal || zonaVal.includes("SIN ZONAS")) return Swal.fire("Error", "Debe seleccionar una zona válida", "error");
-            data.zona = zonaVal;
+            if(!zona || zona.includes("SIN ZONAS")) return Swal.fire("Error", "Debe seleccionar una zona válida", "error");
         }
 
         try {
-            id ? await update(ref(db, `${currentPath}/${id}`), data) : await push(ref(db, currentPath), data);
+            if (isMasivo && currentPath === 'sucursales') {
+                // LÓGICA CARGA MASIVA
+                const lineas = document.getElementById("fMasivo").value.split('\n');
+                const nombres = lineas.map(l => l.trim().toUpperCase()).filter(l => l !== "");
+                
+                if(nombres.length === 0) return Swal.fire("Error", "La lista está vacía", "error");
+
+                Swal.fire({ title: 'Guardando lista...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+                for (const nombre of nombres) {
+                    await push(ref(db, currentPath), { nombre, empresa, zona });
+                }
+            } else {
+                // LÓGICA INDIVIDUAL
+                const nombre = document.getElementById("fNom").value.trim().toUpperCase();
+                if(!nombre) return Swal.fire("Error", "Nombre obligatorio", "error");
+
+                const data = { nombre };
+                if (currentPath === 'zonas' || currentPath === 'sucursales') data.empresa = empresa;
+                if (currentPath === 'sucursales') data.zona = zona;
+
+                id ? await update(ref(db, `${currentPath}/${id}`), data) : await push(ref(db, currentPath), data);
+            }
+
             bootstrap.Modal.getInstance(document.getElementById("modalApp")).hide();
             Swal.fire({ title: "Listo", icon: "success", timer: 800, showConfirmButton: false });
         } catch (e) { Swal.fire("Error", e.message, "error"); }
