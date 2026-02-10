@@ -74,11 +74,6 @@
                     <input class="form-check-input" type="checkbox" id="fAct" checked>
                     <label class="form-check-label" for="fAct">Registro Activo</label>
                 </div>
-
-                <div id="extraZonas" class="d-none border-top pt-3 mt-3">
-                    <label class="form-label fw-bold small text-primary">Asignación de Matriz (Servidores)</label>
-                    <div id="checkList" class="row g-2 mt-1"></div>
-                </div>
             </div>
             <div class="modal-footer bg-light">
                 <button class="btn btn-primary w-100" id="btnSave">Guardar Información</button>
@@ -111,7 +106,6 @@
 
         const items = store[path];
         const itemKeys = Object.keys(items);
-        const srvNames = Object.values(store.servidores).map(s => s.nombre).sort();
 
         let title = path.toUpperCase();
         let html = `<div class="d-flex justify-content-between align-items-center mb-4">
@@ -128,7 +122,6 @@
                             ${path === 'sucursales' ? '<th>Zona</th>' : ''}
                             <th class="sticky-col text-start">Nombre</th>
                             <th>Estado</th>
-                            ${path === 'zonas' ? srvNames.map(n => `<th>${n}</th>`).join('') : ''}
                             <th class="text-end px-4">Acciones</th>
                         </tr></thead><tbody>`;
 
@@ -139,7 +132,6 @@
                     ${path === 'sucursales' ? `<td>${row.zona || '-'}</td>` : ''}
                     <td class="sticky-col text-start">${row.nombre}</td>
                     <td><span class="badge ${row.activo ? 'bg-success' : 'bg-danger'} rounded-pill">${row.activo ? 'Activo' : 'Inactivo'}</span></td>
-                    ${path === 'zonas' ? srvNames.map(n => `<td><i class="bi ${row[n] ? 'bi-check-circle-fill text-primary' : 'bi-circle text-muted'}"></i></td>`).join('') : ''}
                     <td class="text-end px-3">
                         <button class="btn btn-sm btn-outline-secondary border-0" onclick="showModal('${path}', '${id}')"><i class="bi bi-pencil"></i></button>
                         <button class="btn btn-sm btn-outline-danger border-0" onclick="del('${path}', '${id}')"><i class="bi bi-trash"></i></button>
@@ -157,38 +149,23 @@
         document.getElementById("fNom").value = item.nombre;
         document.getElementById("fAct").checked = item.activo;
         
-        const extraZonas = document.getElementById("extraZonas");
         const secEmpresa = document.getElementById("secEmpresa");
         const secZona = document.getElementById("secZona");
         
-        extraZonas.classList.add('d-none');
         secEmpresa.classList.add('d-none');
         secZona.classList.add('d-none');
 
-        // Lógica para Zonas: Requiere Empresa y Matriz de Servidores
         if (path === 'zonas') {
             secEmpresa.classList.remove('d-none');
-            extraZonas.classList.remove('d-none');
-            
             const emps = Object.values(store.empresas).map(e => e.nombre).sort();
             document.getElementById("fEmp").innerHTML = emps.map(e => `<option value="${e}" ${item.empresa === e ? 'selected' : ''}>${e}</option>`).join('') || '<option value="">Cree empresas primero</option>';
-
-            const srvs = Object.values(store.servidores).map(s => s.nombre).sort();
-            document.getElementById("checkList").innerHTML = srvs.map(s => `
-                <div class="col-6"><div class="form-check small">
-                    <input class="form-check-input" type="checkbox" id="chk_${s}" ${item[s] ? 'checked' : ''}>
-                    <label class="form-check-label">${s}</label>
-                </div></div>`).join('');
         }
 
-        // Lógica para Sucursales: Requiere Empresa y Zona
         if (path === 'sucursales') {
             secEmpresa.classList.remove('d-none');
             secZona.classList.remove('d-none');
-            
             const emps = Object.values(store.empresas).map(e => e.nombre).sort();
             const zons = Object.values(store.zonas).map(z => z.nombre).sort();
-            
             document.getElementById("fEmp").innerHTML = emps.map(e => `<option value="${e}" ${item.empresa === e ? 'selected' : ''}>${e}</option>`).join('') || '<option value="">Cree empresas primero</option>';
             document.getElementById("fZona").innerHTML = zons.map(z => `<option value="${z}" ${item.zona === z ? 'selected' : ''}>${z}</option>`).join('') || '<option value="">Cree zonas primero</option>';
         }
@@ -205,9 +182,6 @@
         
         if (currentPath === 'zonas') {
             data.empresa = document.getElementById("fEmp").value;
-            Object.values(store.servidores).forEach(s => {
-                data[s.nombre] = document.getElementById(`chk_${s.nombre}`)?.checked || false;
-            });
         }
 
         if (currentPath === 'sucursales') {
