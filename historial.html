@@ -202,27 +202,23 @@ async function cargarHistorial() {
             const segs = Array.isArray(segsRaw) ? segsRaw : Object.values(segsRaw);
             const estaEliminado = s.status === "ELIMINADO" || s.eliminado === true;
             
-            // BUSCAMOS EL SEGUIMIENTO QUE TENGA EL STATUS CONFIRMADO
             const segConf = segs.find(x => x.status === "CONFIRMADO");
             
-            // Lógica de Clases y Badges
             let claseFila = estaEliminado ? "st-eliminado" : (s.status === "PENDIENTE" ? "st-pendiente" : "st-confirmado");
             let badgeClass = estaEliminado ? 'badge-del' : (s.status === "PENDIENTE" ? 'badge-warn' : 'badge-ok');
             let iconBadge = estaEliminado ? 'fa-trash-can' : (s.status === "PENDIENTE" ? 'fa-clock' : 'fa-check-double');
             
-            // SE AJUSTA PARA LEER LOS COMENTARIOS DEL SEGUIMIENTO DE CONFIRMACIÓN O EL GENERAL
             let motivo = estaEliminado 
                 ? `❌ ELIMINADO: ${s.motivoEliminacion || "SIN MOTIVO"}` 
                 : (segConf?.comentarios || s.comentarios || "ENTREGA REALIZADA");
 
-            // SE AJUSTA PARA LEER 'evidenciaImagen' (NUEVO MODAL) O 'evidenciaFoto' (ANTERIOR)
             let fotoAMostrar = segConf?.evidenciaImagen || s.evidenciaImagen || segConf?.fotoEvidencia || s.evidenciaFoto;
 
             let fechaCierreRaw = estaEliminado 
                 ? (s.fechaDepuracion || "---") 
                 : (segConf?.fechaRegistro || s.fechaCierre || "---");
             
-            // Cálculo de tiempo
+            // --- INICIO DE CAMBIO SUGERIDO PARA FECHAS ---
             let fInicio = s.fechaISO ? new Date(s.fechaISO) : limpiarFecha(s.fechaEnvio);
             let fFin = limpiarFecha(fechaCierreRaw);
             let tiempoEntrega = "N/A";
@@ -232,6 +228,25 @@ async function cargarHistorial() {
                 const dias = Math.floor(totalMin / 1440), horas = Math.floor((totalMin % 1440) / 60), mins = totalMin % 60;
                 tiempoEntrega = dias > 0 ? `${dias}d ${horas}h` : horas > 0 ? `${horas}h ${mins}m` : `${mins}m`;
             }
+
+            // Formateo de Fecha Registro para la tabla
+            let fechaRegistroAMostrar = "---";
+            if (s.fechaISO) {
+                fechaRegistroAMostrar = new Date(s.fechaISO).toLocaleString('es-MX', {
+                    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true
+                });
+            } else if (s.fechaEnvio || s.fechaRegistro) {
+                fechaRegistroAMostrar = s.fechaEnvio || s.fechaRegistro;
+            }
+
+            // Formateo de Fecha Cierre para la tabla
+            let fechaCierreBonita = "---";
+            if (fechaCierreRaw !== "---") {
+                fechaCierreBonita = fechaCierreRaw.includes('T') 
+                    ? new Date(fechaCierreRaw).toLocaleDateString('es-MX') 
+                    : fechaCierreRaw.split(' ')[0];
+            }
+            // --- FIN DE CAMBIO SUGERIDO ---
 
             datosParaExportar.push({ 
                 folio: s.folio, empresa: s.empresa, sucursal: s.sucursal, status: s.status || 'FINALIZADO', motivo, tiempo: tiempoEntrega 
@@ -250,8 +265,8 @@ async function cargarHistorial() {
                             <i class="fa-solid fa-file-pdf"></i>
                         </button>
                     </td>
-                    <td><small>${s.fechaEnvio || s.fechaRegistro || '---'}</small></td>
-                    <td><small class="fw-bold">${fechaCierreRaw.includes('T') ? fechaCierreRaw.split('T')[0] : fechaCierreRaw}</small></td>
+                    <td><small>${fechaRegistroAMostrar}</small></td>
+                    <td><small class="fw-bold">${fechaCierreBonita}</small></td>
                     <td class="fw-bold text-primary">${tiempoEntrega}</td>
                 </tr>
             `;
