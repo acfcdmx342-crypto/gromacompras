@@ -53,7 +53,6 @@
         }
     </style>
     <script>
-        // Evitar destello blanco aplicando el tema al cargar el DOM
         if(localStorage.getItem('themeSeguimiento') === 'dark') {
             document.documentElement.classList.add('dark-mode');
         }
@@ -108,7 +107,6 @@
 </div>
 
 <script>
-    // LÓGICA DE INTERFAZ DEL MODO OSCURO
     const btnMode = document.getElementById('btnDarkMode');
     const iconMode = btnMode.querySelector('i');
 
@@ -124,7 +122,6 @@
         }
     }
 
-    // Inicializar
     if(localStorage.getItem('themeSeguimiento') === 'dark') aplicarTema(true);
 
     btnMode.onclick = () => {
@@ -137,7 +134,6 @@
 <script type="module">
 import { database, ref, onValue, get } from "./firebase.js";
 
-// --- SEGURIDAD Y SESIÓN ---
 const sesionRaw = localStorage.getItem("usuarioLogueado");
 if (!sesionRaw) location.href = "index.html";
 const sesion = JSON.parse(sesionRaw);
@@ -160,7 +156,6 @@ if (window.esSoporteJR) {
 
 let datosParaExportar = [];
 
-// --- UTILIDADES ---
 const limpiarFecha = (str) => {
     if(!str || str === "---") return null;
     if(str.includes('T')) return new Date(str);
@@ -179,7 +174,6 @@ const limpiarFecha = (str) => {
 window.mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
 window.ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
 
-// --- CARGA DE DATOS ---
 onValue(ref(database, "historial_permanente"), () => cargarHistorial());
 
 async function cargarHistorial() {
@@ -207,6 +201,8 @@ async function cargarHistorial() {
             const segsRaw = s.seguimientos || [];
             const segs = Array.isArray(segsRaw) ? segsRaw : Object.values(segsRaw);
             const estaEliminado = s.status === "ELIMINADO" || s.eliminado === true;
+            
+            // BUSCAMOS EL SEGUIMIENTO QUE TENGA EL STATUS CONFIRMADO
             const segConf = segs.find(x => x.status === "CONFIRMADO");
             
             // Lógica de Clases y Badges
@@ -214,9 +210,13 @@ async function cargarHistorial() {
             let badgeClass = estaEliminado ? 'badge-del' : (s.status === "PENDIENTE" ? 'badge-warn' : 'badge-ok');
             let iconBadge = estaEliminado ? 'fa-trash-can' : (s.status === "PENDIENTE" ? 'fa-clock' : 'fa-check-double');
             
+            // SE AJUSTA PARA LEER LOS COMENTARIOS DEL SEGUIMIENTO DE CONFIRMACIÓN O EL GENERAL
             let motivo = estaEliminado 
                 ? `❌ ELIMINADO: ${s.motivoEliminacion || "SIN MOTIVO"}` 
                 : (segConf?.comentarios || s.comentarios || "ENTREGA REALIZADA");
+
+            // SE AJUSTA PARA LEER 'evidenciaImagen' (NUEVO MODAL) O 'evidenciaFoto' (ANTERIOR)
+            let fotoAMostrar = segConf?.evidenciaImagen || s.evidenciaImagen || segConf?.fotoEvidencia || s.evidenciaFoto;
 
             let fechaCierreRaw = estaEliminado 
                 ? (s.fechaDepuracion || "---") 
@@ -244,7 +244,7 @@ async function cargarHistorial() {
                     <td>${s.sucursal || '---'}</td>
                     <td><span class="badge ${badgeClass}"><i class="fa-solid ${iconBadge} me-1"></i>${s.status || 'FINALIZADO'}</span></td>
                     <td class="small text-start">${motivo}</td>
-                    <td>${segConf?.fotoEvidencia || s.evidenciaFoto ? `<img src="${segConf?.fotoEvidencia || s.evidenciaFoto}" width="40" height="40" class="img-preview shadow-sm" onclick="window.verFoto('${segConf?.fotoEvidencia || s.evidenciaFoto}', '${s.folio}')">` : '---'}</td>
+                    <td>${fotoAMostrar ? `<img src="${fotoAMostrar}" width="40" height="40" class="img-preview shadow-sm" onclick="window.verFoto('${fotoAMostrar}', '${s.folio}')">` : '---'}</td>
                     <td>
                         <button onclick="window.verPDF('${s.archivoData}')" class="btn btn-sm btn-secondary ${!s.archivoData ? 'disabled' : ''}">
                             <i class="fa-solid fa-file-pdf"></i>
@@ -262,7 +262,6 @@ async function cargarHistorial() {
     } finally { window.ocultarCargando(); }
 }
 
-// --- FUNCIONES GLOBALES ---
 window.verPDF = d => { if(d && d !== '#') { const w = window.open(); w.document.write(`<iframe src="${d}" style="width:100%;height:100%; border:none;"></iframe>`); } };
 window.verFoto = (url, folio) => Swal.fire({ title: `Evidencia - ${folio}`, imageUrl: url, width: '600px', confirmButtonText: 'Cerrar' });
 
@@ -279,7 +278,6 @@ window.descargarExcel = () => {
     link.click();
 };
 
-// Bloqueos de seguridad
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.onkeydown = e => {
     if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
