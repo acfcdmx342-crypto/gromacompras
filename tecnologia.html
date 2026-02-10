@@ -275,7 +275,7 @@
                 const solRef = ref(database, `tecnologia/${idKey}`);
                 const snap = await get(solRef);
                 const datosSolicitud = snap.val();
-
+                const fechaOriginal = datosSolicitud.fechaISO || new Date().toISOString();
                 // --- PARCHE DE COMPATIBILIDAD ---
                 const h = globalSeguimientos.filter(x => x.folio === folio);
                 let art = "S/N";
@@ -298,6 +298,7 @@
                 const datosHistorial = {
                     ...datosSolicitud,
                     status: "CONFIRMADO",
+                    fechaISO: fechaOriginal, // Nos aseguramos de pasarla al historial
                     descripcionArt: art, // Aseguramos que el dato vaya al historial
                     fechaCierre: new Date().toISOString(),
                     evidenciaImagen: formValues.img,
@@ -436,10 +437,18 @@
         reader.onload = async () => {
             const fol = `TEC-${emp}-${zon}-${contador.toString().padStart(4, '0')}`.toUpperCase();
             await push(solicitudesRef, {
-                folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(), sucursal: suc.toUpperCase(),
-                soporte: window.nombreSesion, archivoData: reader.result, 
-                status: local ? "EN COTIZACION" : "PENDIENTE", solicitudLocal: local, isLocal: local,
-                fechaISO: new Date().toISOString(), usuario: window.usuarioSesion, eliminado: false
+                folio: fol, 
+                empresa: emp.toUpperCase(), 
+                zona: zon.toUpperCase(), 
+                sucursal: suc.toUpperCase(),
+                soporte: window.nombreSesion, 
+                archivoData: reader.result, 
+                status: local ? "EN COTIZACION" : "PENDIENTE", 
+                solicitudLocal: local, 
+                isLocal: local,
+                fechaISO: new Date().toISOString(),
+                usuario: window.usuarioSesion, 
+                eliminado: false
             });
             document.getElementById("formTec").reset();
             document.getElementById("preview-container").innerHTML = '<small class="text-muted">Vista previa</small>';
@@ -481,4 +490,5 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+
 
