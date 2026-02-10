@@ -211,7 +211,7 @@
                                 `<span class="action-btn text-info" onclick="modalSegLocal('${doc.key}', '${s.folio}')" title="Seguimiento Local">📋</span>` :
                                 `<span class="action-btn text-primary" onclick="window.location.href='seguimiento.html?folio=${s.folio}'" title="Seguimiento Compras">📋</span>`
                             }
-                            ${(window.esSoporteJR || window.esAdmin) && ((esLocal && statusActual === "EN ZONA") || (!esLocal && statusActual === "ENVIADO A ZONA")) ? `
+                            ${(window.esSoporteJR || window.esAdmin) && ((esLocal && (statusActual === "EN ZONA" || statusActual === "DEVOLUCION")) || (!esLocal && (statusActual === "ENVIADO A ZONA" || statusActual === "DEVOLUCION"))) ? `
                                 <span class="action-btn text-success" onclick="confirmarEntrega('${doc.key}', '${s.folio}')" title="Confirmar Entrega"><i class="fa-solid fa-circle-check"></i></span>
                                 <span class="action-btn text-warning" onclick="enviarDevolucion('${doc.key}', '${s.folio}')" title="Devolución"><i class="fa-solid fa-arrow-rotate-left"></i></span>
                             ` : ''}
@@ -224,8 +224,7 @@
         document.getElementById("loader").style.display = "none";
     }
 
-    // --- ACCIÓN: CONFIRMAR ENTREGA (CON PASO AL HISTORIAL PERMANENTE) ---
-   window.confirmarEntrega = async (idKey, folio) => {
+    window.confirmarEntrega = async (idKey, folio) => {
         const { value: formValues } = await Swal.fire({
             title: 'Confirmar Entrega',
             html: `
@@ -276,19 +275,16 @@
                 const snap = await get(solRef);
                 const datosSolicitud = snap.val();
                 const fechaOriginal = datosSolicitud.fechaISO || new Date().toISOString();
-                // --- PARCHE DE COMPATIBILIDAD ---
                 const h = globalSeguimientos.filter(x => x.folio === folio);
                 let art = "S/N";
                 if (h.length > 0) {
-                    // Busca descripcionArt (Local) o descripcion (Compras)
                     art = h[0].descripcionArt || h[0].descripcion || "S/N";
                 }
-                // --------------------------------
 
                 const nuevoSeguimiento = {
                     folio, 
                     status: "CONFIRMADO", 
-                    descripcionArt: art, // Normalizamos a descripcionArt para el historial
+                    descripcionArt: art,
                     comentarios: formValues.mot,
                     evidenciaImagen: formValues.img, 
                     fechaRegistro: new Date().toISOString(), 
@@ -298,8 +294,8 @@
                 const datosHistorial = {
                     ...datosSolicitud,
                     status: "CONFIRMADO",
-                    fechaISO: fechaOriginal, // Nos aseguramos de pasarla al historial
-                    descripcionArt: art, // Aseguramos que el dato vaya al historial
+                    fechaISO: fechaOriginal,
+                    descripcionArt: art,
                     fechaCierre: new Date().toISOString(),
                     evidenciaImagen: formValues.img,
                     comentarios: formValues.mot,
@@ -322,61 +318,76 @@
             }
         }
     };
-    // --- ACCIÓN: ENVIAR A DEVOLUCIÓN ---
+
+    // --- ACCIÓN: REPORTAR DEVOLUCIÓN (NUEVA FUNCIÓN MODIFICADA) ---
     window.enviarDevolucion = async (idKey, folio) => {
-        const { value: motivo } = await Swal.fire({
+        const { value: formValues } = await Swal.fire({
             title: 'Reportar Devolución',
-            input: 'textarea',
-            inputLabel: 'Motivo de la devolución',
-            inputPlaceholder: 'EJ: EL EQUIPO LLEGÓ DAÑADO O NO CORRESPONDE...',
-            inputAttributes: { 'class': 'text-uppercase' },
+            html: `
+                <div class="text-start">
+                    <p class="small text-muted mb-2">Folio: <b>${folio}</b></p>
+                    <label class="fw-bold small mb-1">Imagen de Evidencia (Devolución):</label>
+                    <input type="file" id="dev-img" class="form-control mb-3" accept="image/*">
+                    <div id="prev-dev" class="mb-3 text-center" style="display:none;">
+                        <img id="img-dev-render" src="" style="max-width:100%; height:150px; border-radius:10px; border:1px solid #ddd;">
+                    </div>
+                    <label class="fw-bold small mb-1">Motivo de la Devolución:</label>
+                    <textarea id="dev-motivo" class="form-control text-uppercase" placeholder="EJ: EL EQUIPO LLEGÓ DAÑADO..." style="height:80px;"></textarea>
+                </div>
+            `,
             showCancelButton: true,
-            confirmButtonText: '🚀 Enviar',
-            inputValidator: (value) => { if (!value) return 'El motivo es obligatorio'; }
+            confirmButtonText: '🚀 Reportar',
+            didOpen: () => {
+                const input = document.getElementById('dev-img');
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            document.getElementById('img-dev-render').src = event.target.result;
+                            document.getElementById('prev-dev').style.display = 'block';
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                };
+            },
+            preConfirm: () => {
+                const imgFile = document.getElementById('dev-img').files[0];
+                const motivo = document.getElementById('dev-motivo').value;
+                if (!imgFile) return Swal.showValidationMessage('Sube la foto de la devolución');
+                if (!motivo) return Swal.showValidationMessage('Escribe el motivo');
+                return new Promise(resolve => {
+                    const r = new FileReader();
+                    r.onload = (e) => resolve({ img: e.target.result, mot: motivo.toUpperCase() });
+                    r.readAsDataURL(imgFile);
+                });
+            }
         });
 
-        if (motivo) {
+        if (formValues) {
             document.getElementById("loader").style.display = "flex";
             try {
-                const solRef = ref(database, `tecnologia/${idKey}`);
-                const snap = await get(solRef);
-                const datosSolicitud = snap.val();
-
-                // --- PARCHE DE COMPATIBILIDAD ---
                 const h = globalSeguimientos.filter(x => x.folio === folio);
                 let art = "S/N";
                 if (h.length > 0) {
                     art = h[0].descripcionArt || h[0].descripcion || "S/N";
                 }
-                // --------------------------------
 
                 const nuevoSeguimiento = {
                     folio, 
                     status: "DEVOLUCION", 
-                    descripcionArt: art, 
-                    comentarios: motivo.toUpperCase(),
+                    descripcionArt: art,
+                    comentarios: formValues.mot,
+                    evidenciaImagen: formValues.img,
                     fechaRegistro: new Date().toISOString(), 
                     usuario: window.nombreSesion
                 };
 
-                const datosHistorial = {
-                    ...datosSolicitud,
-                    status: "DEVOLUCION",
-                    descripcionArt: art,
-                    fechaCierre: new Date().toISOString(),
-                    comentarios: motivo.toUpperCase(),
-                    seguimientos: {
-                        ...(datosSolicitud.seguimientos || {}),
-                        final: nuevoSeguimiento
-                    }
-                };
-
-                await push(historialPermanenteRef, datosHistorial);
+                // Registramos solo en el historial de seguimientos (modal)
                 await push(seguimientoRef, nuevoSeguimiento);
-                await remove(solRef);
 
                 document.getElementById("loader").style.display = "none";
-                await Swal.fire("Registrado", "Se ha marcado como devolución y movido al historial", "warning");
+                await Swal.fire("Registrado", "Devolución reportada correctamente. La solicitud sigue en proceso.", "info");
             } catch (error) {
                 console.error(error);
                 document.getElementById("loader").style.display = "none";
@@ -384,6 +395,7 @@
             }
         }
     };
+
     window.modalSegLocal = async (id, folio) => {
         const historialPrevio = globalSeguimientos.filter(x => x.folio === folio).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
         const articuloExistente = historialPrevio.length > 0 ? historialPrevio[0].descripcionArt : "";
@@ -467,10 +479,11 @@
         let rows = h.map(i => `
             <tr>
                 <td>${new Date(i.fechaRegistro).toLocaleString()}</td>
-                <td><span class="badge bg-info">${i.status}</span></td>
+                <td><span class="badge ${i.status === 'DEVOLUCION' ? 'st-devolucion' : 'bg-info'}">${i.status}</span></td>
                 <td>
                     <b>ART:</b> ${i.descripcionArt || '-'}<br>
-                    <b>OBS:</b> ${i.comentarios || '-'}
+                    <b>OBS:</b> ${i.comentarios || '-'}<br>
+                    ${i.evidenciaImagen ? `<a href="#" onclick="Swal.fire({imageUrl: '${i.evidenciaImagen}', imageWidth: 400})">Ver Evidencia</a>` : ''}
                 </td>
             </tr>`).join('');
         Swal.fire({ title: 'Historial ' + fol, html: `<div class="table-responsive"><table class="table table-sm small"><thead><tr><th>Fecha</th><th>Status</th><th>Detalle</th></tr></thead><tbody>${rows}</tbody></table></div>`, width: '800px' });
@@ -490,5 +503,3 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
-
