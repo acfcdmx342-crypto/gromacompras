@@ -55,15 +55,14 @@
             <div class="modal-body">
                 <input type="hidden" id="fID">
                 
-                <div id="relacionSucursal" class="d-none mb-3">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold small">Empresa</label>
-                        <select id="fEmp" class="form-select"></select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold small">Zona</label>
-                        <select id="fZona" class="form-select"></select>
-                    </div>
+                <div id="secEmpresa" class="d-none mb-3">
+                    <label class="form-label fw-bold small">Empresa Responsable</label>
+                    <select id="fEmp" class="form-select"></select>
+                </div>
+
+                <div id="secZona" class="d-none mb-3">
+                    <label class="form-label fw-bold small">Zona</label>
+                    <select id="fZona" class="form-select"></select>
                 </div>
 
                 <div class="mb-3">
@@ -125,7 +124,8 @@
         } else {
             html += `<div class="table-responsive"><table class="table table-hover align-middle border">
                         <thead><tr>
-                            ${path === 'sucursales' ? '<th>Empresa</th><th>Zona</th>' : ''}
+                            ${(path === 'zonas' || path === 'sucursales') ? '<th>Empresa</th>' : ''}
+                            ${path === 'sucursales' ? '<th>Zona</th>' : ''}
                             <th class="sticky-col text-start">Nombre</th>
                             <th>Estado</th>
                             ${path === 'zonas' ? srvNames.map(n => `<th>${n}</th>`).join('') : ''}
@@ -135,7 +135,8 @@
             itemKeys.forEach(id => {
                 const row = items[id];
                 html += `<tr>
-                    ${path === 'sucursales' ? `<td>${row.empresa || '-'}</td><td>${row.zona || '-'}</td>` : ''}
+                    ${(path === 'zonas' || path === 'sucursales') ? `<td><span class="fw-bold text-primary">${row.empresa || 'N/A'}</span></td>` : ''}
+                    ${path === 'sucursales' ? `<td>${row.zona || '-'}</td>` : ''}
                     <td class="sticky-col text-start">${row.nombre}</td>
                     <td><span class="badge ${row.activo ? 'bg-success' : 'bg-danger'} rounded-pill">${row.activo ? 'Activo' : 'Inactivo'}</span></td>
                     ${path === 'zonas' ? srvNames.map(n => `<td><i class="bi ${row[n] ? 'bi-check-circle-fill text-primary' : 'bi-circle text-muted'}"></i></td>`).join('') : ''}
@@ -156,15 +157,22 @@
         document.getElementById("fNom").value = item.nombre;
         document.getElementById("fAct").checked = item.activo;
         
-        // Manejo de secciones especiales
         const extraZonas = document.getElementById("extraZonas");
-        const relacionSuc = document.getElementById("relacionSucursal");
+        const secEmpresa = document.getElementById("secEmpresa");
+        const secZona = document.getElementById("secZona");
         
         extraZonas.classList.add('d-none');
-        relacionSuc.classList.add('d-none');
+        secEmpresa.classList.add('d-none');
+        secZona.classList.add('d-none');
 
+        // Lógica para Zonas: Requiere Empresa y Matriz de Servidores
         if (path === 'zonas') {
+            secEmpresa.classList.remove('d-none');
             extraZonas.classList.remove('d-none');
+            
+            const emps = Object.values(store.empresas).map(e => e.nombre).sort();
+            document.getElementById("fEmp").innerHTML = emps.map(e => `<option value="${e}" ${item.empresa === e ? 'selected' : ''}>${e}</option>`).join('') || '<option value="">Cree empresas primero</option>';
+
             const srvs = Object.values(store.servidores).map(s => s.nombre).sort();
             document.getElementById("checkList").innerHTML = srvs.map(s => `
                 <div class="col-6"><div class="form-check small">
@@ -173,13 +181,16 @@
                 </div></div>`).join('');
         }
 
+        // Lógica para Sucursales: Requiere Empresa y Zona
         if (path === 'sucursales') {
-            relacionSuc.classList.remove('d-none');
+            secEmpresa.classList.remove('d-none');
+            secZona.classList.remove('d-none');
+            
             const emps = Object.values(store.empresas).map(e => e.nombre).sort();
             const zons = Object.values(store.zonas).map(z => z.nombre).sort();
             
-            document.getElementById("fEmp").innerHTML = emps.map(e => `<option value="${e}" ${item.empresa === e ? 'selected' : ''}>${e}</option>`).join('') || '<option>Debe crear empresas primero</option>';
-            document.getElementById("fZona").innerHTML = zons.map(z => `<option value="${z}" ${item.zona === z ? 'selected' : ''}>${z}</option>`).join('') || '<option>Debe crear zonas primero</option>';
+            document.getElementById("fEmp").innerHTML = emps.map(e => `<option value="${e}" ${item.empresa === e ? 'selected' : ''}>${e}</option>`).join('') || '<option value="">Cree empresas primero</option>';
+            document.getElementById("fZona").innerHTML = zons.map(z => `<option value="${z}" ${item.zona === z ? 'selected' : ''}>${z}</option>`).join('') || '<option value="">Cree zonas primero</option>';
         }
 
         new bootstrap.Modal(document.getElementById("modalApp")).show();
@@ -190,12 +201,10 @@
         const nombre = document.getElementById("fNom").value.trim();
         if(!nombre) return Swal.fire("Error", "Nombre obligatorio", "error");
 
-        const data = { 
-            nombre, 
-            activo: document.getElementById("fAct").checked 
-        };
+        const data = { nombre, activo: document.getElementById("fAct").checked };
         
         if (currentPath === 'zonas') {
+            data.empresa = document.getElementById("fEmp").value;
             Object.values(store.servidores).forEach(s => {
                 data[s.nombre] = document.getElementById(`chk_${s.nombre}`)?.checked || false;
             });
