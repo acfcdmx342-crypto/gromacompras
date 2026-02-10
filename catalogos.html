@@ -11,7 +11,6 @@
         :root { --dark: #0f172a; --accent: #38bdf8; }
         body { background: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow-x: hidden; }
         
-        /* Sidebar Responsiva */
         .sidebar { 
             width: 240px; 
             min-height: 100vh; 
@@ -27,14 +26,12 @@
         .sidebar a:hover { background: #1e293b; color: var(--accent); }
         .sidebar a.active { color: white; border-left: 4px solid var(--accent); background: #1e293b; }
         
-        /* Contenido Principal */
         .main-content { 
             margin-left: 240px; 
             padding: 20px; 
             transition: all 0.3s;
         }
 
-        /* Ajustes para Móviles */
         @media (max-width: 768px) {
             .sidebar { left: -240px; }
             .sidebar.active { left: 0; }
@@ -49,7 +46,6 @@
         .empty-state { padding: 60px; text-align: center; color: #94a3b8; }
         input[type="text"], select { text-transform: uppercase; }
 
-        /* Botón de Menú Móvil */
         .btn-toggle {
             display: none;
             position: fixed;
@@ -121,7 +117,6 @@
 </div>
 
 <script>
-    // Función para manejar el menú en móviles
     function toggleSidebar() {
         document.getElementById('sidebar').classList.toggle('active');
         document.getElementById('main-content').classList.toggle('shifted');
@@ -145,10 +140,33 @@
         });
     });
 
+    // Función para llenar zonas filtradas por empresa
+    const updateZonasDropdown = (selectedEmpresa, selectedZona = "") => {
+        const fZona = document.getElementById("fZona");
+        const zonasFiltradas = Object.values(store.zonas)
+            .filter(z => z.empresa === selectedEmpresa)
+            .map(z => z.nombre)
+            .sort();
+
+        if (zonasFiltradas.length > 0) {
+            fZona.innerHTML = zonasFiltradas.map(z => 
+                `<option value="${z}" ${selectedZona === z ? 'selected' : ''}>${z}</option>`
+            ).join('');
+        } else {
+            fZona.innerHTML = '<option value="">SIN ZONAS PARA ESTA EMPRESA</option>';
+        }
+    };
+
+    // Evento al cambiar empresa en el modal
+    document.getElementById("fEmp").onchange = (e) => {
+        if (currentPath === 'sucursales') {
+            updateZonasDropdown(e.target.value);
+        }
+    };
+
     window.render = (path) => {
         currentPath = path;
-        // Cerrar sidebar en móvil al seleccionar
-        if(window.innerWidth < 768) toggleSidebar();
+        if(window.innerWidth < 768 && document.getElementById('sidebar').classList.contains('active')) toggleSidebar();
         
         document.querySelectorAll('.sidebar a').forEach(el => el.classList.remove('active'));
         document.getElementById(`link-${path}`)?.classList.add('active');
@@ -200,16 +218,19 @@
         secEmpresa.classList.add('d-none');
         secZona.classList.add('d-none');
 
+        const emps = Object.values(store.empresas).map(e => e.nombre).sort();
+        const fEmp = document.getElementById("fEmp");
+
         if (path === 'zonas' || path === 'sucursales') {
             secEmpresa.classList.remove('d-none');
-            const emps = Object.values(store.empresas).map(e => e.nombre).sort();
-            document.getElementById("fEmp").innerHTML = emps.map(e => `<option value="${e}" ${item.empresa === e ? 'selected' : ''}>${e}</option>`).join('') || '<option value="">CREE EMPRESAS PRIMERO</option>';
+            fEmp.innerHTML = emps.map(e => `<option value="${e}" ${item.empresa === e ? 'selected' : ''}>${e}</option>`).join('') || '<option value="">CREE EMPRESAS PRIMERO</option>';
         }
 
         if (path === 'sucursales') {
             secZona.classList.remove('d-none');
-            const zons = Object.values(store.zonas).map(z => z.nombre).sort();
-            document.getElementById("fZona").innerHTML = zons.map(z => `<option value="${z}" ${item.zona === z ? 'selected' : ''}>${z}</option>`).join('') || '<option value="">CREE ZONAS PRIMERO</option>';
+            // Carga inicial de zonas basada en la empresa seleccionada o la primera de la lista
+            const empresaInicial = item.empresa || fEmp.value;
+            updateZonasDropdown(empresaInicial, item.zona);
         }
 
         new bootstrap.Modal(document.getElementById("modalApp")).show();
@@ -222,7 +243,11 @@
 
         const data = { nombre };
         if (currentPath === 'zonas' || currentPath === 'sucursales') data.empresa = document.getElementById("fEmp").value;
-        if (currentPath === 'sucursales') data.zona = document.getElementById("fZona").value;
+        if (currentPath === 'sucursales') {
+            const zonaVal = document.getElementById("fZona").value;
+            if(!zonaVal || zonaVal.includes("SIN ZONAS")) return Swal.fire("Error", "Debe seleccionar una zona válida", "error");
+            data.zona = zonaVal;
+        }
 
         try {
             id ? await update(ref(db, `${currentPath}/${id}`), data) : await push(ref(db, currentPath), data);
