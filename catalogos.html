@@ -72,11 +72,6 @@
                     <label class="form-label fw-bold small">Nombre / Descripción</label>
                     <input type="text" id="fNom" class="form-control" placeholder="NOMBRE DEL REGISTRO">
                 </div>
-                
-                <div class="form-check form-switch mb-3">
-                    <input class="form-check-input" type="checkbox" id="fAct" checked>
-                    <label class="form-check-label" for="fAct">Registro Activo</label>
-                </div>
             </div>
             <div class="modal-footer bg-light">
                 <button class="btn btn-primary w-100" id="btnSave">Guardar Información</button>
@@ -124,7 +119,6 @@
                             ${(path === 'zonas' || path === 'sucursales') ? '<th>Empresa</th>' : ''}
                             ${path === 'sucursales' ? '<th>Zona</th>' : ''}
                             <th class="sticky-col text-start">Nombre</th>
-                            <th>Estado</th>
                             <th class="text-end px-4">Acciones</th>
                         </tr></thead><tbody>`;
 
@@ -134,7 +128,6 @@
                     ${(path === 'zonas' || path === 'sucursales') ? `<td><span class="fw-bold text-primary">${row.empresa || 'N/A'}</span></td>` : ''}
                     ${path === 'sucursales' ? `<td>${row.zona || '-'}</td>` : ''}
                     <td class="sticky-col text-start">${row.nombre}</td>
-                    <td><span class="badge ${row.activo ? 'bg-success' : 'bg-danger'} rounded-pill">${row.activo ? 'Activo' : 'Inactivo'}</span></td>
                     <td class="text-end px-3">
                         <button class="btn btn-sm btn-outline-secondary border-0" onclick="showModal('${path}', '${id}')"><i class="bi bi-pencil"></i></button>
                         <button class="btn btn-sm btn-outline-danger border-0" onclick="del('${path}', '${id}')"><i class="bi bi-trash"></i></button>
@@ -147,10 +140,9 @@
     };
 
     window.showModal = (path, id = "") => {
-        const item = id ? store[path][id] : { nombre: "", activo: true, empresa: "", zona: "" };
+        const item = id ? store[path][id] : { nombre: "", empresa: "", zona: "" };
         document.getElementById("fID").value = id;
         document.getElementById("fNom").value = item.nombre;
-        document.getElementById("fAct").checked = item.activo;
         
         const secEmpresa = document.getElementById("secEmpresa");
         const secZona = document.getElementById("secZona");
@@ -178,15 +170,11 @@
 
     document.getElementById("btnSave").onclick = async () => {
         const id = document.getElementById("fID").value;
-        // Transformar a MAYÚSCULAS antes de guardar
         const nombre = document.getElementById("fNom").value.trim().toUpperCase();
         
         if(!nombre) return Swal.fire("Error", "Nombre obligatorio", "error");
 
-        const data = { 
-            nombre: nombre, 
-            activo: document.getElementById("fAct").checked 
-        };
+        const data = { nombre: nombre };
         
         if (currentPath === 'zonas') {
             data.empresa = document.getElementById("fEmp").value.toUpperCase();
