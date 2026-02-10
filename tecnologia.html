@@ -29,17 +29,10 @@
         .st-devolucion { background-color: #6f42c1 !important; color: white; }
         .st-local-cotizacion { background-color: #fd7e14 !important; color: white; }
 
-        /* Loader */
-        #loader { 
-            display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(255,255,255,0.9); z-index: 9999; justify-content: center; 
-            align-items: center; flex-direction: column; 
-        }
+        #loader { display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; justify-content: center; align-items: center; flex-direction: column; }
 
-        /* Dark Mode */
         body.dark-mode { background: #121416 !important; color: #ffffff; }
-        body.dark-mode .card { background: #1d1f21 !important; color: #ffffff; border: 1px solid #333; }
-        body.dark-mode .user-info-box { background: #1d1f21 !important; color: #ffffff; }
+        body.dark-mode .card, body.dark-mode .user-info-box { background: #1d1f21 !important; color: #ffffff; }
         body.dark-mode .table td { background-color: #1d1f21 !important; color: #ffffff !important; border-color: #444; }
         body.dark-mode .fila-local td { background-color: #2c2610 !important; }
 
@@ -51,7 +44,7 @@
 <body class="p-4">
 <div id="loader">
     <div style="animation: pulse 1.5s infinite;"><img src="https://gruporoma.com/wp-content/uploads/2023/06/cropped-cropped-procomex-pachuca-logo-350-%C3%97-100-px-1.png" style="width: 250px;"></div>
-    <div class="mt-3"><div class="spinner-border text-primary"></div><span class="ms-2 fw-bold">Cargando Sistema...</span></div>
+    <div class="mt-3"><div class="spinner-border text-primary"></div><span class="ms-2 fw-bold">Sincronizando...</span></div>
 </div>
 
 <div class="container">
@@ -61,14 +54,11 @@
                 <div class="fw-bold text-primary">👤 <span id="usuarioActivo"></span></div>
                 <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
             </div>
-            <div class="aviso-devolucion d-none d-md-block">
-                <strong>⚠️ Aviso:</strong> Los empaques deben estar intactos para devoluciones.
-            </div>
         </div>
         <div class="d-flex align-items-center">
             <button id="btnDarkMode" class="mode-toggle-btn shadow-sm btn btn-light"><i class="fa-solid fa-moon"></i></button>
             <div class="dropdown">
-                <button class="btn btn-primary btn-rounded dropdown-toggle fw-bold px-4" data-bs-toggle="dropdown">☰ Menú</button>
+                <button class="btn btn-primary btn-rounded dropdown-toggle fw-bold px-4 shadow-sm" data-bs-toggle="dropdown">☰ Menú</button>
                 <ul class="dropdown-menu dropdown-menu-end shadow">
                     <li><a class="dropdown-item" href="historial.html">📜 Ver Historial</a></li>
                     <li id="liBase"></li>
@@ -103,7 +93,7 @@
         </form>
     </div>
 
-    <div class="card shadow p-4">
+    <div class="card shadow p-4 border-0">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="fw-bold m-0 text-secondary">Solicitudes en Proceso</h5>
             <div id="contenedorExportar"></div>
@@ -155,7 +145,7 @@
 
     if(window.esAdmin) {
         document.getElementById("liBase").innerHTML = '<a class="dropdown-item" href="base.html">🏠 Página Base</a>';
-        document.getElementById("contenedorExportar").innerHTML = `<button class="btn btn-outline-success btn-sm fw-bold" onclick="exportarExcel()">📊 Reporte</button>`;
+        document.getElementById("contenedorExportar").innerHTML = `<button class="btn btn-outline-success btn-sm fw-bold px-3" onclick="exportarExcel()">📊 Reporte</button>`;
     }
 
     const solicitudesRef = ref(database, "tecnologia");
@@ -176,15 +166,11 @@
         snap.forEach(doc => {
             const s = doc.val();
             if (s.eliminado) return;
-            
             const segsFolio = globalSeguimientos.filter(x => x.folio === s.folio).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
             const statusActual = segsFolio.length > 0 ? segsFolio[0].status : (s.status || "PENDIENTE");
-            
             if (statusActual === "CONFIRMADO") return;
 
-            // RESTAURACIÓN DE LÓGICA DE ICONO DE SEGUIMIENTO
             const esLocal = s.solicitudLocal === true || s.isLocal === true;
-            
             let badgeClass = "st-compras"; 
             if (statusActual === "EN ZONA") badgeClass = "st-zona";
             else if (statusActual === "EN COTIZACION") badgeClass = "st-local-cotizacion";
@@ -195,7 +181,6 @@
                 dataExportar.push({ ...s, statusActual });
                 const tr = document.createElement("tr");
                 if(esLocal) tr.classList.add("fila-local");
-                
                 tr.innerHTML = `
                     <td class="fw-bold">${s.folio}</td>
                     <td>${s.empresa}</td>
@@ -209,13 +194,11 @@
                         <div class="d-flex justify-content-center gap-2">
                             <span class="action-btn" onclick="verHistorial('${s.folio}')">📜</span>
                             <span class="action-btn text-primary" onclick="editarRegistro('${doc.key}')">✏️</span>
-                            
                             ${esLocal ? 
                                 `<span class="action-btn text-info" onclick="modalSegLocal('${doc.key}', '${s.folio}')">📋</span>` :
                                 `<span class="action-btn text-primary" onclick="window.location.href='seguimiento.html?folio=${s.folio}'">📋</span>`
                             }
-
-                            ${(window.esSoporteJR || window.esAdmin) && (statusActual === "EN ZONA" || statusActual === "ENVIADO A ZONA") ? `
+                            ${(window.esSoporteJR || window.esAdmin) && (statusActual === "EN ZONA") ? `
                                 <span class="action-btn text-success" onclick="confirmarEntrega('${doc.key}', '${s.folio}')">✅</span>
                                 <span class="action-btn text-warning" onclick="enviarDevolucion('${s.folio}')">🔄</span>
                             ` : ''}
@@ -229,14 +212,52 @@
         document.getElementById("loader").style.display = "none";
     }
 
-    // --- FUNCIONES GLOBALES REINSTALADAS ---
+    // --- LOGICA RECUPERADA DE SEGUIMIENTO LOCAL ---
+    window.modalSegLocal = async (id, folio) => {
+        const { value: formValues } = await Swal.fire({
+            title: `Seguimiento Local: ${folio}`,
+            html: `
+                <select id="swal-status" class="swal2-select w-100 mb-3">
+                    <option value="EN COTIZACION">EN COTIZACION</option>
+                    <option value="EN ZONA">EN ZONA</option>
+                    <option value="DEVOLUCION">DEVOLUCION</option>
+                </select>
+                <input id="swal-art" class="swal2-input" placeholder="Descripción del Artículo">
+                <input id="swal-cant" type="number" class="swal2-input" placeholder="Cantidad">
+                <textarea id="swal-com" class="swal2-textarea" placeholder="Comentarios adicionales"></textarea>
+            `,
+            focusConfirm: false,
+            showCancelButton: true,
+            preConfirm: () => {
+                return {
+                    status: document.getElementById('swal-status').value,
+                    descripcionArt: document.getElementById('swal-art').value,
+                    cantidadArt: document.getElementById('swal-cant').value,
+                    comentarios: document.getElementById('swal-com').value
+                }
+            }
+        });
+
+        if (formValues) {
+            await push(seguimientoRef, {
+                folio: folio,
+                status: formValues.status,
+                descripcionArt: formValues.descripcionArt.toUpperCase(),
+                cantidadArt: formValues.cantidadArt,
+                comentarios: formValues.comentarios.toUpperCase(),
+                fechaRegistro: new Date().toISOString(),
+                usuario: window.nombreSesion
+            });
+            Swal.fire("Actualizado", "Seguimiento guardado correctamente", "success");
+        }
+    };
+
     window.guardarSolicitud = async () => {
         const emp = document.getElementById("empresa").value;
         const zon = document.getElementById("zona").value;
         const suc = document.getElementById("sucursal").value;
         const arc = document.getElementById("archivo").files[0];
         const local = document.getElementById("checkLocal").checked;
-
         if(!emp || !zon || !suc || !arc) return Swal.fire("Error", "Faltan campos", "error");
         
         document.getElementById("loader").style.display = "flex";
@@ -261,29 +282,16 @@
         reader.readAsDataURL(arc);
     };
 
-    window.modalSegLocal = async (id, folio) => {
-        const { value: status } = await Swal.fire({
-            title: 'Actualizar Status Local',
-            input: 'select',
-            inputOptions: { 'EN COTIZACION': 'EN COTIZACION', 'EN ZONA': 'EN ZONA', 'DEVOLUCION': 'DEVOLUCION' },
-            showCancelButton: true
-        });
-        if(status) {
-            await push(seguimientoRef, { folio, status, fechaRegistro: new Date().toISOString(), comentarios: "Actualización Local" });
-            Swal.fire("Actualizado", "", "success");
-        }
-    };
-
     window.confirmarEntrega = async (id, folio) => {
         const res = await Swal.fire({ title: '¿Confirmar entrega?', icon: 'question', showCancelButton: true });
         if(res.isConfirmed) {
-            await push(seguimientoRef, { folio, status: "CONFIRMADO", fechaRegistro: new Date().toISOString(), comentarios: "Confirmado por Soporte" });
+            await push(seguimientoRef, { folio, status: "CONFIRMADO", fechaRegistro: new Date().toISOString(), comentarios: "ENTREGA FINALIZADA" });
         }
     };
 
     window.enviarDevolucion = async (folio) => {
         const { value: mot } = await Swal.fire({ title: 'Motivo de Devolución', input: 'textarea', showCancelButton: true });
-        if(mot) await push(seguimientoRef, { folio, status: "DEVOLUCION", fechaRegistro: new Date().toISOString(), comentarios: mot });
+        if(mot) await push(seguimientoRef, { folio, status: "DEVOLUCION", fechaRegistro: new Date().toISOString(), comentarios: mot.toUpperCase() });
     };
 
     window.editarRegistro = async (id) => {
@@ -298,13 +306,13 @@
 
     window.exportarExcel = async () => {
         const wb = new ExcelJS.Workbook();
-        const ws = wb.addWorksheet('Solicitudes');
-        ws.columns = [{header:'Folio', key:'folio'}, {header:'Empresa', key:'empresa'}, {header:'Sucursal', key:'sucursal'}, {header:'Status', key:'statusActual'}];
+        const ws = wb.addWorksheet('Reporte');
+        ws.columns = [{header:'Folio', key:'folio'}, {header:'Sucursal', key:'sucursal'}, {header:'Status', key:'statusActual'}];
         ws.addRows(dataExportar);
         const buf = await wb.xlsx.writeBuffer();
         const link = document.createElement('a');
         link.href = URL.createObjectURL(new Blob([buf]));
-        link.download = `Reporte_${new Date().getTime()}.xlsx`;
+        link.download = `Reporte_${Date.now()}.xlsx`;
         link.click();
     };
 
@@ -315,8 +323,8 @@
 
     window.verHistorial = (fol) => {
         const h = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
-        let rows = h.map(i => `<tr><td>${new Date(i.fechaRegistro).toLocaleString()}</td><td>${i.status}</td><td>${i.comentarios || '-'}</td></tr>`).join('');
-        Swal.fire({ title: 'Historial ' + fol, html: `<table class="table table-sm small"><thead><tr><th>Fecha</th><th>Status</th><th>Comentario</th></tr></thead><tbody>${rows}</tbody></table>`, width: '600px' });
+        let rows = h.map(i => `<tr><td>${new Date(i.fechaRegistro).toLocaleString()}</td><td>${i.status}</td><td>${i.descripcionArt || ''} ${i.comentarios || ''}</td></tr>`).join('');
+        Swal.fire({ title: 'Historial ' + fol, html: `<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Fecha</th><th>Status</th><th>Detalle</th></tr></thead><tbody>${rows}</tbody></table></div>`, width: '800px' });
     };
 
     window.previewArchivo = (input) => {
