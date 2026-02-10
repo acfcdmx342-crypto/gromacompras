@@ -9,25 +9,68 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root { --dark: #0f172a; --accent: #38bdf8; }
-        body { background: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .sidebar { width: 240px; min-height: 100vh; background: var(--dark); color: white; position: fixed; z-index: 100; }
+        body { background: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow-x: hidden; }
+        
+        /* Sidebar Responsiva */
+        .sidebar { 
+            width: 240px; 
+            min-height: 100vh; 
+            background: var(--dark); 
+            color: white; 
+            position: fixed; 
+            z-index: 1000; 
+            transition: all 0.3s;
+            left: 0;
+        }
+        
         .sidebar a { color: #94a3b8; text-decoration: none; padding: 12px 20px; display: block; transition: 0.3s; cursor: pointer; font-size: 0.9rem; }
         .sidebar a:hover { background: #1e293b; color: var(--accent); }
         .sidebar a.active { color: white; border-left: 4px solid var(--accent); background: #1e293b; }
-        .main-content { margin-left: 240px; padding: 30px; }
+        
+        /* Contenido Principal */
+        .main-content { 
+            margin-left: 240px; 
+            padding: 20px; 
+            transition: all 0.3s;
+        }
+
+        /* Ajustes para Móviles */
+        @media (max-width: 768px) {
+            .sidebar { left: -240px; }
+            .sidebar.active { left: 0; }
+            .main-content { margin-left: 0; }
+            .main-content.shifted { margin-left: 0; filter: blur(2px); pointer-events: none; }
+        }
+
         .table-container { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); min-height: 300px; }
         .sticky-col { position: sticky; left: 0; background: white; font-weight: bold; border-right: 2px solid #e2e8f0 !important; }
         th { font-size: 0.7rem; color: #64748b; text-transform: uppercase; text-align: center; background: #f8fafc !important; }
         td { vertical-align: middle; text-align: center; font-size: 0.85rem; }
         .empty-state { padding: 60px; text-align: center; color: #94a3b8; }
-        
-        /* Forzar mayúsculas visuales en los inputs */
         input[type="text"], select { text-transform: uppercase; }
+
+        /* Botón de Menú Móvil */
+        .btn-toggle {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1001;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        @media (max-width: 768px) { .btn-toggle { display: block; } }
     </style>
 </head>
 <body>
 
-<div class="sidebar">
+<button class="btn btn-dark btn-toggle" onclick="toggleSidebar()">
+    <i class="bi bi-list fs-4"></i>
+</button>
+
+<div class="sidebar" id="sidebar">
     <div class="text-center py-4 border-bottom border-secondary mb-2">
         <h6 class="mb-0 fw-bold text-white">CATÁLOGOS</h6>
     </div>
@@ -38,18 +81,18 @@
     <a onclick="render('usuarios')" id="link-usuarios"><i class="bi bi-person-lines-fill me-2"></i> Usuarios</a>
 </div>
 
-<div class="main-content">
+<div class="main-content" id="main-content">
     <div id="view" class="table-container">
         <div class="text-center py-5 text-muted">
             <i class="bi bi-cloud-check display-1"></i>
             <h4 class="mt-3">Bienvenido al Sistema</h4>
-            <p>Selecciona un módulo en el menú lateral para gestionar los datos.</p>
+            <p>Selecciona un módulo en el menú lateral.</p>
         </div>
     </div>
 </div>
 
 <div class="modal fade" id="modalApp" tabindex="-1">
-    <div class="modal-dialog modal-md">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0">
             <div class="modal-header bg-dark text-white">
                 <h5 class="modal-title" id="mTitle">Registro</h5>
@@ -57,17 +100,14 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="fID">
-                
                 <div id="secEmpresa" class="d-none mb-3">
                     <label class="form-label fw-bold small">Empresa Responsable</label>
                     <select id="fEmp" class="form-select"></select>
                 </div>
-
                 <div id="secZona" class="d-none mb-3">
                     <label class="form-label fw-bold small">Zona</label>
                     <select id="fZona" class="form-select"></select>
                 </div>
-
                 <div class="mb-3">
                     <label class="form-label fw-bold small">Nombre / Descripción</label>
                     <input type="text" id="fNom" class="form-control" placeholder="NOMBRE DEL REGISTRO">
@@ -79,6 +119,14 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Función para manejar el menú en móviles
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('active');
+        document.getElementById('main-content').classList.toggle('shifted');
+    }
+</script>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -99,16 +147,18 @@
 
     window.render = (path) => {
         currentPath = path;
+        // Cerrar sidebar en móvil al seleccionar
+        if(window.innerWidth < 768) toggleSidebar();
+        
         document.querySelectorAll('.sidebar a').forEach(el => el.classList.remove('active'));
         document.getElementById(`link-${path}`)?.classList.add('active');
 
         const items = store[path];
         const itemKeys = Object.keys(items);
 
-        let title = path.toUpperCase();
-        let html = `<div class="d-flex justify-content-between align-items-center mb-4">
-                        <h4 class="text-dark fw-bold m-0">${title}</h4>
-                        <button class="btn btn-dark btn-sm px-3" onclick="showModal('${path}')"><i class="bi bi-plus-lg me-1"></i> Nuevo</button>
+        let html = `<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+                        <h4 class="text-dark fw-bold m-0">${path.toUpperCase()}</h4>
+                        <button class="btn btn-dark px-3" onclick="showModal('${path}')"><i class="bi bi-plus-lg me-1"></i> Nuevo Registro</button>
                     </div>`;
 
         if (itemKeys.length === 0) {
@@ -150,18 +200,15 @@
         secEmpresa.classList.add('d-none');
         secZona.classList.add('d-none');
 
-        if (path === 'zonas') {
+        if (path === 'zonas' || path === 'sucursales') {
             secEmpresa.classList.remove('d-none');
             const emps = Object.values(store.empresas).map(e => e.nombre).sort();
             document.getElementById("fEmp").innerHTML = emps.map(e => `<option value="${e}" ${item.empresa === e ? 'selected' : ''}>${e}</option>`).join('') || '<option value="">CREE EMPRESAS PRIMERO</option>';
         }
 
         if (path === 'sucursales') {
-            secEmpresa.classList.remove('d-none');
             secZona.classList.remove('d-none');
-            const emps = Object.values(store.empresas).map(e => e.nombre).sort();
             const zons = Object.values(store.zonas).map(z => z.nombre).sort();
-            document.getElementById("fEmp").innerHTML = emps.map(e => `<option value="${e}" ${item.empresa === e ? 'selected' : ''}>${e}</option>`).join('') || '<option value="">CREE EMPRESAS PRIMERO</option>';
             document.getElementById("fZona").innerHTML = zons.map(z => `<option value="${z}" ${item.zona === z ? 'selected' : ''}>${z}</option>`).join('') || '<option value="">CREE ZONAS PRIMERO</option>';
         }
 
@@ -171,24 +218,16 @@
     document.getElementById("btnSave").onclick = async () => {
         const id = document.getElementById("fID").value;
         const nombre = document.getElementById("fNom").value.trim().toUpperCase();
-        
         if(!nombre) return Swal.fire("Error", "Nombre obligatorio", "error");
 
-        const data = { nombre: nombre };
-        
-        if (currentPath === 'zonas') {
-            data.empresa = document.getElementById("fEmp").value.toUpperCase();
-        }
-
-        if (currentPath === 'sucursales') {
-            data.empresa = document.getElementById("fEmp").value.toUpperCase();
-            data.zona = document.getElementById("fZona").value.toUpperCase();
-        }
+        const data = { nombre };
+        if (currentPath === 'zonas' || currentPath === 'sucursales') data.empresa = document.getElementById("fEmp").value;
+        if (currentPath === 'sucursales') data.zona = document.getElementById("fZona").value;
 
         try {
             id ? await update(ref(db, `${currentPath}/${id}`), data) : await push(ref(db, currentPath), data);
             bootstrap.Modal.getInstance(document.getElementById("modalApp")).hide();
-            Swal.fire({ title: "Guardado", icon: "success", timer: 800, showConfirmButton: false });
+            Swal.fire({ title: "Listo", icon: "success", timer: 800, showConfirmButton: false });
         } catch (e) { Swal.fire("Error", e.message, "error"); }
     };
 
