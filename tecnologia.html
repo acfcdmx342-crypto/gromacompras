@@ -1,335 +1,318 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solicitud de Tecnología - Procomex</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
-    <script type="text/javascript">
-        (function(){ emailjs.init("0aHlArLgvHrj2Xbk8"); })();
-    </script>
-    <style>
-        body { background:#f2f4f7; transition: background 0.3s ease; }
-        .card { border-radius:20px; border: none; transition: background 0.3s ease; }
-        .action-btn { cursor:pointer; font-size:22px; transition: 0.2s; display: inline-block; padding: 0 4px; }
-        .action-btn:hover { transform: scale(1.2); }
-        .table thead { background:#0d6efd; color:white; }
-        .btn-rounded { border-radius:50px; }
-        .user-info-box { background: white; padding: 10px 20px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: inline-block; transition: background 0.3s ease; }
-        .aviso-devolucion { background: #fff3cd; border-left: 5px solid #ffc107; padding: 10px 15px; border-radius: 10px; font-size: 0.85rem; color: #856404; max-width: 600px; }
-        
-        /* Status Colors */
-        .st-compras { background-color: #0d6efd !important; color: white; } 
-        .st-zona { background-color: #ffc107 !important; color: black; }      
-        .st-pendiente { background-color: #dc3545 !important; color: white; } 
-        .st-devolucion { background-color: #6f42c1 !important; color: white; }
-        .st-local-cotizacion { background-color: #fd7e14 !important; color: white; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitud de Tecnología - Procomex</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+    <script type="text/javascript">
+        (function(){ emailjs.init("0aHlArLgvHrj2Xbk8"); })();
+    </script>
+    <style>
+        body { background:#f2f4f7; transition: background 0.3s ease; }
+        .card { border-radius:20px; border: none; transition: background 0.3s ease; }
+        .action-btn { cursor:pointer; font-size:22px; transition: 0.2s; display: inline-block; padding: 0 4px; }
+        .action-btn:hover { transform: scale(1.2); }
+        .table thead { background:#0d6efd; color:white; }
+        .btn-rounded { border-radius:50px; }
+        .user-info-box { background: white; padding: 10px 20px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: inline-block; transition: background 0.3s ease; }
+        .aviso-devolucion { background: #fff3cd; border-left: 5px solid #ffc107; padding: 10px 15px; border-radius: 10px; font-size: 0.85rem; color: #856404; max-width: 600px; }
+        
+        /* Status Colors */
+        .st-compras { background-color: #0d6efd !important; color: white; } 
+        .st-zona { background-color: #ffc107 !important; color: black; }      
+        .st-pendiente { background-color: #dc3545 !important; color: white; } 
+        .st-devolucion { background-color: #6f42c1 !important; color: white; }
+        .st-local-cotizacion { background-color: #fd7e14 !important; color: white; }
 
-        /* Loader */
-        #loader { 
-            display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(255,255,255,0.9); z-index: 9999; justify-content: center; 
-            align-items: center; flex-direction: column; 
-        }
+        /* Loader */
+        #loader { 
+            display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(255,255,255,0.9); z-index: 9999; justify-content: center; 
+            align-items: center; flex-direction: column; 
+        }
 
-        /* --- ESTILOS MODO OSCURO (CORREGIDOS) --- */
-        body.dark-mode { background: #121416 !important; color: #ffffff; }
-        body.dark-mode .card { background: #1d1f21 !important; color: #ffffff; border: 1px solid #333; }
-        body.dark-mode .user-info-box { background: #1d1f21 !important; color: #ffffff; }
-        body.dark-mode .table { color: #ffffff !important; }
-        body.dark-mode .table td { background-color: #1d1f21 !important; color: #ffffff !important; border-color: #444; }
-        body.dark-mode .form-control { background-color: #2b3035 !important; color: #fff !important; border-color: #495057; }
-        body.dark-mode .input-group-text { background-color: #2b3035 !important; color: #fff !important; border-color: #495057; }
-        body.dark-mode #loader { background: rgba(18, 20, 22, 0.95); }
-        body.dark-mode .text-secondary { color: #dee2e6 !important; }
-        body.dark-mode .fila-local td { background-color: #2c2610 !important; }
+        /* Modo Oscuro */
+        body.dark-mode { background: #121416 !important; color: #ffffff; }
+        body.dark-mode .card { background: #1d1f21 !important; color: #ffffff; border: 1px solid #333; }
+        body.dark-mode .user-info-box { background: #1d1f21 !important; color: #ffffff; }
+        body.dark-mode .table { color: #ffffff !important; }
+        body.dark-mode .table td { background-color: #1d1f21 !important; color: #ffffff !important; border-color: #444; }
+        body.dark-mode .form-control { background-color: #2b3035 !important; color: #fff !important; border-color: #495057; }
+        body.dark-mode #loader { background: rgba(18, 20, 22, 0.95); }
 
-        /* Botón de cambio de modo */
-        .mode-toggle-btn {
-            width: 42px; height: 42px; border-radius: 50%; border: none;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.2rem; cursor: pointer; transition: 0.3s;
-            margin-right: 10px;
-        }
-
-        #preview-container { border: 2px dashed #ccc; border-radius: 10px; min-height: 100px; display: flex; align-items: center; justify-content: center; background: #fff; overflow: hidden; margin-top: 5px; }
-        #preview-container iframe, #preview-container img { width: 100%; height: 200px; object-fit: contain; }
-    </style>
+        .mode-toggle-btn { width: 42px; height: 42px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; transition: 0.3s; margin-right: 10px; }
+        #preview-container { border: 2px dashed #ccc; border-radius: 10px; min-height: 100px; display: flex; align-items: center; justify-content: center; background: #fff; overflow: hidden; margin-top: 5px; }
+        #preview-container iframe, #preview-container img { width: 100%; height: 200px; object-fit: contain; }
+    </style>
 </head>
 <body class="p-4">
 <div id="loader">
-    <div style="animation: pulse 1.5s infinite;">
-        <img src="https://gruporoma.com/wp-content/uploads/2023/06/cropped-cropped-procomex-pachuca-logo-350-%C3%97-100-px-1.png" style="width: 250px;">
-    </div>
-    <div class="mt-3">
-        <div class="spinner-border text-primary" role="status"></div>
-        <span class="ms-2 fw-bold">Procesando...</span>
-    </div>
+    <div style="animation: pulse 1.5s infinite;">
+        <img src="https://gruporoma.com/wp-content/uploads/2023/06/cropped-cropped-procomex-pachuca-logo-350-%C3%97-100-px-1.png" style="width: 250px;">
+    </div>
+    <div class="mt-3">
+        <div class="spinner-border text-primary" role="status"></div>
+        <span class="ms-2 fw-bold">Procesando...</span>
+    </div>
 </div>
 
 <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-        <div class="d-flex align-items-center gap-3">
-            <div class="user-info-box border-start border-primary border-4">
-                <div class="fw-bold text-primary">👤 <span id="usuarioActivo"></span></div>
-                <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
-            </div>
-            <div class="aviso-devolucion d-none d-md-block">
-                <strong>⚠️ Aviso:</strong>Se les recuerda que para hacer una devolución de mercancía los empaques deben de estar lo más intactos posibles, sin Rayaduras o Enmendaduras.
-            </div>
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="user-info-box border-start border-primary border-4">
+                <div class="fw-bold text-primary">👤 <span id="usuarioActivo"></span></div>
+                <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
+            </div>
+            <div class="aviso-devolucion d-none d-md-block">
+                <strong>⚠️ Aviso:</strong> Los empaques deben estar intactos para devoluciones.
+            </div>
+        </div>
+        <div class="d-flex align-items-center">
+            <button id="btnDarkMode" class="mode-toggle-btn shadow-sm btn btn-light"><i class="fa-solid fa-moon"></i></button>
+            <div class="dropdown">
+                <button class="btn btn-primary btn-rounded dropdown-toggle fw-bold px-4 shadow-sm" data-bs-toggle="dropdown">☰ Menú</button>
+                <ul class="dropdown-menu dropdown-menu-end shadow">
+                    <li><a class="dropdown-item" href="historial.html">📜 Ver Historial</a></li>
+                    <li id="liBase"></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="#" onclick="cerrarSesion()">🚪 Cerrar Sesión</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
 
-        <div class="d-flex align-items-center">
-            <button id="btnDarkMode" class="mode-toggle-btn shadow-sm btn btn-light">
-                <i class="fa-solid fa-moon"></i>
-            </button>
+    <div class="card shadow p-4 mb-4">
+        <h5 class="fw-bold mb-3 border-bottom pb-2 text-secondary">Nueva Solicitud</h5>
+        <form id="formTec" class="row g-3">
+            <div class="col-md-3"><label class="small fw-bold">Empresa</label><input id="empresa" class="form-control text-uppercase"></div>
+            <div class="col-md-3"><label class="small fw-bold">Zona</label><input id="zona" class="form-control text-uppercase"></div>
+            <div class="col-md-3"><label class="small fw-bold">Soporte</label><input id="soporte" class="form-control text-uppercase" readonly></div>
+            <div class="col-md-3"><label class="small fw-bold">Sucursal</label><input id="sucursal" class="form-control text-uppercase"></div>
+            <div class="col-md-6">
+                <label class="small fw-bold">Requisición</label>
+                <div class="input-group">
+                    <input id="archivo" type="file" class="form-control" onchange="previewArchivo(this)">
+                    <div class="input-group-text">
+                        <input class="form-check-input" type="checkbox" id="checkLocal">
+                        <label class="form-check-label small fw-bold ms-2" for="checkLocal">Local</label>
+                    </div>
+                </div>
+                <div id="preview-container"><small class="text-muted">Vista previa</small></div>
+            </div>
+            <div class="col-12 mt-4 text-center">
+                <button type="button" class="btn btn-primary btn-rounded px-5 shadow" onclick="guardarSolicitud()">💾 Guardar Solicitud</button>
+            </div>
+        </form>
+    </div>
 
-            <div class="dropdown">
-                <button class="btn btn-primary btn-rounded dropdown-toggle fw-bold px-4 shadow-sm" data-bs-toggle="dropdown">☰ Menú</button>
-                <ul class="dropdown-menu dropdown-menu-end shadow">
-                    <li><a class="dropdown-item" href="historial.html">📜 Ver Historial</a></li>
-                    <li id="liBase"></li>
-                    <li id="liReset"></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" href="#" onclick="cerrarSesion()">🚪 Cerrar Sesión</a></li>
-                </ul>
-            </div>
-        </div>
-    </div>
-
-    <div class="card shadow p-4 mb-4">
-        <h5 class="fw-bold mb-3 border-bottom pb-2 text-secondary">Nueva Solicitud</h5>
-        <form id="formTec" class="row g-3">
-            <div class="col-md-3"><label class="small fw-bold">Empresa</label><input id="empresa" class="form-control text-uppercase"></div>
-            <div class="col-md-3"><label class="small fw-bold">Zona</label><input id="zona" class="form-control text-uppercase"></div>
-            <div class="col-md-3"><label class="small fw-bold">Soporte</label><input id="soporte" class="form-control text-uppercase" readonly></div>
-            <div class="col-md-3"><label class="small fw-bold">Sucursal</label><input id="sucursal" class="form-control text-uppercase"></div>
-            <div class="col-md-6">
-                <label class="small fw-bold">Requisición</label>
-                <div class="input-group">
-                    <input id="archivo" type="file" class="form-control" onchange="previewArchivo(this)">
-                    <div class="input-group-text">
-                        <input class="form-check-input" type="checkbox" id="checkLocal">
-                        <label class="form-check-label small fw-bold ms-2" for="checkLocal">Local</label>
-                    </div>
-                </div>
-                <div id="preview-container"><small class="text-muted">Vista previa</small></div>
-            </div>
-            <div class="col-12 mt-4 text-center">
-                <button type="button" class="btn btn-primary btn-rounded px-5 shadow" onclick="guardarSolicitud()">💾 Guardar Solicitud</button>
-            </div>
-        </form>
-    </div>
-
-    <div class="card shadow p-4 border-0">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold m-0 text-secondary">Solicitudes en Proceso</h5>
-            <div id="contenedorExportar"></div>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-bordered align-middle text-center bg-white">
-                <thead class="table-primary">
-                    <tr>
-                        <th>Folio</th><th>Empresa</th><th>Zona</th><th>Sucursal</th>
-                        <th>Tipo</th><th>Archivo</th><th>Status</th><th>Tiempo</th><th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="tablaTecBody"></tbody>
-            </table>
-        </div>
-    </div>
+    <div class="card shadow p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold m-0 text-secondary">Solicitudes en Proceso</h5>
+            <div id="contenedorExportar"></div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle text-center bg-white">
+                <thead class="table-primary">
+                    <tr>
+                        <th>Folio</th><th>Empresa</th><th>Zona</th><th>Sucursal</th>
+                        <th>Tipo</th><th>Archivo</th><th>Status</th><th>Tiempo</th><th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaTecBody"></tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <script>
-    // LÓGICA MODO OSCURO (JavaScript plano para velocidad)
-    const btnMode = document.getElementById('btnDarkMode');
-    const iconMode = btnMode.querySelector('i');
-
-    function aplicarTema(tema) {
-        if (tema === 'dark') {
-            document.body.classList.add('dark-mode');
-            iconMode.classList.replace('fa-moon', 'fa-sun');
-            btnMode.classList.replace('btn-light', 'btn-dark');
-        } else {
-            document.body.classList.remove('dark-mode');
-            iconMode.classList.replace('fa-sun', 'fa-moon');
-            btnMode.classList.replace('btn-dark', 'btn-light');
-        }
-    }
-
-    // Cargar preferencia
-    aplicarTema(localStorage.getItem('themeTec'));
-
-    btnMode.onclick = () => {
-        const nuevoTema = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
-        localStorage.setItem('themeTec', nuevoTema);
-        aplicarTema(nuevoTema);
-    };
+    // Lógica rápida de tema
+    const btnMode = document.getElementById('btnDarkMode');
+    const aplicarTema = (t) => {
+        document.body.classList.toggle('dark-mode', t === 'dark');
+        btnMode.innerHTML = t === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+    };
+    aplicarTema(localStorage.getItem('themeTec'));
+    btnMode.onclick = () => {
+        const nt = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
+        localStorage.setItem('themeTec', nt);
+        aplicarTema(nt);
+    };
 </script>
 
 <script type="module">
-    import { database, ref, push, set, get, onValue, update, remove } from "./firebase.js";
+    import { database, ref, push, set, get, onValue, update, remove } from "./firebase.js";
 
-    // Manejo de Sesión
-    const sesion = JSON.parse(localStorage.getItem("usuarioLogueado") || "{}");
-    if(!sesion.usuario) location.href = "index.html";
-    window.nombreSesion = sesion.nombre;
-    window.usuarioSesion = sesion.usuario;
-    window.puestoSesion = (sesion.puesto || "").toUpperCase();
-    
-    const adminPuestos = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO SR", "SOPORTE TECNICO"];
-    window.esAdmin = adminPuestos.includes(window.puestoSesion);
-    window.esSoporteJR = window.puestoSesion === "SOPORTE TECNICO JR";
+    // Sesión
+    const sesion = JSON.parse(localStorage.getItem("usuarioLogueado") || "{}");
+    if(!sesion.usuario) location.href = "index.html";
+    window.nombreSesion = sesion.nombre;
+    window.usuarioSesion = sesion.usuario;
+    window.puestoSesion = (sesion.puesto || "").toUpperCase();
+    
+    const adminPuestos = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO SR", "SOPORTE TECNICO"];
+    window.esAdmin = adminPuestos.includes(window.puestoSesion);
 
-    document.getElementById("usuarioActivo").textContent = window.nombreSesion;
-    document.getElementById("puestoActivo").textContent = window.puestoSesion;
-    document.getElementById("soporte").value = window.nombreSesion;
+    document.getElementById("usuarioActivo").textContent = window.nombreSesion;
+    document.getElementById("puestoActivo").textContent = window.puestoSesion;
+    document.getElementById("soporte").value = window.nombreSesion;
 
-    if (window.esAdmin) {
-        document.getElementById("liBase").innerHTML = '<a class="dropdown-item" href="base.html">🏠 Página Base</a>';
-        document.getElementById("contenedorExportar").innerHTML = `<button class="btn btn-outline-success btn-sm fw-bold px-3" onclick="exportarExcel()">📊 Reporte</button>`;
-    }
+    if(window.esAdmin) {
+        document.getElementById("liBase").innerHTML = '<a class="dropdown-item" href="base.html">🏠 Página Base</a>';
+        document.getElementById("contenedorExportar").innerHTML = `<button class="btn btn-outline-success btn-sm fw-bold" onclick="exportarExcel()">📊 Reporte</button>`;
+    }
 
-    if (window.puestoSesion === "COORDINADOR DE SOPORTE TECNICO") {
-        document.getElementById("liReset").innerHTML = `<a class="dropdown-item text-danger fw-bold" href="#" onclick="reiniciarSistemaMaster()">🔥 Reiniciar</a>`;
-    }
+    const solicitudesRef = ref(database, "tecnologia");
+    const seguimientoRef = ref(database, "seguimiento");
+    let globalSeguimientos = [];
+    let dataExportar = [];
 
-    // Referencias Firebase
-    const solicitudesRef = ref(database, "tecnologia");
-    const seguimientoRef = ref(database, "seguimiento");
-    const historialRef = ref(database, "historial_permanente");
-    let globalSeguimientos = [];
-    let dataExportar = [];
+    // Carga de Datos
+    onValue(seguimientoRef, snap => {
+        globalSeguimientos = [];
+        snap.forEach(c => { globalSeguimientos.push({ ...c.val(), id: c.key }); });
+        onValue(solicitudesRef, sSnap => renderTable(sSnap));
+    });
 
-    // Carga de datos
-    onValue(seguimientoRef, snap => {
-        globalSeguimientos = [];
-        snap.forEach(c => { globalSeguimientos.push({ ...c.val(), id: c.key }); });
-        onValue(solicitudesRef, sSnap => renderTable(sSnap));
-    });
+    function renderTable(snap) {
+        const tbody = document.getElementById("tablaTecBody");
+        tbody.innerHTML = ""; 
+        dataExportar = [];
+        snap.forEach(doc => {
+            const s = doc.val();
+            if (s.eliminado) return;
+            const segs = globalSeguimientos.filter(x => x.folio === s.folio).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
+            const statusActual = segs.length > 0 ? segs[0].status : (s.status || "PENDIENTE");
+            
+            if (statusActual === "CONFIRMADO") return;
 
-    function renderTable(snap) {
-        const tbody = document.getElementById("tablaTecBody");
-        tbody.innerHTML = ""; 
-        dataExportar = [];
-        snap.forEach(doc => {
-            const s = doc.val();
-            if (s.eliminado) return;
-            const segsFolio = globalSeguimientos.filter(x => x.folio === s.folio).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
-            const statusActual = segsFolio.length > 0 ? segsFolio[0].status : (s.status || "PENDIENTE");
-            if (statusActual === "CONFIRMADO") return;
+            const esLocal = s.solicitudLocal === true;
+            let badgeClass = "st-pendiente";
+            if(statusActual === "EN ZONA") badgeClass = "st-zona";
+            if(statusActual === "DEVOLUCION") badgeClass = "st-devolucion";
+            if(statusActual === "EN COTIZACION") badgeClass = "st-local-cotizacion";
 
-            const esLocal = s.solicitudLocal === true || s.isLocal === true;
-            let badgeClass = "st-compras"; 
-            if (statusActual === "EN ZONA") badgeClass = "st-zona";
-            else if (statusActual === "EN COTIZACION") badgeClass = "st-local-cotizacion";
-            else if (statusActual === "DEVOLUCION") badgeClass = "st-devolucion";
-            else if (statusActual === "PENDIENTE") badgeClass = "st-pendiente";
+            if (window.esAdmin || s.usuario === window.usuarioSesion) {
+                dataExportar.push({ ...s, statusActual });
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td class="fw-bold">${s.folio}</td>
+                    <td>${s.empresa}</td>
+                    <td>${s.zona}</td>
+                    <td>${s.sucursal}</td>
+                    <td><span class="badge ${esLocal ? 'bg-warning text-dark' : 'bg-secondary'}">${esLocal ? 'LOCAL' : 'COMPRAS'}</span></td>
+                    <td><button class="btn btn-sm btn-success" onclick="verPDF('${s.archivoData}', '${s.folio}')">👁️</button></td>
+                    <td><span class="badge ${badgeClass} p-2 w-100">${statusActual}</span></td>
+                    <td><small>${Math.floor((new Date() - new Date(s.fechaISO))/3600000)}h</small></td>
+                    <td>
+                        <div class="d-flex justify-content-center gap-2">
+                            <span class="action-btn" onclick="verHistorial('${s.folio}')">📜</span>
+                            <span class="action-btn text-primary" onclick="editarRegistro('${doc.key}')">✏️</span>
+                            <span class="action-btn text-info" onclick="window.location.href='seguimiento.html?folio=${s.folio}'">📋</span>
+                            ${statusActual === "EN ZONA" ? `
+                                <span class="action-btn text-success" onclick="confirmarEntrega('${doc.key}', '${s.folio}')">✅</span>
+                                <span class="action-btn text-warning" onclick="enviarDevolucion('${s.folio}')">🔄</span>
+                            ` : ''}
+                            ${window.esAdmin ? `<span class="action-btn text-danger" onclick="depurarRegistro('${doc.key}')">📦</span>` : ''}
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            }
+        });
+        document.getElementById("loader").style.display = "none";
+    }
 
-            if (window.esAdmin || s.usuario === window.usuarioSesion) {
-                dataExportar.push({ ...s, statusActual });
-                const tr = document.createElement("tr");
-                if(esLocal) tr.classList.add("fila-local");
-                tr.innerHTML = `
-                    <td class="fw-bold">${s.folio}</td>
-                    <td>${s.empresa}</td>
-                    <td>${s.zona}</td>
-                    <td>${s.sucursal}</td>
-                    <td><span class="badge ${esLocal ? 'bg-warning text-dark' : 'bg-secondary'}">${esLocal ? 'LOCAL' : 'COMPRAS'}</span></td>
-                    <td><button class="btn btn-sm btn-success" onclick="verPDF('${s.archivoData}', '${s.folio}')">👁️</button></td>
-                    <td><span class="badge ${badgeClass} p-2 w-100">${statusActual}</span></td>
-                    <td><small>${calcularTranscurrido(s.fechaISO || s.fechaEnvio)}</small></td>
-                    <td>
-                        <div class="d-flex justify-content-center gap-2">
-                            <span class="action-btn" onclick="verHistorial('${s.folio}')">📜</span>
-                            <span class="action-btn text-primary" onclick="editarRegistro('${doc.key}')">✏️</span>
-                            ${esLocal ? 
-                                `<span class="action-btn text-info" onclick="modalSegLocal('${doc.key}', '${s.folio}')">📋</span>` :
-                                `<span class="action-btn text-primary" onclick="window.location.href='seguimiento.html?folio=${s.folio}'">📋</span>`
-                            }
-                            ${(window.esSoporteJR || window.esAdmin) && (statusActual === "EN ZONA" || statusActual === "ENVIADO A ZONA") ? `
-                                <span class="action-btn text-success" onclick="confirmarEntrega('${doc.key}', '${s.folio}')">✅</span>
-                                <span class="action-btn text-warning" onclick="enviarDevolucion('${s.folio}')">🔄</span>
-                            ` : ''}
-                            ${window.esAdmin ? `<span class="action-btn text-danger" onclick="depurarRegistro('${doc.key}')">📦</span>` : ''}
-                        </div>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            }
-        });
-        document.getElementById("loader").style.display = "none";
-    }
+    // --- FUNCIONES GLOBALES ---
+    window.guardarSolicitud = async () => {
+        const emp = document.getElementById("empresa").value;
+        const zon = document.getElementById("zona").value;
+        const suc = document.getElementById("sucursal").value;
+        const arc = document.getElementById("archivo").files[0];
+        const local = document.getElementById("checkLocal").checked;
 
-    function calcularTranscurrido(f) {
-        if(!f) return "0h";
-        const diff = new Date() - new Date(f);
-        return Math.floor(diff / 3600000) + "h";
-    }
+        if(!emp || !zon || !suc || !arc) return Swal.fire("Error", "Faltan campos", "error");
+        
+        document.getElementById("loader").style.display = "flex";
+        const reader = new FileReader();
+        reader.onload = async () => {
+            const fol = `TEC-${emp}-${zon}-${Date.now().toString().slice(-4)}`.toUpperCase();
+            await push(solicitudesRef, {
+                folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
+                sucursal: suc.toUpperCase(), archivoData: reader.result,
+                status: local ? "EN COTIZACION" : "PENDIENTE", solicitudLocal: local,
+                fechaISO: new Date().toISOString(), usuario: window.usuarioSesion, eliminado: false
+            });
+            document.getElementById("formTec").reset();
+            Swal.fire("Guardado", fol, "success");
+        };
+        reader.readAsDataURL(arc);
+    };
 
-    // Funciones Globales (conectadas a window para botones HTML)
-    window.guardarSolicitud = async () => {
-        const emp = document.getElementById("empresa").value;
-        const zon = document.getElementById("zona").value;
-        const suc = document.getElementById("sucursal").value;
-        const arc = document.getElementById("archivo").files[0];
-        const local = document.getElementById("checkLocal").checked;
-        if(!emp || !zon || !suc || !arc) return Swal.fire("Error", "Faltan campos", "error");
-        
-        document.getElementById("loader").style.display = "flex";
-        const snap = await get(solicitudesRef);
-        const contador = snap.exists() ? Object.keys(snap.val()).length + 1 : 1;
-        const numFolio = contador.toString().padStart(4, '0');
-        
-        const reader = new FileReader();
-        reader.onload = async () => {
-            const fol = `TEC-${emp}-${zon}-${numFolio}`.toUpperCase();
-            await push(solicitudesRef, {
-                folio: fol, empresa: emp.toUpperCase(), zona: zon.toUpperCase(),
-                sucursal: suc.toUpperCase(), soporte: window.nombreSesion,
-                archivoData: reader.result, status: local ? "EN COTIZACION" : "PENDIENTE",
-                solicitudLocal: local, isLocal: local,
-                fechaISO: new Date().toISOString(), usuario: window.usuarioSesion, eliminado: false
-            });
-            document.getElementById("formTec").reset();
-            document.getElementById("preview-container").innerHTML = '<small class="text-muted">Vista previa</small>';
-            Swal.fire("Éxito", "Guardado: " + fol, "success");
-        };
-        reader.readAsDataURL(arc);
-    };
+    window.confirmarEntrega = async (id, folio) => {
+        const res = await Swal.fire({ title: '¿Confirmar entrega?', icon: 'question', showCancelButton: true });
+        if(res.isConfirmed) {
+            await push(seguimientoRef, { folio, status: "CONFIRMADO", fechaRegistro: new Date().toISOString(), comentarios: "Entregado" });
+            Swal.fire("Éxito", "Folio finalizado", "success");
+        }
+    };
 
-    window.verPDF = (base64, folio) => {
-        const w = window.open();
-        w.document.write(`<title>${folio}</title><iframe src="${base64}" style="width:100%; height:100%; border:none;"></iframe>`);
-    };
+    window.enviarDevolucion = async (folio) => {
+        const { value: mot } = await Swal.fire({ title: 'Motivo Devolución', input: 'textarea', showCancelButton: true });
+        if(mot) {
+            await push(seguimientoRef, { folio, status: "DEVOLUCION", fechaRegistro: new Date().toISOString(), comentarios: mot });
+            Swal.fire("Procesado", "En devolución", "warning");
+        }
+    };
 
-    window.verHistorial = (fol) => {
-        const h = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
-        let rows = h.map(i => `<tr><td>${new Date(i.fechaRegistro).toLocaleString()}</td><td><span class="badge bg-light text-dark border">${i.status}</span></td><td>${i.descripcionArt || i.comentarios || '-'}</td></tr>`).join('');
-        Swal.fire({ 
-            title: 'Historial ' + fol, 
-            html: `<div class="table-responsive"><table class="table table-sm small"><thead><tr><th>Fecha</th><th>Status</th><th>Detalle</th></tr></thead><tbody>${rows}</tbody></table></div>`, 
-            width: '800px' 
-        });
-    };
+    window.editarRegistro = async (id) => {
+        const { value: nSuc } = await Swal.fire({ title: 'Nueva Sucursal', input: 'text' });
+        if(nSuc) await update(ref(database, `tecnologia/${id}`), { sucursal: nSuc.toUpperCase() });
+    };
 
-    window.previewArchivo = (input) => {
-        if(!input.files[0]) return;
-        const reader = new FileReader();
-        reader.onload = e => {
-            const cont = document.getElementById("preview-container");
-            cont.innerHTML = input.files[0].type.includes("pdf") ? `<iframe src="${e.target.result}"></iframe>` : `<img src="${e.target.result}">`;
-        };
-        reader.readAsDataURL(input.files[0]);
-    };
+    window.depurarRegistro = async (id) => {
+        if(confirm("¿Archivar este registro?")) await update(ref(database, `tecnologia/${id}`), { eliminado: true });
+    };
 
-    window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
+    window.exportarExcel = async () => {
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet('Reporte');
+        ws.columns = [{header:'Folio', key:'folio'}, {header:'Sucursal', key:'sucursal'}, {header:'Status', key:'statusActual'}];
+        ws.addRows(dataExportar);
+        const buf = await wb.xlsx.writeBuffer();
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(new Blob([buf]));
+        link.download = "Reporte.xlsx";
+        link.click();
+    };
+
+    window.verPDF = (base64, fol) => {
+        const w = window.open();
+        w.document.write(`<iframe src="${base64}" style="width:100%;height:100%;border:none;"></iframe>`);
+    };
+
+    window.verHistorial = (fol) => {
+        const h = globalSeguimientos.filter(x => x.folio === fol);
+        let html = h.map(i => `<li>${i.status} - ${i.comentarios || ''}</li>`).join('');
+        Swal.fire({ title: 'Historial', html: `<ul>${html}</ul>` });
+    };
+
+    window.previewArchivo = (input) => {
+        if(!input.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            const cont = document.getElementById("preview-container");
+            cont.innerHTML = input.files[0].type.includes("pdf") ? `<iframe src="${e.target.result}"></iframe>` : `<img src="${e.target.result}">`;
+        };
+        reader.readAsDataURL(input.files[0]);
+    };
+
+    window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
 </script>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
