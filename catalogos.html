@@ -279,13 +279,12 @@
 
     function renderCCTV() {
         const today = new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        
-        // Obtener usuario simulado de la "sesión" (primer usuario del catálogo o vacío)
         const usuariosList = Object.values(store.usuarios);
         const sesionActiva = usuariosList.length > 0 ? usuariosList[0] : { nombre: "", puesto: "" };
-
-        // Listas para los dropdowns
         const empresasList = Object.values(store.empresas).map(e => e.nombre).sort();
+
+        // Obtener articulos únicos del catálogo de Matriz CCTV
+        const articulosCctv = Object.values(store.matrizcctv).map(m => m.articulos).filter((v, i, a) => a.indexOf(v) === i).sort();
 
         let html = `
             <div class="p-3" style="max-width: 900px; margin: auto; background: white;">
@@ -336,17 +335,21 @@
                 <p class="small text-muted mb-2">Seleccione el requerimiento que solicita.</p>
                 
                 <div class="row g-3">
-                    ${[1,2,3].map(i => `
+                    ${Array.from({length: 10}, (_, i) => i + 1).map(i => `
                         <div class="col-md-4">
-                            <div class="border p-2">
+                            <div class="border p-2" style="height: 100%;">
                                 <div class="d-flex mb-1">
                                     <span class="small fw-bold me-2">Cant. art. ${i}:</span>
                                     <input type="text" class="form-control form-control-sm" style="width: 50px">
                                 </div>
                                 <div class="bg-dark text-white text-center small py-1 mb-2">Tipos de accesorio:</div>
-                                <input type="text" class="form-control form-control-sm mb-1" placeholder="Producto/Modelo">
-                                <input type="text" class="form-control form-control-sm mb-1" placeholder="Descripción">
-                                <input type="text" class="form-control form-control-sm" placeholder="Marca">
+                                <select class="form-select form-select-sm mb-1" onchange="window.fillProductData(this, ${i})">
+                                    <option value="">SELECCIONE PRODUCTO</option>
+                                    ${articulosCctv.map(art => `<option value="${art}">${art}</option>`).join('')}
+                                </select>
+                                <input type="text" id="mod-${i}" class="form-control form-control-sm mb-1" placeholder="Modelo" readonly>
+                                <input type="text" id="des-${i}" class="form-control form-control-sm mb-1" placeholder="Descripción" readonly>
+                                <input type="text" id="mar-${i}" class="form-control form-control-sm" placeholder="Marca" readonly>
                             </div>
                         </div>
                     `).join('')}
@@ -407,15 +410,25 @@
         document.getElementById("view").innerHTML = html;
     }
 
-    // Funciones globales para manejar los selects dependientes del Formato CCTV
+    // Funciones globales para manejar los productos y selects dependientes
+    window.fillProductData = (select, index) => {
+        const product = Object.values(store.matrizcctv).find(m => m.articulos === select.value);
+        if (product) {
+            document.getElementById(`mod-${index}`).value = product.modelo || "";
+            document.getElementById(`des-${index}`).value = product.descripcion || "";
+            document.getElementById(`mar-${index}`).value = product.marca || "";
+        } else {
+            document.getElementById(`mod-${index}`).value = "";
+            document.getElementById(`des-${index}`).value = "";
+            document.getElementById(`mar-${index}`).value = "";
+        }
+    };
+
     window.updateCctvZonas = (empresa) => {
         const zonaSelect = document.getElementById("cctv-zona-select");
         const sucursalSelect = document.getElementById("cctv-sucursal-select");
-        
         const zonas = Object.values(store.zonas).filter(z => z.empresa === empresa).map(z => z.nombre).sort();
-        
-        zonaSelect.innerHTML = '<option value="">SELECCIONE ZONA</option>' + 
-            zonas.map(z => `<option value="${z}">${z}</option>`).join('');
+        zonaSelect.innerHTML = '<option value="">SELECCIONE ZONA</option>' + zonas.map(z => `<option value="${z}">${z}</option>`).join('');
         sucursalSelect.innerHTML = '<option value="">SELECCIONE SUCURSAL</option>';
         document.getElementById("diag-zona-display").value = "";
     };
@@ -423,9 +436,7 @@
     window.updateCctvSucursales = (zona) => {
         const sucursalSelect = document.getElementById("cctv-sucursal-select");
         const sucursales = Object.values(store.sucursales).filter(s => s.zona === zona).map(s => s.nombre).sort();
-        
-        sucursalSelect.innerHTML = '<option value="">SELECCIONE SUCURSAL</option>' + 
-            sucursales.map(s => `<option value="${s}">${s}</option>`).join('');
+        sucursalSelect.innerHTML = '<option value="">SELECCIONE SUCURSAL</option>' + sucursales.map(s => `<option value="${s}">${s}</option>`).join('');
         document.getElementById("diag-zona-display").value = zona;
     };
 
@@ -485,7 +496,6 @@
     document.getElementById("btnSave").onclick = async () => {
         const id = document.getElementById("fID").value;
         const isMasivo = document.getElementById("checkMasivo").checked;
-        
         let data = {};
         
         if (currentPath === 'matriz' || currentPath === 'matrizcctv') {
@@ -532,7 +542,6 @@
             } else {
                 if(!data.nombre && !(currentPath === 'matriz' || currentPath === 'matrizcctv')) return Swal.fire("Error", "El nombre es requerido", "error");
                 if((currentPath === 'matriz' || currentPath === 'matrizcctv') && !data.articulos) return Swal.fire("Error", "El artículo es requerido", "error");
-                
                 id ? await update(ref(db, `${currentPath}/${id}`), data) : await push(ref(db, currentPath), data);
             }
             bootstrap.Modal.getInstance(document.getElementById("modalApp")).hide();
