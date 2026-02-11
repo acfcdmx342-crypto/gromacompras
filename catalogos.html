@@ -31,6 +31,11 @@
             transition: all 0.3s;
         }
 
+        /* Estilo para cuando se oculta el menú (Modo Solo CCTV) */
+        body.hide-menu .sidebar { display: none !important; }
+        body.hide-menu .main-content { margin-left: 0 !important; }
+        body.hide-menu .btn-toggle { display: none !important; }
+
         @media (max-width: 768px) {
             .sidebar { left: -240px; }
             .sidebar.active { left: 0; }
@@ -158,6 +163,13 @@
         onValue(ref(db, path), (s) => {
             store[path] = s.val() || {};
             if (currentPath === path) render(path);
+
+            // LOGICA PARA SOLO VER CCTV SI VIENE POR URL
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('tipo') === 'cctv' && currentPath === '') {
+                document.body.classList.add('hide-menu');
+                render('formato_cctv');
+            }
         });
     });
 
@@ -276,7 +288,6 @@
         document.getElementById("view").innerHTML = html;
     }
 
-    // Función unificada para generar el HTML de un cuadro de ítem
     function generateItemHTML(i, articulos) {
         return `
             <div class="col-md-4 item-row" id="row-${i}">
@@ -301,13 +312,9 @@
         const container = document.getElementById('items-container');
         const count = container.querySelectorAll('.item-row').length + 1;
         const articulos = Object.values(store.matrizcctv).map(m => m.articulos).filter((v, i, a) => a.indexOf(v) === i).sort();
-        
-        // Creamos un elemento temporal para convertir el string HTML en nodo
         const temp = document.createElement('div');
         temp.innerHTML = generateItemHTML(count, articulos);
-        const newItem = temp.firstElementChild;
-        
-        container.appendChild(newItem);
+        container.appendChild(temp.firstElementChild);
     };
 
     window.fillProductData = (select, index) => {
@@ -332,10 +339,8 @@
         const item = id ? store[path][id] : {};
         document.getElementById("fID").value = id;
         document.getElementById("mTitle").innerText = (id ? 'Editar ' : 'Nuevo ') + path.toUpperCase();
-        
         ['secEmpresa', 'secZona', 'secUsuarios', 'secMatriz', 'secMasivo', 'secToggleMasivo'].forEach(s => document.getElementById(s).classList.add('d-none'));
         document.getElementById("secIndividual").classList.remove('d-none');
-
         if (path.includes('matriz')) {
             document.getElementById("secIndividual").classList.add('d-none');
             document.getElementById("secMatriz").classList.remove('d-none');
@@ -344,19 +349,16 @@
             document.getElementById("mDes").value = item.descripcion || "";
             document.getElementById("mMar").value = item.marca || "";
         }
-        
         if (['zonas', 'sucursales', 'usuarios'].includes(path)) {
             document.getElementById("secEmpresa").classList.remove('d-none');
             const emps = Object.values(store.empresas).map(e => e.nombre).sort();
             document.getElementById("fEmp").innerHTML = emps.map(e => `<option value="${e}" ${item.empresa === e ? 'selected' : ''}>${e}</option>`).join('');
         }
-
         if (['sucursales', 'usuarios'].includes(path)) {
             document.getElementById("secZona").classList.remove('d-none');
             const zonas = Object.values(store.zonas).map(z => z.nombre).sort();
             document.getElementById("fZona").innerHTML = zonas.map(z => `<option value="${z}" ${item.zona === z ? 'selected' : ''}>${z}</option>`).join('');
         }
-
         if (!id) document.getElementById("secToggleMasivo").classList.remove('d-none');
         new bootstrap.Modal(document.getElementById("modalApp")).show();
     };
@@ -365,7 +367,6 @@
         const id = document.getElementById("fID").value;
         const isMasivo = document.getElementById("checkMasivo").checked;
         let data = {};
-
         if (currentPath.includes('matriz')) {
             data = {
                 articulos: document.getElementById("mArt").value.toUpperCase(),
@@ -376,10 +377,8 @@
         } else {
             data.nombre = document.getElementById("fNom").value.toUpperCase();
         }
-
         if (['zonas', 'sucursales', 'usuarios'].includes(currentPath)) data.empresa = document.getElementById("fEmp").value;
         if (['sucursales', 'usuarios'].includes(currentPath)) data.zona = document.getElementById("fZona").value;
-
         try {
             if (isMasivo) {
                 const lineas = document.getElementById("fMasivo").value.split('\n').filter(l => l.trim());
