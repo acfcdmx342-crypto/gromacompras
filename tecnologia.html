@@ -2,389 +2,547 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Catálogos Administrativos</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitud de Tecnología - Procomex</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+    <script type="text/javascript">
+        (function(){ emailjs.init("0aHlArLgvHrj2Xbk8"); })();
+    </script>
     <style>
-        :root { --dark: #0f172a; --accent: #38bdf8; --cctv-blue: #0070c0; --cctv-green: #38b050; }
-        body { background: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow-x: hidden; }
-        .sidebar { width: 240px; min-height: 100vh; background: var(--dark); color: white; position: fixed; z-index: 1000; transition: all 0.3s; left: 0; }
-        .sidebar a { color: #94a3b8; text-decoration: none; padding: 12px 20px; display: block; transition: 0.3s; cursor: pointer; font-size: 0.9rem; }
-        .sidebar a:hover { background: #1e293b; color: var(--accent); }
-        .sidebar a.active { color: white; border-left: 4px solid var(--accent); background: #1e293b; }
-        .main-content { margin-left: 240px; padding: 20px; transition: all 0.3s; }
-        body.hide-menu .sidebar { display: none !important; }
-        body.hide-menu .main-content { margin-left: 0 !important; }
-        body.hide-menu .btn-toggle { display: none !important; }
-        @media (max-width: 768px) {
-            .sidebar { left: -240px; }
-            .sidebar.active { left: 0; }
-            .main-content { margin-left: 0; }
-            .main-content.shifted { margin-left: 0; filter: blur(2px); pointer-events: none; }
+        body { background:#f2f4f7; transition: background 0.3s ease; }
+        .card { border-radius:20px; border: none; transition: background 0.3s ease; }
+        .action-btn { cursor:pointer; font-size:22px; transition: 0.2s; display: inline-block; padding: 0 4px; }
+        .action-btn:hover { transform: scale(1.2); }
+        .table thead { background:#0d6efd; color:white; }
+        .btn-rounded { border-radius:50px; }
+        .user-info-box { background: white; padding: 10px 20px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: inline-block; transition: background 0.3s ease; }
+        .aviso-devolucion { background: #fff3cd; border-left: 5px solid #ffc107; padding: 10px 15px; border-radius: 10px; font-size: 0.85rem; color: #856404; max-width: 600px; }
+        
+        .st-compras { background-color: #0d6efd !important; color: white; } 
+        .st-zona { background-color: #ffc107 !important; color: black; }      
+        .st-pendiente { background-color: #dc3545 !important; color: white; } 
+        .st-devolucion { background-color: #6f42c1 !important; color: white; }
+        .st-local-cotizacion { background-color: #fd7e14 !important; color: white; }
+
+        #loader { 
+            display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(255,255,255,0.9); z-index: 9999; justify-content: center; 
+            align-items: center; flex-direction: column; 
         }
-        .table-container { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); min-height: 300px; }
-        th { font-size: 0.7rem; color: #64748b; text-transform: uppercase; text-align: center; background: #f8fafc !important; }
-        td { vertical-align: middle; text-align: center; font-size: 0.85rem; }
-        input[type="text"], input[type="email"], select, textarea { text-transform: uppercase; }
-        .cctv-header { background: var(--cctv-blue); color: white; font-weight: bold; padding: 5px 15px; margin-bottom: 10px; border-radius: 4px; }
-        .cctv-green-header { background: var(--cctv-green); color: white; font-weight: bold; padding: 5px 15px; margin-top: 15px; }
-        .cctv-label { background: #e9ecef; font-weight: bold; font-size: 0.75rem; border: 1px solid #dee2e6; padding: 4px 8px; }
-        .cctv-input { border: 1px solid #dee2e6; padding: 4px 8px; font-size: 0.8rem; width: 100%; }
-        .item-box { border: 1px solid #dee2e6; padding: 10px; background: #fff; height: 100%; }
-        .signature-line { border-top: 1px solid #000; margin-top: 40px; font-size: 0.7rem; text-align: center; }
-        .btn-toggle { display: none; position: fixed; bottom: 20px; right: 20px; z-index: 1001; width: 50px; height: 50px; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        @media (max-width: 768px) { .btn-toggle { display: block; } }
-        @media print {
-            .no-print { display: none !important; }
-            .sidebar { display: none !important; }
-            .main-content { margin-left: 0 !important; padding: 0 !important; }
-            .table-container { box-shadow: none !important; border: none !important; }
+
+        body.dark-mode { background: #121416 !important; color: #ffffff; }
+        body.dark-mode .card { background: #1d1f21 !important; color: #ffffff; border: 1px solid #333; }
+        body.dark-mode .user-info-box { background: #1d1f21 !important; color: #ffffff; }
+        body.dark-mode .table td { background-color: #1d1f21 !important; color: #ffffff !important; border-color: #444; }
+        body.dark-mode .form-control { background-color: #2b3035 !important; color: #fff !important; border-color: #495057; }
+        body.dark-mode .fila-local td { background-color: #2c2610 !important; }
+
+        .mode-toggle-btn { width: 42px; height: 42px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; transition: 0.3s; margin-right: 10px; }
+        #preview-container { border: 2px dashed #ccc; border-radius: 10px; min-height: 100px; display: flex; align-items: center; justify-content: center; background: #fff; overflow: hidden; margin-top: 5px; }
+        #preview-container iframe, #preview-container img { width: 100%; height: 200px; object-fit: contain; }
+
+        /* Estilos para el nuevo icono CCTV */
+        .cctv-link {
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            padding: 15px;
+            border-radius: 15px;
+        }
+        .cctv-icon-container {
+            font-size: 3rem;
+            color: #0d6efd;
+            transition: all 0.3s ease;
+        }
+        .cctv-link:hover .cctv-icon-container {
+            color: #00d4ff;
+            text-shadow: 0 0 15px rgba(0, 212, 255, 0.8), 0 0 25px rgba(0, 212, 255, 0.5);
+            transform: scale(1.1);
+        }
+        .cctv-link:hover span {
+            color: #0d6efd;
+            font-weight: bold;
         }
     </style>
 </head>
-<body>
-
-<button class="btn btn-dark btn-toggle" onclick="toggleSidebar()"><i class="bi bi-list fs-4"></i></button>
-
-<div class="sidebar" id="sidebar">
-    <div class="text-center py-4 border-bottom border-secondary mb-2"><h6 class="mb-0 fw-bold text-white">CATÁLOGOS</h6></div>
-    <a onclick="render('matriz')" id="link-matriz"><i class="bi bi-hdd-network me-2"></i> Matriz Tecnología</a>
-    <a onclick="render('matrizcctv')" id="link-matrizcctv"><i class="bi bi-camera-video me-2"></i> Matriz de CCTV</a>
-    <a onclick="render('zonas')" id="link-zonas"><i class="bi bi-geo-alt me-2"></i> Zonas</a>
-    <a onclick="render('empresas')" id="link-empresas"><i class="bi bi-building me-2"></i> Empresas</a>
-    <a onclick="render('sucursales')" id="link-sucursales"><i class="bi bi-shop me-2"></i> Sucursales</a>
-    <a onclick="render('usuarios')" id="link-usuarios"><i class="bi bi-person-lines-fill me-2"></i> Usuarios</a>
-    <div class="text-center py-2 border-top border-secondary mt-2"><h6 class="mb-0 fw-bold text-white small">FORMATOS</h6></div>
-    <a onclick="render('formato_cctv')" id="link-formato_cctv"><i class="bi bi-file-earmark-text me-2"></i> Formato CCTV</a>
+<body class="p-4">
+<div id="loader">
+    <div style="animation: pulse 1.5s infinite;"><img src="https://gruporoma.com/wp-content/uploads/2023/06/cropped-cropped-procomex-pachuca-logo-350-%C3%97-100-px-1.png" style="width: 250px;"></div>
+    <div class="mt-3"><div class="spinner-border text-primary"></div><span class="ms-2 fw-bold">Procesando...</span></div>
 </div>
 
-<div class="main-content" id="main-content">
-    <div id="view" class="table-container">
-        <div class="text-center py-5 text-muted">
-            <i class="bi bi-cloud-check display-1"></i>
-            <h4 class="mt-3">Bienvenido al Sistema</h4>
-            <p>Selecciona un módulo en el menú lateral.</p>
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="user-info-box border-start border-primary border-4">
+                <div class="fw-bold text-primary">👤 <span id="usuarioActivo"></span></div>
+                <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
+            </div>
+            <div class="aviso-devolucion d-none d-md-block">
+                <strong>⚠️ Aviso:</strong>Se les recuerda que para hacer una devolución de mercancía los empaques deben de estar lo más intactos posibles, sin Rayaduras o Enmendaduras.
+            </div>
+        </div>
+        <div class="d-flex align-items-center">
+            <button id="btnDarkMode" class="mode-toggle-btn shadow-sm btn btn-light"><i class="fa-solid fa-moon"></i></button>
+            <div class="dropdown">
+                <button class="btn btn-primary btn-rounded dropdown-toggle fw-bold px-4 shadow-sm" data-bs-toggle="dropdown">☰ Menú</button>
+                <ul class="dropdown-menu dropdown-menu-end shadow">
+                    <li><a class="dropdown-item" href="historial.html">📜 Ver Historial</a></li>
+                    <li id="liBase"></li>
+                    <li id="liReset"></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="#" onclick="cerrarSesion()">🚪 Cerrar Sesión</a></li>
+                </ul>
+            </div>
         </div>
     </div>
-</div>
 
-<div class="modal fade" id="modalApp" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0">
-            <div class="modal-header bg-dark text-white">
-                <h5 class="modal-title" id="mTitle">Registro</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="fID">
-                <div class="row">
-                    <div id="secEmpresa" class="col-md-6 mb-3 d-none">
-                        <label class="form-label fw-bold small">Empresa</label>
-                        <select id="fEmp" class="form-select"></select>
-                    </div>
-                    <div id="secZona" class="col-md-6 mb-3 d-none">
-                        <label class="form-label fw-bold small">Zona</label>
-                        <select id="fZona" class="form-select"></select>
-                    </div>
-                    <div id="secMatriz" class="d-none row g-3">
-                        <div class="col-md-6"><label class="form-label fw-bold small">Artículos</label><input type="text" id="mArt" class="form-control"></div>
-                        <div class="col-md-6"><label class="form-label fw-bold small">Modelo</label><input type="text" id="mMod" class="form-control"></div>
-                        <div class="col-md-6"><label class="form-label fw-bold small">Descripción</label><input type="text" id="mDes" class="form-control"></div>
-                        <div class="col-md-6"><label class="form-label fw-bold small">Marca</label><input type="text" id="mMar" class="form-control"></div>
-                    </div>
-                    <div id="secUsuarios" class="d-none row g-3">
-                        <div class="col-md-6"><label class="form-label fw-bold small">Departamento</label><input type="text" id="uDep" class="form-control"></div>
-                        <div class="col-md-6"><label class="form-label fw-bold small">Puesto</label><input type="text" id="uPue" class="form-control"></div>
-                        <div class="col-md-6"><label class="form-label fw-bold small">Usuario Acceso</label><input type="text" id="uUsu" class="form-control"></div>
-                        <div class="col-md-6"><label class="form-label fw-bold small">Contraseña</label><input type="password" id="uPass" class="form-control"></div>
-                    </div>
-                    <div id="secIndividual" class="col-12 mt-3">
-                        <label class="form-label fw-bold small" id="lblNom">Nombre / Descripción</label>
-                        <input type="text" id="fNom" class="form-control">
-                    </div>
-                    <div id="secMasivo" class="col-12 d-none mt-3">
-                        <textarea id="fMasivo" class="form-control" rows="5" placeholder="Uno por línea o CSV para matriz"></textarea>
-                    </div>
-                    <div id="secToggleMasivo" class="col-12 form-check form-switch d-none mt-3 ms-3">
-                        <input class="form-check-input" type="checkbox" id="checkMasivo">
-                        <label class="form-check-label small fw-bold" for="checkMasivo">Activar Carga Masiva</label>
+    <div class="card shadow p-4 mb-4">
+        <h5 class="fw-bold mb-3 border-bottom pb-2 text-secondary">Nueva Solicitud</h5>
+        <form id="formTec" class="row g-3">
+            <div class="col-md-3"><label class="small fw-bold">Empresa</label><input id="empresa" class="form-control text-uppercase"></div>
+            <div class="col-md-3"><label class="small fw-bold">Zona</label><input id="zona" class="form-control text-uppercase"></div>
+            <div class="col-md-3"><label class="small fw-bold">Soporte</label><input id="soporte" class="form-control text-uppercase" readonly></div>
+            <div class="col-md-3"><label class="small fw-bold">Sucursal</label><input id="sucursal" class="form-control text-uppercase"></div>
+            <div class="col-md-6">
+                <label class="small fw-bold">Requisición</label>
+                <div class="input-group">
+                    <input id="archivo" type="file" class="form-control" onchange="previewArchivo(this)">
+                    <div class="input-group-text">
+                        <input class="form-check-input" type="checkbox" id="checkLocal">
+                        <label class="form-check-label small fw-bold ms-2" for="checkLocal">Local</label>
                     </div>
                 </div>
+                <div id="preview-container"><small class="text-muted">Vista previa</small></div>
             </div>
-            <div class="modal-footer bg-light">
-                <button class="btn btn-primary w-100" id="btnSave">Guardar Información</button>
+            
+            <div class="col-md-6 d-flex align-items-center justify-content-center">
+                <a href="catalogos.html?tipo=cctv&n=NOMBRE&p=PUESTO" class="cctv-link">
+                    <div class="cctv-icon-container">
+                        <i class="fa-solid fa-video"></i>
+                    </div>
+                    <span class="small mt-2">Requisición de CCTV</span>
+                </a>
             </div>
+
+            <div class="col-12 mt-4 text-center">
+                <button type="button" class="btn btn-primary btn-rounded px-5 shadow" onclick="guardarSolicitud()">💾 Guardar Solicitud</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card shadow p-4 border-0">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold m-0 text-secondary">Solicitudes en Proceso</h5>
+            <div id="contenedorExportar"></div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle text-center bg-white">
+                <thead class="table-primary">
+                    <tr>
+                        <th>Folio</th><th>Empresa</th><th>Zona</th><th>Sucursal</th>
+                        <th>Tipo</th><th>Archivo</th><th>Status</th><th>Tiempo</th><th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaTecBody"></tbody>
+            </table>
         </div>
     </div>
 </div>
+
+<script>
+    const btnMode = document.getElementById('btnDarkMode');
+    const aplicarTema = (tema) => {
+        if (tema === 'dark') {
+            document.body.classList.add('dark-mode');
+            btnMode.querySelector('i').classList.replace('fa-moon', 'fa-sun');
+        } else {
+            document.body.classList.remove('dark-mode');
+            btnMode.querySelector('i').classList.replace('fa-sun', 'fa-moon');
+        }
+    };
+    aplicarTema(localStorage.getItem('themeTec'));
+    btnMode.onclick = () => {
+        const nt = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
+        localStorage.setItem('themeTec', nt);
+        aplicarTema(nt);
+    };
+</script>
 
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-    
-    const config = { databaseURL: "https://mydbu-fbc33-default-rtdb.firebaseio.com/" };
-    const db = getDatabase(initializeApp(config));
-    let store = { matriz: {}, matrizcctv: {}, zonas: {}, empresas: {}, sucursales: {}, usuarios: {} };
-    let currentPath = '';
+    import { database, ref, push, set, get, onValue, update, remove } from "./firebase.js";
 
-    Object.keys(store).forEach(path => {
-        onValue(ref(db, path), (s) => {
-            store[path] = s.val() || {};
-            if (currentPath === path) render(path);
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('tipo') === 'cctv' && currentPath === '') {
-                document.body.classList.add('hide-menu');
-                render('formato_cctv');
-            }
-        });
+    const sesion = JSON.parse(localStorage.getItem("usuarioLogueado") || "{}");
+    if(!sesion.usuario) location.href = "index.html";
+    window.nombreSesion = sesion.nombre;
+    window.usuarioSesion = sesion.usuario;
+    window.puestoSesion = (sesion.puesto || "").toUpperCase();
+    
+    const adminPuestos = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO SR", "SOPORTE TECNICO"];
+    window.esAdmin = adminPuestos.includes(window.puestoSesion);
+    window.esSoporteJR = window.puestoSesion === "SOPORTE TECNICO JR";
+
+    document.getElementById("usuarioActivo").textContent = window.nombreSesion;
+    document.getElementById("puestoActivo").textContent = window.puestoSesion;
+    document.getElementById("soporte").value = window.nombreSesion;
+
+    if (window.esAdmin) {
+        document.getElementById("liBase").innerHTML = '<a class="dropdown-item" href="base.html">🏠 Página Base</a>';
+        document.getElementById("contenedorExportar").innerHTML = `<button class="btn btn-outline-success btn-sm fw-bold px-3" onclick="exportarExcel()">📊 Reporte</button>`;
+    }
+
+    const solicitudesRef = ref(database, "tecnologia");
+    const seguimientoRef = ref(database, "seguimiento");
+    const historialPermanenteRef = ref(database, "historial_permanente");
+    let globalSeguimientos = [];
+
+    onValue(seguimientoRef, snap => {
+        globalSeguimientos = [];
+        snap.forEach(c => { globalSeguimientos.push({ ...c.val(), id: c.key }); });
+        onValue(solicitudesRef, sSnap => renderTable(sSnap));
     });
 
-    window.render = (path) => {
-        currentPath = path;
-        document.querySelectorAll('.sidebar a').forEach(el => el.classList.remove('active'));
-        document.getElementById(`link-${path}`)?.classList.add('active');
-        if (path === 'formato_cctv') { renderCCTV(); return; }
-        
-        const items = store[path];
-        const keys = Object.keys(items);
-        let html = `<div class="d-flex justify-content-between align-items-center mb-4">
-                        <h4 class="fw-bold m-0">${path.toUpperCase()}</h4>
-                        <button class="btn btn-dark" onclick="showModal('${path}')"><i class="bi bi-plus-lg"></i> Nuevo</button>
-                    </div>`;
-        
-        if (keys.length === 0) {
-            html += `<div class="text-center py-5 text-muted">No hay registros</div>`;
-        } else {
-            html += `<div class="table-responsive"><table class="table table-hover border">
-                <thead><tr>
-                    ${['usuarios','sucursales','zonas'].includes(path) ? '<th>Empresa</th>' : ''}
-                    ${['usuarios','sucursales'].includes(path) ? '<th>Zona</th>' : ''}
-                    ${path.includes('matriz') ? '<th>Artículos</th><th>Modelo</th><th>Descripción</th><th>Marca</th>' : '<th class="text-start">Nombre</th>'}
-                    <th class="text-end">Acciones</th>
-                </tr></thead><tbody>`;
-            keys.forEach(id => {
-                const r = items[id];
-                html += `<tr>
-                    ${['usuarios','sucursales','zonas'].includes(path) ? `<td><small>${r.empresa || '-'}</small></td>` : ''}
-                    ${['usuarios','sucursales'].includes(path) ? `<td><small>${r.zona || '-'}</small></td>` : ''}
-                    ${path.includes('matriz') ? 
-                        `<td class="text-start fw-bold">${r.articulos || '-'}</td><td>${r.modelo || '-'}</td><td><small>${r.descripcion || '-'}</small></td><td>${r.marca || '-'}</td>` : 
-                        `<td class="text-start">${r.nombre}</td>`
-                    }
-                    <td class="text-end">
-                        <button class="btn btn-sm btn-outline-secondary border-0" onclick="showModal('${path}', '${id}')"><i class="bi bi-pencil"></i></button>
-                        <button class="btn btn-sm btn-outline-danger border-0" onclick="del('${path}', '${id}')"><i class="bi bi-trash"></i></button>
-                    </td>
-                </tr>`;
-            });
-            html += `</tbody></table></div>`;
-        }
-        document.getElementById("view").innerHTML = html;
-    };
+    function renderTable(snap) {
+        const tbody = document.getElementById("tablaTecBody");
+        tbody.innerHTML = ""; 
+        snap.forEach(doc => {
+            const s = doc.val();
+            if (s.eliminado) return;
+            const segsFolio = globalSeguimientos.filter(x => x.folio === s.folio).sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
+            const statusActual = segsFolio.length > 0 ? segsFolio[0].status : (s.status || "PENDIENTE");
+            
+            if (statusActual === "CONFIRMADO") return;
 
-    function renderCCTV() {
-        const today = new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        const urlParams = new URLSearchParams(window.location.search);
-        const nURL = urlParams.get('n')?.toUpperCase();
-        const pURL = urlParams.get('p')?.toUpperCase();
-        
-        const uDB = Object.values(store.usuarios)[0] || { nombre: "SOPORTE", puesto: "TECNICO" };
-        const fNombre = nURL || uDB.nombre;
-        const fPuesto = pURL || uDB.puesto;
+            const esLocal = s.solicitudLocal === true || s.isLocal === true;
+            let badgeClass = "st-compras"; 
+            if (statusActual === "EN ZONA" || statusActual === "ENVIADO A ZONA") badgeClass = "st-zona";
+            else if (statusActual === "EN COTIZACION") badgeClass = "st-local-cotizacion";
+            else if (statusActual === "DEVOLUCION") badgeClass = "st-devolucion";
+            else if (statusActual === "PENDIENTE") badgeClass = "st-pendiente";
 
-        const emps = Object.values(store.empresas).map(e => e.nombre).sort();
-        const arts = Object.values(store.matrizcctv).map(m => m.articulos).filter((v, i, a) => a.indexOf(v) === i).sort();
-
-        let html = `
-            <div class="p-4" style="max-width: 1000px; margin: auto; background: white; border: 1px solid #ccc;">
-                <div class="text-center mb-4"><h3 class="fw-bold" style="color: var(--cctv-blue)">Requisición de CCTV</h3></div>
-                <div class="cctv-header">Datos del Solicitante</div>
-                <div class="row g-0 mb-4 border">
-                    <div class="col-md-7 border-end">
-                        <div class="d-flex border-bottom"><div class="cctv-label" style="width: 120px;">Nombre:</div><input type="text" class="cctv-input" value="${fNombre}" readonly></div>
-                        <div class="d-flex border-bottom"><div class="cctv-label" style="width: 120px;">Puesto:</div><input type="text" class="cctv-input" value="${fPuesto}" readonly></div>
-                        <div class="d-flex"><div class="cctv-label" style="width: 120px;">Empresa:</div>
-                            <select class="cctv-input" onchange="window.updateCctvZonas(this.value)">
-                                <option value="">SELECCIONE...</option>
-                                ${emps.map(e => `<option value="${e}">${e}</option>`).join('')}
-                            </select>
+            if (window.esAdmin || s.usuario === window.usuarioSesion) {
+                const tr = document.createElement("tr");
+                if(esLocal) tr.classList.add("fila-local");
+                tr.innerHTML = `
+                    <td class="fw-bold">${s.folio}</td>
+                    <td>${s.empresa}</td>
+                    <td>${s.zona}</td>
+                    <td>${s.sucursal}</td>
+                    <td><span class="badge ${esLocal ? 'bg-warning text-dark' : 'bg-secondary'}">${esLocal ? 'LOCAL' : 'COMPRAS'}</span></td>
+                    <td><button class="btn btn-sm btn-success" onclick="verPDF('${s.archivoData}', '${s.folio}')">👁️</button></td>
+                    <td><span class="badge ${badgeClass} p-2 w-100">${statusActual}</span></td>
+                    <td><small>${Math.floor((new Date() - new Date(s.fechaISO || s.fechaEnvio))/3600000)}h</small></td>
+                    <td>
+                        <div class="d-flex justify-content-center gap-2">
+                            <span class="action-btn" onclick="verHistorial('${s.folio}')" title="Historial">📜</span>
+                            <span class="action-btn text-primary" onclick="editarRegistro('${doc.key}')" title="Editar">✏️</span>
+                            ${esLocal ? 
+                                `<span class="action-btn text-info" onclick="modalSegLocal('${doc.key}', '${s.folio}')" title="Seguimiento Local">📋</span>` :
+                                `<span class="action-btn text-primary" onclick="window.location.href='seguimiento.html?folio=${s.folio}'" title="Seguimiento Compras">📋</span>`
+                            }
+                            ${(window.esSoporteJR || window.esAdmin) && ((esLocal && (statusActual === "EN ZONA" || statusActual === "DEVOLUCION")) || (!esLocal && (statusActual === "ENVIADO A ZONA" || statusActual === "DEVOLUCION"))) ? `
+                                <span class="action-btn text-success" onclick="confirmarEntrega('${doc.key}', '${s.folio}')" title="Confirmar Entrega"><i class="fa-solid fa-circle-check"></i></span>
+                                <span class="action-btn text-warning" onclick="enviarDevolucion('${doc.key}', '${s.folio}')" title="Devolución"><i class="fa-solid fa-arrow-rotate-left"></i></span>
+                            ` : ''}
                         </div>
-                    </div>
-                    <div class="col-md-5">
-                        <div class="d-flex border-bottom"><div class="cctv-label" style="width: 120px;">Fecha:</div><div class="cctv-input bg-light">${today}</div></div>
-                        <div class="d-flex border-bottom"><div class="cctv-label" style="width: 120px;">Zona:</div><select class="cctv-input" id="cctv-zona-select" onchange="window.updateCctvSucursales(this.value)"><option value="">ZONA</option></select></div>
-                        <div class="d-flex"><div class="cctv-label" style="width: 120px;">Sucursal:</div><select class="cctv-input" id="cctv-sucursal-select"><option value="">SUCURSAL</option></select></div>
-                    </div>
-                </div>
-                <div class="cctv-header">Requerimiento de equipo</div>
-                <div class="row g-2" id="items-container">
-                    ${Array.from({length: 9}, (_, i) => generateItemHTML(i + 1, arts)).join('')}
-                </div>
-                <div class="text-center mt-3 no-print">
-                    <button class="btn btn-primary btn-sm rounded-pill px-4" onclick="window.addNewItem()"><i class="bi bi-plus-circle me-2"></i>Añadir más artículos</button>
-                </div>
-                <div class="mt-4 border p-2">
-                    <label class="small fw-bold">En caso de solicitar un artículo no listado, descríbalo:</label>
-                    <textarea class="form-control mt-1" rows="2"></textarea>
-                </div>
-                <div class="cctv-green-header">Diagnóstico Realizado por Soporte en Zona</div>
-                <div class="border p-3">
-                    <div class="row mb-3">
-                        <div class="col-md-6 d-flex"><span class="small fw-bold me-2">Zona:</span><input type="text" class="border-bottom border-0 w-100" id="diag-zona-display" readonly></div>
-                        <div class="col-md-6 d-flex"><span class="small fw-bold me-2">Responsable:</span><input type="text" class="border-bottom border-0 w-100" value="${fNombre}" readonly></div>
-                    </div>
-                    <textarea class="form-control" rows="3" placeholder="Comentarios..."></textarea>
-                </div>
-                <div class="row mt-5">
-                    <div class="col-4"><div class="signature-line"><strong>SOLICITA</strong><br>${fNombre}</div></div>
-                    <div class="col-4"><div class="signature-line"><strong>REVISA</strong><br>Coordinador de Soporte</div></div>
-                    <div class="col-4"><div class="signature-line"><strong>AUTORIZA</strong><br>Gerente de Sistemas</div></div>
-                </div>
-                <div class="text-center mt-4 no-print">
-                    <button class="btn btn-dark" onclick="window.print()"><i class="bi bi-printer me-2"></i>Imprimir Formato</button>
-                </div>
-            </div>`;
-        document.getElementById("view").innerHTML = html;
-    }
-
-    function generateItemHTML(i, articulos) {
-        return `<div class="col-md-4 item-row" id="row-${i}"><div class="item-box">
-            <div class="d-flex mb-2 align-items-center"><span class="small fw-bold me-2">Cant. art. ${i}:</span><input type="number" class="form-control form-control-sm" style="width: 70px"></div>
-            <div class="bg-dark text-white text-center small py-1 mb-2">Tipos de accesorio:</div>
-            <select class="form-select form-select-sm mb-1" onchange="window.fillProductData(this, ${i})">
-                <option value="">SELECCIONE...</option>
-                ${articulos.map(art => `<option value="${art}">${art}</option>`).join('')}
-            </select>
-            <input type="text" id="mod-${i}" class="form-control form-control-sm mb-1" placeholder="PRODUCTO/MODELO" readonly style="font-size: 0.7rem">
-            <input type="text" id="des-${i}" class="form-control form-control-sm mb-1" placeholder="DESCRIPCIÓN" readonly style="font-size: 0.7rem">
-            <input type="text" id="mar-${i}" class="form-control form-control-sm" placeholder="MARCA" readonly style="font-size: 0.7rem">
-        </div></div>`;
-    }
-
-    window.addNewItem = () => {
-        const container = document.getElementById('items-container');
-        const count = container.querySelectorAll('.item-row').length + 1;
-        const arts = Object.values(store.matrizcctv).map(m => m.articulos).filter((v, i, a) => a.indexOf(v) === i).sort();
-        const temp = document.createElement('div');
-        temp.innerHTML = generateItemHTML(count, arts);
-        container.appendChild(temp.firstElementChild);
-    };
-
-    window.fillProductData = (sel, idx) => {
-        const p = Object.values(store.matrizcctv).find(m => m.articulos === sel.value);
-        document.getElementById(`mod-${idx}`).value = p?.modelo || "";
-        document.getElementById(`des-${idx}`).value = p?.descripcion || "";
-        document.getElementById(`mar-${idx}`).value = p?.marca || "";
-    };
-
-    window.updateCctvZonas = (emp) => {
-        const zs = Object.values(store.zonas).filter(z => z.empresa === emp).map(z => z.nombre).sort();
-        document.getElementById("cctv-zona-select").innerHTML = '<option value="">ZONA</option>' + zs.map(z => `<option value="${z}">${z}</option>`).join('');
-    };
-
-    window.updateCctvSucursales = (z) => {
-        const ss = Object.values(store.sucursales).filter(s => s.zona === z).map(s => s.nombre).sort();
-        document.getElementById("cctv-sucursal-select").innerHTML = '<option value="">SUCURSAL</option>' + ss.map(s => `<option value="${s}">${s}</option>`).join('');
-        document.getElementById("diag-zona-display").value = z;
-    };
-
-    window.showModal = (path, id = "") => {
-        const item = id ? store[path][id] : {};
-        document.getElementById("fID").value = id;
-        document.getElementById("mTitle").innerText = (id ? 'Editar ' : 'Nuevo ') + path.toUpperCase();
-        ['secEmpresa', 'secZona', 'secUsuarios', 'secMatriz', 'secMasivo', 'secToggleMasivo'].forEach(s => document.getElementById(s).classList.add('d-none'));
-        document.getElementById("secIndividual").classList.remove('d-none');
-
-        if (path.includes('matriz')) {
-            document.getElementById("secIndividual").classList.add('d-none');
-            document.getElementById("secMatriz").classList.remove('d-none');
-            document.getElementById("mArt").value = item.articulos || "";
-            document.getElementById("mMod").value = item.modelo || "";
-            document.getElementById("mDes").value = item.descripcion || "";
-            document.getElementById("mMar").value = item.marca || "";
-        }
-        if (['zonas', 'sucursales', 'usuarios'].includes(path)) {
-            document.getElementById("secEmpresa").classList.remove('d-none');
-            const emps = Object.values(store.empresas).map(e => e.nombre).sort();
-            document.getElementById("fEmp").innerHTML = emps.map(e => `<option value="${e}" ${item.empresa === e ? 'selected' : ''}>${e}</option>`).join('');
-        }
-        if (['sucursales', 'usuarios'].includes(path)) {
-            document.getElementById("secZona").classList.remove('d-none');
-            const zonas = Object.values(store.zonas).map(z => z.nombre).sort();
-            document.getElementById("fZona").innerHTML = zonas.map(z => `<option value="${z}" ${item.zona === z ? 'selected' : ''}>${z}</option>`).join('');
-        }
-        if (path === 'usuarios') {
-            document.getElementById("secUsuarios").classList.remove('d-none');
-            document.getElementById("uDep").value = item.departamento || "";
-            document.getElementById("uPue").value = item.puesto || "";
-            document.getElementById("uUsu").value = item.usuario || "";
-            document.getElementById("uPass").value = item.pass || "";
-        }
-        document.getElementById("fNom").value = item.nombre || "";
-        if (!id) document.getElementById("secToggleMasivo").classList.remove('d-none');
-        new bootstrap.Modal(document.getElementById("modalApp")).show();
-    };
-
-    document.getElementById("btnSave").onclick = async () => {
-        const id = document.getElementById("fID").value;
-        const isM = document.getElementById("checkMasivo").checked;
-        let data = {};
-        if (currentPath.includes('matriz')) {
-            data = { articulos: document.getElementById("mArt").value.toUpperCase(), modelo: document.getElementById("mMod").value.toUpperCase(), descripcion: document.getElementById("mDes").value.toUpperCase(), marca: document.getElementById("mMar").value.toUpperCase() };
-        } else {
-            data.nombre = document.getElementById("fNom").value.toUpperCase();
-        }
-        if (['zonas', 'sucursales', 'usuarios'].includes(currentPath)) data.empresa = document.getElementById("fEmp").value;
-        if (['sucursales', 'usuarios'].includes(currentPath)) data.zona = document.getElementById("fZona").value;
-        if (currentPath === 'usuarios') {
-            data.departamento = document.getElementById("uDep").value.toUpperCase();
-            data.puesto = document.getElementById("uPue").value.toUpperCase();
-            data.usuario = document.getElementById("uUsu").value;
-            data.pass = document.getElementById("uPass").value;
-        }
-
-        try {
-            if (isM) {
-                const lineas = document.getElementById("fMasivo").value.split('\n').filter(l => l.trim());
-                for (let l of lineas) {
-                    let d = { ...data };
-                    if (currentPath.includes('matriz')) {
-                        const p = l.split(',').map(x => x.trim().toUpperCase());
-                        d = { articulos: p[0], modelo: p[1]||"", descripcion: p[2]||"", marca: p[3]||"", ...data };
-                    } else { d.nombre = l.trim().toUpperCase(); }
-                    await push(ref(db, currentPath), d);
-                }
-            } else {
-                id ? await update(ref(db, `${currentPath}/${id}`), data) : await push(ref(db, currentPath), data);
+                    </td>
+                `;
+                tbody.appendChild(tr);
             }
-            bootstrap.Modal.getInstance(document.getElementById("modalApp")).hide();
-            Swal.fire({ icon: "success", title: "Guardado", timer: 800, showConfirmButton: false });
-        } catch (e) { Swal.fire("Error", e.message, "error"); }
+        });
+        document.getElementById("loader").style.display = "none";
+    }
+
+    window.confirmarEntrega = async (idKey, folio) => {
+        const { value: formValues } = await Swal.fire({
+            title: 'Confirmar Entrega',
+            html: `
+                <div class="text-start">
+                    <p class="small text-muted mb-2">Folio: <b>${folio}</b></p>
+                    <label class="fw-bold small mb-1">Imagen de Evidencia:</label>
+                    <input type="file" id="evidencia-img" class="form-control mb-3" accept="image/*">
+                    <div id="prev-evidencia" class="mb-3 text-center" style="display:none;">
+                        <img id="img-render" src="" style="max-width:100%; height:150px; border-radius:10px; border:1px solid #ddd;">
+                    </div>
+                    <label class="fw-bold small mb-1">Motivo / Comentario de Recepción:</label>
+                    <textarea id="evidencia-motivo" class="form-control text-uppercase" placeholder="EJ: EQUIPO ENTREGADO EN SUCURSAL FUNCIONANDO..." style="height:80px;"></textarea>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: '✅ Confirmar',
+            didOpen: () => {
+                const input = document.getElementById('evidencia-img');
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            document.getElementById('img-render').src = event.target.result;
+                            document.getElementById('prev-evidencia').style.display = 'block';
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                };
+            },
+            preConfirm: () => {
+                const imgFile = document.getElementById('evidencia-img').files[0];
+                const motivo = document.getElementById('evidencia-motivo').value;
+                if (!imgFile) return Swal.showValidationMessage('Sube la imagen de evidencia');
+                if (!motivo) return Swal.showValidationMessage('Escribe un comentario');
+                return new Promise(resolve => {
+                    const r = new FileReader();
+                    r.onload = (e) => resolve({ img: e.target.result, mot: motivo.toUpperCase() });
+                    r.readAsDataURL(imgFile);
+                });
+            }
+        });
+
+        if (formValues) {
+            document.getElementById("loader").style.display = "flex";
+            try {
+                const solRef = ref(database, `tecnologia/${idKey}`);
+                const snap = await get(solRef);
+                const datosSolicitud = snap.val();
+                const fechaOriginal = datosSolicitud.fechaISO || new Date().toISOString();
+                const h = globalSeguimientos.filter(x => x.folio === folio);
+                let art = "S/N";
+                if (h.length > 0) {
+                    art = h[0].descripcionArt || h[0].descripcion || "S/N";
+                }
+
+                const nuevoSeguimiento = {
+                    folio, 
+                    status: "CONFIRMADO", 
+                    descripcionArt: art,
+                    comentarios: formValues.mot,
+                    evidenciaImagen: formValues.img, 
+                    fechaRegistro: new Date().toISOString(), 
+                    usuario: window.nombreSesion
+                };
+
+                const datosHistorial = {
+                    ...datosSolicitud,
+                    status: "CONFIRMADO",
+                    fechaISO: fechaOriginal,
+                    descripcionArt: art,
+                    fechaCierre: new Date().toISOString(),
+                    evidenciaImagen: formValues.img,
+                    comentarios: formValues.mot,
+                    seguimientos: {
+                        ...(datosSolicitud.seguimientos || {}),
+                        final: nuevoSeguimiento
+                    }
+                };
+
+                await push(historialPermanenteRef, datosHistorial);
+                await push(seguimientoRef, nuevoSeguimiento);
+                await remove(solRef);
+
+                document.getElementById("loader").style.display = "none";
+                await Swal.fire("Éxito", "Entrega confirmada y movida al historial", "success");
+            } catch (error) {
+                console.error(error);
+                document.getElementById("loader").style.display = "none";
+                Swal.fire("Error", "No se pudo procesar", "error");
+            }
+        }
     };
 
-    window.del = async (p, id) => {
-        const res = await Swal.fire({ title: '¿Eliminar?', icon: 'warning', showCancelButton: true });
-        if (res.isConfirmed) await remove(ref(db, `${p}/${id}`));
+    window.enviarDevolucion = async (idKey, folio) => {
+        const { value: formValues } = await Swal.fire({
+            title: 'Reportar Devolución',
+            html: `
+                <div class="text-start">
+                    <p class="small text-muted mb-2">Folio: <b>${folio}</b></p>
+                    <label class="fw-bold small mb-1">Imagen de Evidencia (Devolución):</label>
+                    <input type="file" id="dev-img" class="form-control mb-3" accept="image/*">
+                    <div id="prev-dev" class="mb-3 text-center" style="display:none;">
+                        <img id="img-dev-render" src="" style="max-width:100%; height:150px; border-radius:10px; border:1px solid #ddd;">
+                    </div>
+                    <label class="fw-bold small mb-1">Motivo de la Devolución:</label>
+                    <textarea id="dev-motivo" class="form-control text-uppercase" placeholder="EJ: EL EQUIPO LLEGÓ DAÑADO..." style="height:80px;"></textarea>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: '🚀 Reportar',
+            didOpen: () => {
+                const input = document.getElementById('dev-img');
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            document.getElementById('img-dev-render').src = event.target.result;
+                            document.getElementById('prev-dev').style.display = 'block';
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                };
+            },
+            preConfirm: () => {
+                const imgFile = document.getElementById('dev-img').files[0];
+                const motivo = document.getElementById('dev-motivo').value;
+                if (!imgFile) return Swal.showValidationMessage('Sube la foto de la devolución');
+                if (!motivo) return Swal.showValidationMessage('Escribe el motivo');
+                return new Promise(resolve => {
+                    const r = new FileReader();
+                    r.onload = (e) => resolve({ img: e.target.result, mot: motivo.toUpperCase() });
+                    r.readAsDataURL(imgFile);
+                });
+            }
+        });
+
+        if (formValues) {
+            document.getElementById("loader").style.display = "flex";
+            try {
+                const h = globalSeguimientos.filter(x => x.folio === folio);
+                let art = "S/N";
+                if (h.length > 0) {
+                    art = h[0].descripcionArt || h[0].descripcion || "S/N";
+                }
+
+                const nuevoSeguimiento = {
+                    folio, 
+                    status: "DEVOLUCION", 
+                    descripcionArt: art,
+                    comentarios: formValues.mot,
+                    evidenciaImagen: formValues.img,
+                    fechaRegistro: new Date().toISOString(), 
+                    usuario: window.nombreSesion
+                };
+
+                await push(seguimientoRef, nuevoSeguimiento);
+
+                document.getElementById("loader").style.display = "none";
+                await Swal.fire("Registrado", "Devolución reportada correctamente. La solicitud sigue en proceso.", "info");
+            } catch (error) {
+                console.error(error);
+                document.getElementById("loader").style.display = "none";
+                Swal.fire("Error", "No se pudo procesar", "error");
+            }
+        }
     };
 
-    window.toggleSidebar = () => {
-        document.getElementById('sidebar').classList.toggle('active');
-        document.getElementById('main-content').classList.toggle('shifted');
+    window.modalSegLocal = async (id, folio) => {
+        const historialPrevio = globalSeguimientos.filter(x => x.folio === folio).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
+        const articuloExistente = historialPrevio.length > 0 ? historialPrevio[0].descripcionArt : "";
+        const esPrimerSeguimiento = historialPrevio.length === 0;
+
+        const { value: formValues } = await Swal.fire({
+            title: `Seguimiento Local<br><small class="text-muted">Folio: ${folio}</small>`,
+            html: `
+                <div class="text-start" style="font-size: 14px;">
+                    <label class="fw-bold mb-1">Estado</label>
+                    <select id="swal-status" class="form-select mb-3">
+                        <option value="EN COTIZACION">EN COTIZACION</option>
+                        <option value="EN ZONA">EN ZONA</option>
+                    </select>
+                    <label class="fw-bold mb-1">Artículo / Equipo</label>
+                    <input id="swal-art" class="form-control mb-3 text-uppercase" value="${articuloExistente}" ${!esPrimerSeguimiento ? 'readonly' : ''}>
+                    <label class="fw-bold mb-1">Observaciones</label>
+                    <textarea id="swal-com" class="form-control text-uppercase" style="height: 100px;"></textarea>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: '💾 Guardar',
+            preConfirm: () => {
+                const art = document.getElementById('swal-art').value;
+                if (!art) return Swal.showValidationMessage('Ingresa el artículo');
+                return {
+                    status: document.getElementById('swal-status').value,
+                    descripcionArt: art.toUpperCase(),
+                    comentarios: document.getElementById('swal-com').value.toUpperCase()
+                }
+            }
+        });
+
+        if (formValues) {
+            await push(seguimientoRef, { folio, ...formValues, fechaRegistro: new Date().toISOString(), usuario: window.nombreSesion });
+            Swal.fire("Éxito", "Actualizado", "success");
+        }
     };
 
-    document.getElementById("checkMasivo").onchange = (e) => {
-        document.getElementById(currentPath.includes('matriz') ? "secMatriz" : "secIndividual").classList.toggle('d-none', e.target.checked);
-        document.getElementById("secMasivo").classList.toggle('d-none', !e.target.checked);
+    window.guardarSolicitud = async () => {
+        const emp = document.getElementById("empresa").value;
+        const zon = document.getElementById("zona").value;
+        const suc = document.getElementById("sucursal").value;
+        const arc = document.getElementById("archivo").files[0];
+        const local = document.getElementById("checkLocal").checked;
+        if(!emp || !zon || !suc || !arc) return Swal.fire("Error", "Faltan campos", "error");
+        document.getElementById("loader").style.display = "flex";
+        const snap = await get(solicitudesRef);
+        const contador = snap.exists() ? Object.keys(snap.val()).length + 1 : 1;
+        const reader = new FileReader();
+        reader.onload = async () => {
+            const fol = `TEC-${emp}-${zon}-${contador.toString().padStart(4, '0')}`.toUpperCase();
+            await push(solicitudesRef, {
+                folio: fol, 
+                empresa: emp.toUpperCase(), 
+                zona: zon.toUpperCase(), 
+                sucursal: suc.toUpperCase(),
+                soporte: window.nombreSesion, 
+                archivoData: reader.result, 
+                status: local ? "EN COTIZACION" : "PENDIENTE", 
+                solicitudLocal: local, 
+                isLocal: local,
+                fechaISO: new Date().toISOString(),
+                usuario: window.usuarioSesion, 
+                eliminado: false
+            });
+            document.getElementById("formTec").reset();
+            document.getElementById("preview-container").innerHTML = '<small class="text-muted">Vista previa</small>';
+            Swal.fire("Éxito", "Guardado", "success");
+        };
+        reader.readAsDataURL(arc);
     };
+
+    window.verPDF = (base64, folio) => {
+        const w = window.open();
+        w.document.write(`<iframe src="${base64}" style="width:100%; height:100%; border:none;"></iframe>`);
+    };
+
+    window.verHistorial = (fol) => {
+        const h = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
+        let rows = h.map(i => `
+            <tr>
+                <td>${new Date(i.fechaRegistro).toLocaleString()}</td>
+                <td><span class="badge ${i.status === 'DEVOLUCION' ? 'st-devolucion' : 'bg-info'}">${i.status}</span></td>
+                <td>
+                    <b>ART:</b> ${i.descripcionArt || '-'}<br>
+                    <b>OBS:</b> ${i.comentarios || '-'}<br>
+                    ${i.evidenciaImagen ? `<a href="#" onclick="Swal.fire({imageUrl: '${i.evidenciaImagen}', imageWidth: 400})">Ver Evidencia</a>` : ''}
+                </td>
+            </tr>`).join('');
+        Swal.fire({ title: 'Historial ' + fol, html: `<div class="table-responsive"><table class="table table-sm small"><thead><tr><th>Fecha</th><th>Status</th><th>Detalle</th></tr></thead><tbody>${rows}</tbody></table></div>`, width: '800px' });
+    };
+
+    window.previewArchivo = (input) => {
+        if(!input.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            document.getElementById("preview-container").innerHTML = input.files[0].type.includes("pdf") ? `<iframe src="${e.target.result}"></iframe>` : `<img src="${e.target.result}">`;
+        };
+        reader.readAsDataURL(input.files[0]);
+    };
+
+    window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+};
 <script>
-    document.addEventListener('contextmenu', e => e.preventDefault());
-    document.onkeydown = e => {
-        if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
-    };
-</script>
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.onkeydown = e => {
+    if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
+};
+</script> 
 </body>
 </html>
