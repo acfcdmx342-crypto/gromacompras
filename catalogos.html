@@ -412,6 +412,12 @@
         document.getElementById(currentPath.includes('matriz') ? "secMatriz" : "secIndividual").classList.toggle('d-none', e.target.checked);
         document.getElementById("secMasivo").classList.toggle('d-none', !e.target.checked);
     };
+    
+ 
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.onkeydown = e => {
+    if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
+};
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
