@@ -71,6 +71,7 @@
         <h6 class="mb-0 fw-bold text-white">CATÁLOGOS</h6>
     </div>
     <a onclick="render('matriz')" id="link-matriz"><i class="bi bi-hdd-network me-2"></i> Matriz Tecnología</a>
+    <a onclick="render('matrizcctv')" id="link-matrizcctv"><i class="bi bi-camera-video me-2"></i> Matriz de CCTV</a>
     <a onclick="render('zonas')" id="link-zonas"><i class="bi bi-geo-alt me-2"></i> Zonas</a>
     <a onclick="render('empresas')" id="link-empresas"><i class="bi bi-building me-2"></i> Empresas</a>
     <a onclick="render('sucursales')" id="link-sucursales"><i class="bi bi-shop me-2"></i> Sucursales</a>
@@ -110,7 +111,7 @@
                     <div id="secMatriz" class="d-none row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-bold small">Artículos</label>
-                            <input type="text" id="mArt" class="form-control" placeholder="EJ. LAPTOP">
+                            <input type="text" id="mArt" class="form-control" placeholder="EJ. LAPTOP O CÁMARA">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small">Modelo</label>
@@ -122,7 +123,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small">Marca</label>
-                            <input type="text" id="mMar" class="form-control" placeholder="EJ. DELL">
+                            <input type="text" id="mMar" class="form-control" placeholder="EJ. DELL / HIKVISION">
                         </div>
                     </div>
 
@@ -181,7 +182,7 @@
     const config = { databaseURL: "https://mydbu-fbc33-default-rtdb.firebaseio.com/" };
     const db = getDatabase(initializeApp(config));
 
-    let store = { matriz: {}, zonas: {}, empresas: {}, sucursales: {}, usuarios: {} };
+    let store = { matriz: {}, matrizcctv: {}, zonas: {}, empresas: {}, sucursales: {}, usuarios: {} };
     let currentPath = '';
 
     Object.keys(store).forEach(path => {
@@ -201,7 +202,7 @@
     
     document.getElementById("checkMasivo").onchange = (e) => {
         const isChecked = e.target.checked;
-        if(currentPath === 'matriz'){
+        if(currentPath === 'matriz' || currentPath === 'matrizcctv'){
             document.getElementById("secMatriz").classList.toggle('d-none', isChecked);
         } else {
             document.getElementById("secIndividual").classList.toggle('d-none', isChecked);
@@ -217,8 +218,12 @@
         const items = store[path];
         const keys = Object.keys(items);
 
+        let tituloMostrar = path.toUpperCase();
+        if(path === 'matriz') tituloMostrar = 'MATRIZ TECNOLOGÍA';
+        if(path === 'matrizcctv') tituloMostrar = 'MATRIZ DE CCTV';
+
         let html = `<div class="d-flex justify-content-between align-items-center mb-4">
-                        <h4 class="fw-bold m-0">${path === 'matriz' ? 'MATRIZ TECNOLOGÍA' : path.toUpperCase()}</h4>
+                        <h4 class="fw-bold m-0">${tituloMostrar}</h4>
                         <button class="btn btn-dark" onclick="showModal('${path}')"><i class="bi bi-plus-lg"></i> Nuevo</button>
                     </div>`;
 
@@ -229,7 +234,7 @@
                 <thead><tr>
                     ${path === 'usuarios' || path === 'sucursales' || path === 'zonas' ? '<th>Empresa</th>' : ''}
                     ${path === 'usuarios' || path === 'sucursales' ? '<th>Zona</th>' : ''}
-                    ${path === 'matriz' ? '<th>Artículos</th><th>Modelo</th><th>Descripción</th><th>Marca</th>' : '<th class="sticky-col text-start">Nombre</th>'}
+                    ${path === 'matriz' || path === 'matrizcctv' ? '<th>Artículos</th><th>Modelo</th><th>Descripción</th><th>Marca</th>' : '<th class="sticky-col text-start">Nombre</th>'}
                     ${path === 'usuarios' ? '<th>Depto</th><th>Usuario</th><th>Puesto</th>' : ''}
                     <th class="text-end">Acciones</th>
                 </tr></thead><tbody>`;
@@ -239,7 +244,7 @@
                 html += `<tr>
                     ${path === 'usuarios' || path === 'sucursales' || path === 'zonas' ? `<td><small>${r.empresa || '-'}</small></td>` : ''}
                     ${path === 'usuarios' || path === 'sucursales' ? `<td><small>${r.zona || '-'}</small></td>` : ''}
-                    ${path === 'matriz' ? 
+                    ${path === 'matriz' || path === 'matrizcctv' ? 
                         `<td class="text-start fw-bold">${r.articulos || r.nombre || '-'}</td><td>${r.modelo || '-'}</td><td><small>${r.descripcion || '-'}</small></td><td>${r.marca || '-'}</td>` : 
                         `<td class="sticky-col text-start">${r.nombre}</td>`
                     }
@@ -259,13 +264,15 @@
         const item = id ? store[path][id] : {};
         document.getElementById("fID").value = id;
         document.getElementById("fNom").value = item.nombre || "";
-        document.getElementById("mTitle").innerText = (id ? 'Editar ' : 'Nuevo ') + (path === 'matriz' ? 'Registro Tecnológico' : path.slice(0, -1));
+        
+        let labelTitulo = path === 'matriz' ? 'Registro Tecnológico' : (path === 'matrizcctv' ? 'Registro CCTV' : path.slice(0, -1));
+        document.getElementById("mTitle").innerText = (id ? 'Editar ' : 'Nuevo ') + labelTitulo;
         
         ['secEmpresa', 'secZona', 'secUsuarios', 'secMatriz', 'secMasivo', 'secToggleMasivo'].forEach(s => document.getElementById(s).classList.add('d-none'));
         document.getElementById("secIndividual").classList.remove('d-none');
         document.getElementById("checkMasivo").checked = false;
 
-        if (path === 'matriz') {
+        if (path === 'matriz' || path === 'matrizcctv') {
             document.getElementById("secIndividual").classList.add('d-none');
             document.getElementById("secMatriz").classList.remove('d-none');
             document.getElementById("mArt").value = item.articulos || "";
@@ -301,7 +308,7 @@
             document.getElementById("lblNom").innerText = "Nombre / Descripción";
         }
 
-        if (path === 'sucursales' && !id) document.getElementById("secToggleMasivo").classList.remove('d-none');
+        if ((path === 'sucursales' || path === 'matriz' || path === 'matrizcctv') && !id) document.getElementById("secToggleMasivo").classList.remove('d-none');
 
         new bootstrap.Modal(document.getElementById("modalApp")).show();
     };
@@ -312,7 +319,7 @@
         
         let data = {};
         
-        if (currentPath === 'matriz') {
+        if (currentPath === 'matriz' || currentPath === 'matrizcctv') {
             data = {
                 articulos: document.getElementById("mArt").value.trim().toUpperCase(),
                 modelo: document.getElementById("mMod").value.trim().toUpperCase(),
@@ -340,7 +347,7 @@
                 const lineas = document.getElementById("fMasivo").value.split('\n').filter(l => l.trim());
                 for (let linea of lineas) {
                     let itemData = { ...data };
-                    if (currentPath === 'matriz') {
+                    if (currentPath === 'matriz' || currentPath === 'matrizcctv') {
                         const parts = linea.split(',').map(p => p.trim().toUpperCase());
                         itemData.articulos = parts[0] || "";
                         itemData.nombre = parts[0] || "";
@@ -352,10 +359,11 @@
                     }
                     await push(ref(db, currentPath), itemData);
                 }
-                // Limpiar el recuadro después de guardar la carga masiva
                 document.getElementById("fMasivo").value = "";
             } else {
-                if(!data.nombre) return Swal.fire("Error", "El nombre/artículo es requerido", "error");
+                if(!data.nombre && !(currentPath === 'matriz' || currentPath === 'matrizcctv')) return Swal.fire("Error", "El nombre es requerido", "error");
+                if((currentPath === 'matriz' || currentPath === 'matrizcctv') && !data.articulos) return Swal.fire("Error", "El artículo es requerido", "error");
+                
                 id ? await update(ref(db, `${currentPath}/${id}`), data) : await push(ref(db, currentPath), data);
             }
             bootstrap.Modal.getInstance(document.getElementById("modalApp")).hide();
