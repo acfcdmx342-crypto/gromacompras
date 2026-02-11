@@ -10,6 +10,7 @@
     <style>
         :root { --dark: #0f172a; --accent: #38bdf8; --cctv-blue: #0070c0; --cctv-green: #38b050; }
         body { background: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow-x: hidden; }
+        
         .sidebar { 
             width: 240px; 
             min-height: 100vh; 
@@ -29,40 +30,31 @@
             padding: 20px; 
             transition: all 0.3s;
         }
+
         @media (max-width: 768px) {
             .sidebar { left: -240px; }
             .sidebar.active { left: 0; }
             .main-content { margin-left: 0; }
             .main-content.shifted { margin-left: 0; filter: blur(2px); pointer-events: none; }
         }
+
         .table-container { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); min-height: 300px; }
-        .sticky-col { position: sticky; left: 0; background: white; font-weight: bold; border-right: 2px solid #e2e8f0 !important; z-index: 1; }
         th { font-size: 0.7rem; color: #64748b; text-transform: uppercase; text-align: center; background: #f8fafc !important; }
         td { vertical-align: middle; text-align: center; font-size: 0.85rem; }
         input[type="text"], input[type="email"], select, textarea { text-transform: uppercase; }
-        input[type="password"] { text-transform: none; }
-        
+
         /* Estilos Plantilla CCTV */
         .cctv-header { background: var(--cctv-blue); color: white; font-weight: bold; padding: 5px 15px; margin-bottom: 10px; border-radius: 4px; }
         .cctv-green-header { background: var(--cctv-green); color: white; font-weight: bold; padding: 5px 15px; margin-top: 15px; }
         .cctv-label { background: #e9ecef; font-weight: bold; font-size: 0.75rem; border: 1px solid #dee2e6; padding: 4px 8px; }
         .cctv-input { border: 1px solid #dee2e6; padding: 4px 8px; font-size: 0.8rem; width: 100%; }
+        
+        .item-box { border: 1px solid #dee2e6; padding: 10px; background: #fff; height: 100%; }
         .signature-line { border-top: 1px solid #000; margin-top: 40px; font-size: 0.7rem; text-align: center; }
         
-        .btn-toggle {
-            display: none;
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1001;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
+        .btn-toggle { display: none; position: fixed; bottom: 20px; right: 20px; z-index: 1001; width: 50px; height: 50px; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         @media (max-width: 768px) { .btn-toggle { display: block; } }
 
-        /* Estilo para impresión */
         @media print {
             .no-print { display: none !important; }
             .sidebar { display: none !important; }
@@ -122,54 +114,23 @@
                         <select id="fZona" class="form-select"></select>
                     </div>
                     <div id="secMatriz" class="d-none row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small">Artículos</label>
-                            <input type="text" id="mArt" class="form-control" placeholder="EJ. LAPTOP O CÁMARA">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small">Modelo</label>
-                            <input type="text" id="mMod" class="form-control" placeholder="EJ. LATITUDE 5420">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small">Descripción</label>
-                            <input type="text" id="mDes" class="form-control" placeholder="EJ. CORE I5 11TH GEN">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small">Marca</label>
-                            <input type="text" id="mMar" class="form-control" placeholder="EJ. DELL / HIKVISION">
-                        </div>
+                        <div class="col-md-6"><label class="form-label fw-bold small">Artículos</label><input type="text" id="mArt" class="form-control"></div>
+                        <div class="col-md-6"><label class="form-label fw-bold small">Modelo</label><input type="text" id="mMod" class="form-control"></div>
+                        <div class="col-md-6"><label class="form-label fw-bold small">Descripción</label><input type="text" id="mDes" class="form-control"></div>
+                        <div class="col-md-6"><label class="form-label fw-bold small">Marca</label><input type="text" id="mMar" class="form-control"></div>
                     </div>
                     <div id="secUsuarios" class="d-none row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small">Departamento</label>
-                            <input type="text" id="uDep" class="form-control">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small">Puesto</label>
-                            <input type="text" id="uPue" class="form-control">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small">Usuario Acceso</label>
-                            <input type="text" id="uUsu" class="form-control">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold small">Contraseña</label>
-                            <input type="password" id="uPass" class="form-control">
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-bold small">Correo Electrónico</label>
-                            <input type="email" id="uCor" class="form-control">
-                        </div>
+                        <div class="col-md-6"><label class="form-label fw-bold small">Departamento</label><input type="text" id="uDep" class="form-control"></div>
+                        <div class="col-md-6"><label class="form-label fw-bold small">Puesto</label><input type="text" id="uPue" class="form-control"></div>
+                        <div class="col-md-6"><label class="form-label fw-bold small">Usuario Acceso</label><input type="text" id="uUsu" class="form-control"></div>
+                        <div class="col-md-6"><label class="form-label fw-bold small">Contraseña</label><input type="password" id="uPass" class="form-control"></div>
                     </div>
                     <div id="secIndividual" class="col-12 mt-3">
                         <label class="form-label fw-bold small" id="lblNom">Nombre / Descripción</label>
                         <input type="text" id="fNom" class="form-control">
                     </div>
                     <div id="secMasivo" class="col-12 d-none mt-3">
-                        <div class="alert alert-info py-2 small" id="masivoInfo">
-                            <i class="bi bi-info-circle me-1"></i> Uno por línea.
-                        </div>
-                        <textarea id="fMasivo" class="form-control" rows="5"></textarea>
+                        <textarea id="fMasivo" class="form-control" rows="5" placeholder="Uno por línea o CSV para matriz"></textarea>
                     </div>
                     <div id="secToggleMasivo" class="col-12 form-check form-switch d-none mt-3 ms-3">
                         <input class="form-check-input" type="checkbox" id="checkMasivo">
@@ -204,17 +165,11 @@
         currentPath = path;
         document.querySelectorAll('.sidebar a').forEach(el => el.classList.remove('active'));
         document.getElementById(`link-${path}`)?.classList.add('active');
-        
-        if (path === 'formato_cctv') {
-            renderCCTV();
-            return;
-        }
+        if (path === 'formato_cctv') { renderCCTV(); return; }
 
         const items = store[path];
         const keys = Object.keys(items);
         let titulo = path.toUpperCase();
-        if(path === 'matriz') titulo = 'MATRIZ TECNOLOGÍA';
-        if(path === 'matrizcctv') titulo = 'MATRIZ DE CCTV';
 
         let html = `<div class="d-flex justify-content-between align-items-center mb-4">
                         <h4 class="fw-bold m-0">${titulo}</h4>
@@ -228,8 +183,7 @@
                 <thead><tr>
                     ${['usuarios','sucursales','zonas'].includes(path) ? '<th>Empresa</th>' : ''}
                     ${['usuarios','sucursales'].includes(path) ? '<th>Zona</th>' : ''}
-                    ${path.includes('matriz') ? '<th>Artículos</th><th>Modelo</th><th>Descripción</th><th>Marca</th>' : '<th class="sticky-col text-start">Nombre</th>'}
-                    ${path === 'usuarios' ? '<th>Depto</th><th>Usuario</th><th>Puesto</th>' : ''}
+                    ${path.includes('matriz') ? '<th>Artículos</th><th>Modelo</th><th>Descripción</th><th>Marca</th>' : '<th class="text-start">Nombre</th>'}
                     <th class="text-end">Acciones</th>
                 </tr></thead><tbody>`;
 
@@ -239,10 +193,9 @@
                     ${['usuarios','sucursales','zonas'].includes(path) ? `<td><small>${r.empresa || '-'}</small></td>` : ''}
                     ${['usuarios','sucursales'].includes(path) ? `<td><small>${r.zona || '-'}</small></td>` : ''}
                     ${path.includes('matriz') ? 
-                        `<td class="text-start fw-bold">${r.articulos || r.nombre || '-'}</td><td>${r.modelo || '-'}</td><td><small>${r.descripcion || '-'}</small></td><td>${r.marca || '-'}</td>` : 
-                        `<td class="sticky-col text-start">${r.nombre}</td>`
+                        `<td class="text-start fw-bold">${r.articulos || '-'}</td><td>${r.modelo || '-'}</td><td><small>${r.descripcion || '-'}</small></td><td>${r.marca || '-'}</td>` : 
+                        `<td class="text-start">${r.nombre}</td>`
                     }
-                    ${path === 'usuarios' ? `<td><small>${r.departamento || '-'}</small></td><td>${r.usuarioAcceso || '-'}</td><td>${r.puesto || '-'}</td>` : ''}
                     <td class="text-end">
                         <button class="btn btn-sm btn-outline-secondary border-0" onclick="showModal('${path}', '${id}')"><i class="bi bi-pencil"></i></button>
                         <button class="btn btn-sm btn-outline-danger border-0" onclick="del('${path}', '${id}')"><i class="bi bi-trash"></i></button>
@@ -257,15 +210,13 @@
     function renderCCTV() {
         const today = new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         const usuarios = Object.values(store.usuarios);
-        const sesion = usuarios.length > 0 ? usuarios[0] : { nombre: "", puesto: "" };
+        const sesion = usuarios.length > 0 ? usuarios[0] : { nombre: "SOPORTE", puesto: "TECNICO" };
         const empresas = Object.values(store.empresas).map(e => e.nombre).sort();
         const articulosCctv = Object.values(store.matrizcctv).map(m => m.articulos).filter((v, i, a) => a.indexOf(v) === i).sort();
 
         let html = `
-            <div class="p-3" style="max-width: 900px; margin: auto; background: white;">
-                <div class="text-center mb-4">
-                    <h3 class="fw-bold" style="color: var(--cctv-blue)">Requisición de CCTV</h3>
-                </div>
+            <div class="p-4" style="max-width: 1000px; margin: auto; background: white; border: 1px solid #ccc;">
+                <div class="text-center mb-4"><h3 class="fw-bold" style="color: var(--cctv-blue)">Requisición de CCTV</h3></div>
                 
                 <div class="cctv-header">Datos del Solicitante</div>
                 <div class="row g-0 mb-4 border">
@@ -281,29 +232,23 @@
                     </div>
                     <div class="col-md-5">
                         <div class="d-flex border-bottom"><div class="cctv-label" style="width: 120px;">Fecha:</div><div class="cctv-input bg-light">${today}</div></div>
-                        <div class="d-flex border-bottom"><div class="cctv-label" style="width: 120px;">Zona:</div>
-                            <select class="cctv-input" id="cctv-zona-select" onchange="window.updateCctvSucursales(this.value)">
-                                <option value="">ZONA</option>
-                            </select>
-                        </div>
-                        <div class="d-flex"><div class="cctv-label" style="width: 120px;">Sucursal:</div>
-                            <select class="cctv-input" id="cctv-sucursal-select"><option value="">SUCURSAL</option></select>
-                        </div>
+                        <div class="d-flex border-bottom"><div class="cctv-label" style="width: 120px;">Zona:</div><select class="cctv-input" id="cctv-zona-select" onchange="window.updateCctvSucursales(this.value)"><option>ZONA</option></select></div>
+                        <div class="d-flex"><div class="cctv-label" style="width: 120px;">Sucursal:</div><select class="cctv-input" id="cctv-sucursal-select"><option>SUCURSAL</option></select></div>
                     </div>
                 </div>
 
                 <div class="cctv-header">Requerimiento de equipo</div>
-                <div class="row g-3" id="items-container">
-                    ${Array.from({length: 12}, (_, i) => generateItemRow(i + 1, articulosCctv)).join('')}
+                <div class="row g-2" id="items-container">
+                    ${Array.from({length: 9}, (_, i) => generateItemHTML(i + 1, articulosCctv)).join('')}
                 </div>
 
                 <div class="text-center mt-3 no-print">
-                    <button class="btn btn-outline-primary btn-sm rounded-circle" onclick="window.addNewItem()" title="Agregar más artículos">
-                        <i class="bi bi-plus-lg"></i>
+                    <button class="btn btn-primary btn-sm rounded-pill px-4" onclick="window.addNewItem()">
+                        <i class="bi bi-plus-circle me-2"></i>Añadir más artículos
                     </button>
                 </div>
 
-                <div class="mt-3 border p-2">
+                <div class="mt-4 border p-2">
                     <label class="small fw-bold">En caso de solicitar un artículo no listado, descríbalo:</label>
                     <textarea class="form-control mt-1" rows="2"></textarea>
                 </div>
@@ -315,52 +260,54 @@
                         <div class="col-md-6 d-flex"><span class="small fw-bold me-2">Responsable:</span><input type="text" class="border-bottom border-0 w-100" value="${sesion.nombre}" readonly></div>
                     </div>
                     <label class="small fw-bold">Comentarios:</label>
-                    <textarea class="form-control mb-3" rows="3"></textarea>
+                    <textarea class="form-control" rows="3"></textarea>
                 </div>
 
                 <div class="row mt-5">
-                    <div class="col-4"><div class="signature-line"><strong>${sesion.nombre || 'Nombre'}</strong><br>${sesion.puesto || 'Puesto'}</div></div>
-                    <div class="col-4"><div class="signature-line"><strong>Luis Alberto Garcia Sanchez</strong><br>Coordinador de Soporte</div></div>
-                    <div class="col-4"><div class="signature-line"><strong>Fernando Cruz Estrada</strong><br>Gerente de Sistemas</div></div>
+                    <div class="col-4"><div class="signature-line"><strong>SOLICITA</strong><br>${sesion.nombre}</div></div>
+                    <div class="col-4"><div class="signature-line"><strong>REVISA</strong><br>Coordinador de Soporte</div></div>
+                    <div class="col-4"><div class="signature-line"><strong>AUTORIZA</strong><br>Gerente de Sistemas</div></div>
                 </div>
 
                 <div class="text-center mt-4 no-print">
-                    <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> Imprimir Formato</button>
+                    <button class="btn btn-dark" onclick="window.print()"><i class="bi bi-printer me-2"></i>Imprimir Formato</button>
                 </div>
             </div>`;
         document.getElementById("view").innerHTML = html;
     }
 
-    // Helper para generar filas de items
-    function generateItemRow(i, articulos) {
+    // Función unificada para generar el HTML de un cuadro de ítem
+    function generateItemHTML(i, articulos) {
         return `
             <div class="col-md-4 item-row" id="row-${i}">
-                <div class="border p-2" style="height: 100%; background: #fff;">
-                    <div class="d-flex mb-1 align-items-center">
-                        <span class="small fw-bold me-2">Cant. ${i}:</span>
-                        <input type="number" class="form-control form-control-sm" style="width: 60px">
+                <div class="item-box">
+                    <div class="d-flex mb-2 align-items-center">
+                        <span class="small fw-bold me-2">Cant. art. ${i}:</span>
+                        <input type="number" class="form-control form-control-sm" style="width: 70px">
                     </div>
+                    <div class="bg-dark text-white text-center small py-1 mb-2">Tipos de accesorio:</div>
                     <select class="form-select form-select-sm mb-1" onchange="window.fillProductData(this, ${i})">
-                        <option value="">SELECCIONE PRODUCTO</option>
+                        <option value="">SELECCIONE...</option>
                         ${articulos.map(art => `<option value="${art}">${art}</option>`).join('')}
                     </select>
-                    <input type="text" id="mod-${i}" class="form-control form-control-sm mb-1" placeholder="Modelo" readonly style="font-size: 0.7rem">
-                    <input type="text" id="des-${i}" class="form-control form-control-sm mb-1" placeholder="Descripción" readonly style="font-size: 0.7rem">
-                    <input type="text" id="mar-${i}" class="form-control form-control-sm" placeholder="Marca" readonly style="font-size: 0.7rem">
+                    <input type="text" id="mod-${i}" class="form-control form-control-sm mb-1" placeholder="PRODUCTO/MODELO" readonly style="font-size: 0.7rem">
+                    <input type="text" id="des-${i}" class="form-control form-control-sm mb-1" placeholder="DESCRIPCIÓN" readonly style="font-size: 0.7rem">
+                    <input type="text" id="mar-${i}" class="form-control form-control-sm" placeholder="MARCA" readonly style="font-size: 0.7rem">
                 </div>
             </div>`;
     }
 
     window.addNewItem = () => {
         const container = document.getElementById('items-container');
-        const nextId = container.querySelectorAll('.item-row').length + 1;
+        const count = container.querySelectorAll('.item-row').length + 1;
         const articulos = Object.values(store.matrizcctv).map(m => m.articulos).filter((v, i, a) => a.indexOf(v) === i).sort();
         
-        const div = document.createElement('div');
-        div.className = 'col-md-4 item-row';
-        div.id = `row-${nextId}`;
-        div.innerHTML = generateItemRow(nextId, articulos);
-        container.appendChild(div);
+        // Creamos un elemento temporal para convertir el string HTML en nodo
+        const temp = document.createElement('div');
+        temp.innerHTML = generateItemHTML(count, articulos);
+        const newItem = temp.firstElementChild;
+        
+        container.appendChild(newItem);
     };
 
     window.fillProductData = (select, index) => {
@@ -381,16 +328,13 @@
         document.getElementById("diag-zona-display").value = zona;
     };
 
-    // Funciones del Modal y CRUD (Igual que el anterior pero optimizado)
     window.showModal = (path, id = "") => {
         const item = id ? store[path][id] : {};
         document.getElementById("fID").value = id;
-        document.getElementById("fNom").value = item.nombre || "";
         document.getElementById("mTitle").innerText = (id ? 'Editar ' : 'Nuevo ') + path.toUpperCase();
         
         ['secEmpresa', 'secZona', 'secUsuarios', 'secMatriz', 'secMasivo', 'secToggleMasivo'].forEach(s => document.getElementById(s).classList.add('d-none'));
         document.getElementById("secIndividual").classList.remove('d-none');
-        document.getElementById("checkMasivo").checked = false;
 
         if (path.includes('matriz')) {
             document.getElementById("secIndividual").classList.add('d-none');
@@ -409,12 +353,11 @@
 
         if (['sucursales', 'usuarios'].includes(path)) {
             document.getElementById("secZona").classList.remove('d-none');
-            const zonas = Object.values(store.zonas).filter(z => z.empresa === (item.empresa || emps[0])).map(z => z.nombre).sort();
+            const zonas = Object.values(store.zonas).map(z => z.nombre).sort();
             document.getElementById("fZona").innerHTML = zonas.map(z => `<option value="${z}" ${item.zona === z ? 'selected' : ''}>${z}</option>`).join('');
         }
 
-        if (!id && (path.includes('matriz') || path === 'sucursales')) document.getElementById("secToggleMasivo").classList.remove('d-none');
-
+        if (!id) document.getElementById("secToggleMasivo").classList.remove('d-none');
         new bootstrap.Modal(document.getElementById("modalApp")).show();
     };
 
@@ -428,8 +371,7 @@
                 articulos: document.getElementById("mArt").value.toUpperCase(),
                 modelo: document.getElementById("mMod").value.toUpperCase(),
                 descripcion: document.getElementById("mDes").value.toUpperCase(),
-                marca: document.getElementById("mMar").value.toUpperCase(),
-                nombre: document.getElementById("mArt").value.toUpperCase()
+                marca: document.getElementById("mMar").value.toUpperCase()
             };
         } else {
             data.nombre = document.getElementById("fNom").value.toUpperCase();
@@ -445,7 +387,7 @@
                     let itemData = { ...data };
                     if (currentPath.includes('matriz')) {
                         const p = linea.split(',').map(x => x.trim().toUpperCase());
-                        itemData = { articulos: p[0], nombre: p[0], modelo: p[1]||"", descripcion: p[2]||"", marca: p[3]||"", ...data };
+                        itemData = { articulos: p[0], modelo: p[1]||"", descripcion: p[2]||"", marca: p[3]||"", ...data };
                     } else { itemData.nombre = linea.trim().toUpperCase(); }
                     await push(ref(db, currentPath), itemData);
                 }
