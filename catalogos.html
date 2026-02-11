@@ -155,8 +155,10 @@
                     </div>
 
                     <div id="secMasivo" class="col-12 d-none mt-3">
-                        <div class="alert alert-info py-2 small"><i class="bi bi-info-circle me-1"></i> Uno por línea. Si es Matriz, los datos adicionales se repetirán para cada artículo.</div>
-                        <textarea id="fMasivo" class="form-control" rows="5" placeholder="Escribe aquí los nombres o artículos uno por línea..."></textarea>
+                        <div class="alert alert-info py-2 small" id="masivoInfo">
+                            <i class="bi bi-info-circle me-1"></i> Uno por línea.
+                        </div>
+                        <textarea id="fMasivo" class="form-control" rows="5" placeholder="Escribe la información aquí..."></textarea>
                     </div>
 
                     <div id="secToggleMasivo" class="col-12 form-check form-switch d-none mt-3 ms-3">
@@ -200,7 +202,7 @@
     document.getElementById("checkMasivo").onchange = (e) => {
         const isChecked = e.target.checked;
         if(currentPath === 'matriz'){
-            document.getElementById("mArt").parentElement.classList.toggle('d-none', isChecked);
+            document.getElementById("secMatriz").classList.toggle('d-none', isChecked);
         } else {
             document.getElementById("secIndividual").classList.toggle('d-none', isChecked);
         }
@@ -259,12 +261,10 @@
         document.getElementById("fNom").value = item.nombre || "";
         document.getElementById("mTitle").innerText = (id ? 'Editar ' : 'Nuevo ') + (path === 'matriz' ? 'Registro Tecnológico' : path.slice(0, -1));
         
-        // Reset de secciones
         ['secEmpresa', 'secZona', 'secUsuarios', 'secMatriz', 'secMasivo', 'secToggleMasivo'].forEach(s => document.getElementById(s).classList.add('d-none'));
         document.getElementById("secIndividual").classList.remove('d-none');
         document.getElementById("checkMasivo").checked = false;
 
-        // Configuración específica por módulo
         if (path === 'matriz') {
             document.getElementById("secIndividual").classList.add('d-none');
             document.getElementById("secMatriz").classList.remove('d-none');
@@ -272,7 +272,10 @@
             document.getElementById("mMar").value = item.marca || "";
             document.getElementById("mMod").value = item.modelo || "";
             document.getElementById("mDes").value = item.descripcion || "";
+            document.getElementById("masivoInfo").innerHTML = '<i class="bi bi-info-circle me-1"></i> Formato: ARTICULO, MARCA, MODELO, DESCRIPCION (separados por coma)';
             if (!id) document.getElementById("secToggleMasivo").classList.remove('d-none');
+        } else {
+            document.getElementById("masivoInfo").innerHTML = '<i class="bi bi-info-circle me-1"></i> Uno por línea.';
         }
 
         if (path === 'zonas' || path === 'sucursales' || path === 'usuarios') {
@@ -309,16 +312,14 @@
         
         let data = {};
         
-        // Recolección de datos según módulo
         if (currentPath === 'matriz') {
             data = {
                 articulos: document.getElementById("mArt").value.trim().toUpperCase(),
                 marca: document.getElementById("mMar").value.trim().toUpperCase(),
                 modelo: document.getElementById("mMod").value.trim().toUpperCase(),
-                descripcion: document.getElementById("mDes").value.trim().toUpperCase()
+                descripcion: document.getElementById("mDes").value.trim().toUpperCase(),
+                nombre: document.getElementById("mArt").value.trim().toUpperCase()
             };
-            // Firebase necesita un campo 'nombre' para consistencia con el resto del sistema
-            data.nombre = data.articulos; 
         } else {
             data.nombre = document.getElementById("fNom").value.trim().toUpperCase();
         }
@@ -336,14 +337,18 @@
 
         try {
             if (isMasivo) {
-                const lineas = document.getElementById("fMasivo").value.split('\n').map(n => n.trim().toUpperCase()).filter(n => n);
+                const lineas = document.getElementById("fMasivo").value.split('\n').filter(l => l.trim());
                 for (let linea of lineas) {
                     let itemData = { ...data };
                     if (currentPath === 'matriz') {
-                        itemData.articulos = linea;
-                        itemData.nombre = linea;
+                        const parts = linea.split(',').map(p => p.trim().toUpperCase());
+                        itemData.articulos = parts[0] || "";
+                        itemData.nombre = parts[0] || "";
+                        itemData.marca = parts[1] || "";
+                        itemData.modelo = parts[2] || "";
+                        itemData.descripcion = parts[3] || "";
                     } else {
-                        itemData.nombre = linea;
+                        itemData.nombre = linea.trim().toUpperCase();
                     }
                     await push(ref(db, currentPath), itemData);
                 }
