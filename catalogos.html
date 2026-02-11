@@ -113,16 +113,16 @@
                             <input type="text" id="mArt" class="form-control" placeholder="EJ. LAPTOP">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small">Marca</label>
-                            <input type="text" id="mMar" class="form-control" placeholder="EJ. DELL">
-                        </div>
-                        <div class="col-md-6">
                             <label class="form-label fw-bold small">Modelo</label>
                             <input type="text" id="mMod" class="form-control" placeholder="EJ. LATITUDE 5420">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small">Descripción</label>
                             <input type="text" id="mDes" class="form-control" placeholder="EJ. CORE I5 11TH GEN">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small">Marca</label>
+                            <input type="text" id="mMar" class="form-control" placeholder="EJ. DELL">
                         </div>
                     </div>
 
@@ -229,7 +229,7 @@
                 <thead><tr>
                     ${path === 'usuarios' || path === 'sucursales' || path === 'zonas' ? '<th>Empresa</th>' : ''}
                     ${path === 'usuarios' || path === 'sucursales' ? '<th>Zona</th>' : ''}
-                    ${path === 'matriz' ? '<th>Artículos</th><th>Modelo</th><th>Marca</th><th>Descripción</th>' : '<th class="sticky-col text-start">Nombre</th>'}
+                    ${path === 'matriz' ? '<th>Artículos</th><th>Modelo</th><th>Descripción</th><th>Marca</th>' : '<th class="sticky-col text-start">Nombre</th>'}
                     ${path === 'usuarios' ? '<th>Depto</th><th>Usuario</th><th>Puesto</th>' : ''}
                     <th class="text-end">Acciones</th>
                 </tr></thead><tbody>`;
@@ -240,7 +240,7 @@
                     ${path === 'usuarios' || path === 'sucursales' || path === 'zonas' ? `<td><small>${r.empresa || '-'}</small></td>` : ''}
                     ${path === 'usuarios' || path === 'sucursales' ? `<td><small>${r.zona || '-'}</small></td>` : ''}
                     ${path === 'matriz' ? 
-                        `<td class="text-start fw-bold">${r.articulos || r.nombre || '-'}</td><td>${r.modelo || '-'}</td><td>${r.marca || '-'}</td><td><small>${r.descripcion || '-'}</small></td>` : 
+                        `<td class="text-start fw-bold">${r.articulos || r.nombre || '-'}</td><td>${r.modelo || '-'}</td><td><small>${r.descripcion || '-'}</small></td><td>${r.marca || '-'}</td>` : 
                         `<td class="sticky-col text-start">${r.nombre}</td>`
                     }
                     ${path === 'usuarios' ? `<td><small>${r.departamento || '-'}</small></td><td>${r.usuarioAcceso || '-'}</td><td>${r.puesto || '-'}</td>` : ''}
@@ -269,10 +269,10 @@
             document.getElementById("secIndividual").classList.add('d-none');
             document.getElementById("secMatriz").classList.remove('d-none');
             document.getElementById("mArt").value = item.articulos || "";
-            document.getElementById("mMar").value = item.marca || "";
             document.getElementById("mMod").value = item.modelo || "";
             document.getElementById("mDes").value = item.descripcion || "";
-            document.getElementById("masivoInfo").innerHTML = '<i class="bi bi-info-circle me-1"></i> Formato: ARTICULO, MARCA, MODELO, DESCRIPCION (separados por coma)';
+            document.getElementById("mMar").value = item.marca || "";
+            document.getElementById("masivoInfo").innerHTML = '<i class="bi bi-info-circle me-1"></i> Formato: ARTICULO, MODELO, DESCRIPCION, MARCA (separados por coma)';
             if (!id) document.getElementById("secToggleMasivo").classList.remove('d-none');
         } else {
             document.getElementById("masivoInfo").innerHTML = '<i class="bi bi-info-circle me-1"></i> Uno por línea.';
@@ -315,9 +315,9 @@
         if (currentPath === 'matriz') {
             data = {
                 articulos: document.getElementById("mArt").value.trim().toUpperCase(),
-                marca: document.getElementById("mMar").value.trim().toUpperCase(),
                 modelo: document.getElementById("mMod").value.trim().toUpperCase(),
                 descripcion: document.getElementById("mDes").value.trim().toUpperCase(),
+                marca: document.getElementById("mMar").value.trim().toUpperCase(),
                 nombre: document.getElementById("mArt").value.trim().toUpperCase()
             };
         } else {
@@ -344,9 +344,9 @@
                         const parts = linea.split(',').map(p => p.trim().toUpperCase());
                         itemData.articulos = parts[0] || "";
                         itemData.nombre = parts[0] || "";
-                        itemData.marca = parts[1] || "";
-                        itemData.modelo = parts[2] || "";
-                        itemData.descripcion = parts[3] || "";
+                        itemData.modelo = parts[1] || "";
+                        itemData.descripcion = parts[2] || "";
+                        itemData.marca = parts[3] || "";
                     } else {
                         itemData.nombre = linea.trim().toUpperCase();
                     }
