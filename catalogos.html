@@ -31,7 +31,7 @@
             transition: all 0.3s;
         }
 
-        /* Estilo para cuando se oculta el menú (Modo Solo CCTV) */
+        /* Estilo para cuando se oculta el menú */
         body.hide-menu .sidebar { display: none !important; }
         body.hide-menu .main-content { margin-left: 0 !important; }
         body.hide-menu .btn-toggle { display: none !important; }
@@ -48,6 +48,38 @@
         td { vertical-align: middle; text-align: center; font-size: 0.85rem; }
         input[type="text"], input[type="email"], select, textarea { text-transform: uppercase; }
 
+        /* --- EFECTO ROTATING CUBE --- */
+        .cube-container {
+            perspective: 1000px;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: inline-block;
+            margin: 0 10px;
+        }
+        .cube {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .cube-container:hover .cube { transform: rotateY(-90deg); }
+        .face {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            border-radius: 8px;
+            color: white;
+            backface-visibility: hidden;
+        }
+        .front { background: var(--dark); transform: rotateY(0deg) translateZ(20px); }
+        .side { background: var(--accent); transform: rotateY(90deg) translateZ(20px); }
+        
         /* Estilos Plantilla CCTV */
         .cctv-header { background: var(--cctv-blue); color: white; font-weight: bold; padding: 5px 15px; margin-bottom: 10px; border-radius: 4px; }
         .cctv-green-header { background: var(--cctv-green); color: white; font-weight: bold; padding: 5px 15px; margin-top: 15px; }
@@ -124,12 +156,6 @@
                         <div class="col-md-6"><label class="form-label fw-bold small">Descripción</label><input type="text" id="mDes" class="form-control"></div>
                         <div class="col-md-6"><label class="form-label fw-bold small">Marca</label><input type="text" id="mMar" class="form-control"></div>
                     </div>
-                    <div id="secUsuarios" class="d-none row g-3">
-                        <div class="col-md-6"><label class="form-label fw-bold small">Departamento</label><input type="text" id="uDep" class="form-control"></div>
-                        <div class="col-md-6"><label class="form-label fw-bold small">Puesto</label><input type="text" id="uPue" class="form-control"></div>
-                        <div class="col-md-6"><label class="form-label fw-bold small">Usuario Acceso</label><input type="text" id="uUsu" class="form-control"></div>
-                        <div class="col-md-6"><label class="form-label fw-bold small">Contraseña</label><input type="password" id="uPass" class="form-control"></div>
-                    </div>
                     <div id="secIndividual" class="col-12 mt-3">
                         <label class="form-label fw-bold small" id="lblNom">Nombre / Descripción</label>
                         <input type="text" id="fNom" class="form-control">
@@ -163,13 +189,6 @@
         onValue(ref(db, path), (s) => {
             store[path] = s.val() || {};
             if (currentPath === path) render(path);
-
-            // LOGICA PARA SOLO VER CCTV SI VIENE POR URL
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('tipo') === 'cctv' && currentPath === '') {
-                document.body.classList.add('hide-menu');
-                render('formato_cctv');
-            }
         });
     });
 
@@ -227,7 +246,22 @@
         const articulosCctv = Object.values(store.matrizcctv).map(m => m.articulos).filter((v, i, a) => a.indexOf(v) === i).sort();
 
         let html = `
-            <div class="p-4" style="max-width: 1000px; margin: auto; background: white; border: 1px solid #ccc;">
+            <div class="p-4" id="print-area" style="max-width: 1000px; margin: auto; background: white; border: 1px solid #ccc; position: relative;">
+                <div class="no-print d-flex justify-content-end mb-3">
+                    <div class="cube-container" onclick="window.render('matriz')" title="Regresar a Tecnología">
+                        <div class="cube">
+                            <div class="face front"><i class="bi bi-arrow-left-circle"></i></div>
+                            <div class="face side"><i class="bi bi-hdd-network"></i></div>
+                        </div>
+                    </div>
+                    <div class="cube-container" onclick="window.print()" title="Descargar PDF">
+                        <div class="cube">
+                            <div class="face front"><i class="bi bi-file-earmark-pdf"></i></div>
+                            <div class="face side"><i class="bi bi-download"></i></div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="text-center mb-4"><h3 class="fw-bold" style="color: var(--cctv-blue)">Requisición de CCTV</h3></div>
                 
                 <div class="cctv-header">Datos del Solicitante</div>
@@ -280,10 +314,6 @@
                     <div class="col-4"><div class="signature-line"><strong>REVISA</strong><br>Coordinador de Soporte</div></div>
                     <div class="col-4"><div class="signature-line"><strong>AUTORIZA</strong><br>Gerente de Sistemas</div></div>
                 </div>
-
-                <div class="text-center mt-4 no-print">
-                    <button class="btn btn-dark" onclick="window.print()"><i class="bi bi-printer me-2"></i>Imprimir Formato</button>
-                </div>
             </div>`;
         document.getElementById("view").innerHTML = html;
     }
@@ -301,7 +331,7 @@
                         <option value="">SELECCIONE...</option>
                         ${articulos.map(art => `<option value="${art}">${art}</option>`).join('')}
                     </select>
-                    <input type="text" id="mod-${i}" class="form-control form-control-sm mb-1" placeholder="PRODUCTO/MODELO" readonly style="font-size: 0.7rem">
+                    <input type="text" id="mod-${i}" class="form-control form-control-sm mb-1" placeholder="PRODUCTO" readonly style="font-size: 0.7rem">
                     <input type="text" id="des-${i}" class="form-control form-control-sm mb-1" placeholder="DESCRIPCIÓN" readonly style="font-size: 0.7rem">
                     <input type="text" id="mar-${i}" class="form-control form-control-sm" placeholder="MARCA" readonly style="font-size: 0.7rem">
                 </div>
@@ -331,7 +361,7 @@
 
     window.updateCctvSucursales = (zona) => {
         const sucursales = Object.values(store.sucursales).filter(s => s.zona === zona).map(s => s.nombre).sort();
-        document.getElementById("cctv-sucursal-select").innerHTML = '<option value="">SUCURSAL</option>' + sucursales.map(s => `<option value="${s}">${s}</option>`).join('');
+        document.getElementById("cctv-sucursal-select").innerHTML = '<option value="">SUCURSAL</option>' + sucursales.map(s => `<option value="${z}">${z}</option>`).join('');
         document.getElementById("diag-zona-display").value = zona;
     };
 
@@ -339,7 +369,7 @@
         const item = id ? store[path][id] : {};
         document.getElementById("fID").value = id;
         document.getElementById("mTitle").innerText = (id ? 'Editar ' : 'Nuevo ') + path.toUpperCase();
-        ['secEmpresa', 'secZona', 'secUsuarios', 'secMatriz', 'secMasivo', 'secToggleMasivo'].forEach(s => document.getElementById(s).classList.add('d-none'));
+        ['secEmpresa', 'secZona', 'secMatriz', 'secMasivo', 'secToggleMasivo'].forEach(s => document.getElementById(s).classList.add('d-none'));
         document.getElementById("secIndividual").classList.remove('d-none');
         if (path.includes('matriz')) {
             document.getElementById("secIndividual").classList.add('d-none');
@@ -412,14 +442,14 @@
         document.getElementById(currentPath.includes('matriz') ? "secMatriz" : "secIndividual").classList.toggle('d-none', e.target.checked);
         document.getElementById("secMasivo").classList.toggle('d-none', !e.target.checked);
     };
- 
 </script>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-document.addEventListener('contextmenu', e => e.preventDefault());
-document.onkeydown = e => {
-    if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
-};
-    </script>
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.onkeydown = e => {
+        if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
+    };
+</script>
 </body>
 </html>
