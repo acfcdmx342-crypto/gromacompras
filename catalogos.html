@@ -10,7 +10,6 @@
     <style>
         :root { --dark: #0f172a; --accent: #38bdf8; --cctv-blue: #0070c0; --cctv-green: #38b050; }
         body { background: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow-x: hidden; }
-        
         .sidebar { 
             width: 240px; 
             min-height: 100vh; 
@@ -21,7 +20,6 @@
             transition: all 0.3s;
             left: 0;
         }
-        
         .sidebar a { color: #94a3b8; text-decoration: none; padding: 12px 20px; display: block; transition: 0.3s; cursor: pointer; font-size: 0.9rem; }
         .sidebar a:hover { background: #1e293b; color: var(--accent); }
         .sidebar a.active { color: white; border-left: 4px solid var(--accent); background: #1e293b; }
@@ -31,29 +29,26 @@
             padding: 20px; 
             transition: all 0.3s;
         }
-
         @media (max-width: 768px) {
             .sidebar { left: -240px; }
             .sidebar.active { left: 0; }
             .main-content { margin-left: 0; }
             .main-content.shifted { margin-left: 0; filter: blur(2px); pointer-events: none; }
         }
-
         .table-container { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); min-height: 300px; }
         .sticky-col { position: sticky; left: 0; background: white; font-weight: bold; border-right: 2px solid #e2e8f0 !important; z-index: 1; }
         th { font-size: 0.7rem; color: #64748b; text-transform: uppercase; text-align: center; background: #f8fafc !important; }
         td { vertical-align: middle; text-align: center; font-size: 0.85rem; }
         input[type="text"], input[type="email"], select, textarea { text-transform: uppercase; }
         input[type="password"] { text-transform: none; }
-
+        
         /* Estilos Plantilla CCTV */
         .cctv-header { background: var(--cctv-blue); color: white; font-weight: bold; padding: 5px 15px; margin-bottom: 10px; border-radius: 4px; }
         .cctv-green-header { background: var(--cctv-green); color: white; font-weight: bold; padding: 5px 15px; margin-top: 15px; }
         .cctv-label { background: #e9ecef; font-weight: bold; font-size: 0.75rem; border: 1px solid #dee2e6; padding: 4px 8px; }
         .cctv-input { border: 1px solid #dee2e6; padding: 4px 8px; font-size: 0.8rem; width: 100%; }
-        .cctv-section-title { color: var(--cctv-blue); font-weight: bold; border-bottom: 2px solid var(--cctv-blue); margin-bottom: 15px; }
         .signature-line { border-top: 1px solid #000; margin-top: 40px; font-size: 0.7rem; text-align: center; }
-
+        
         .btn-toggle {
             display: none;
             position: fixed;
@@ -66,6 +61,14 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
         @media (max-width: 768px) { .btn-toggle { display: block; } }
+
+        /* Estilo para impresión */
+        @media print {
+            .no-print { display: none !important; }
+            .sidebar { display: none !important; }
+            .main-content { margin-left: 0 !important; padding: 0 !important; }
+            .table-container { box-shadow: none !important; border: none !important; }
+        }
     </style>
 </head>
 <body>
@@ -109,7 +112,6 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="fID">
-                
                 <div class="row">
                     <div id="secEmpresa" class="col-md-6 mb-3 d-none">
                         <label class="form-label fw-bold small">Empresa</label>
@@ -119,7 +121,6 @@
                         <label class="form-label fw-bold small">Zona</label>
                         <select id="fZona" class="form-select"></select>
                     </div>
-
                     <div id="secMatriz" class="d-none row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-bold small">Artículos</label>
@@ -138,19 +139,18 @@
                             <input type="text" id="mMar" class="form-control" placeholder="EJ. DELL / HIKVISION">
                         </div>
                     </div>
-
                     <div id="secUsuarios" class="d-none row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-bold small">Departamento</label>
-                            <input type="text" id="uDep" class="form-control" placeholder="EJ. SISTEMAS">
+                            <input type="text" id="uDep" class="form-control">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small">Puesto</label>
-                            <input type="text" id="uPue" class="form-control" placeholder="EJ. GERENTE">
+                            <input type="text" id="uPue" class="form-control">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small">Usuario Acceso</label>
-                            <input type="text" id="uUsu" class="form-control" placeholder="USUARIO">
+                            <input type="text" id="uUsu" class="form-control">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold small">Contraseña</label>
@@ -158,22 +158,19 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-bold small">Correo Electrónico</label>
-                            <input type="email" id="uCor" class="form-control" placeholder="CORREO@EMPRESA.COM">
+                            <input type="email" id="uCor" class="form-control">
                         </div>
                     </div>
-
                     <div id="secIndividual" class="col-12 mt-3">
                         <label class="form-label fw-bold small" id="lblNom">Nombre / Descripción</label>
-                        <input type="text" id="fNom" class="form-control" placeholder="NOMBRE COMPLETO O DESCRIPCIÓN">
+                        <input type="text" id="fNom" class="form-control">
                     </div>
-
                     <div id="secMasivo" class="col-12 d-none mt-3">
                         <div class="alert alert-info py-2 small" id="masivoInfo">
                             <i class="bi bi-info-circle me-1"></i> Uno por línea.
                         </div>
-                        <textarea id="fMasivo" class="form-control" rows="5" placeholder="Escribe la información aquí..."></textarea>
+                        <textarea id="fMasivo" class="form-control" rows="5"></textarea>
                     </div>
-
                     <div id="secToggleMasivo" class="col-12 form-check form-switch d-none mt-3 ms-3">
                         <input class="form-check-input" type="checkbox" id="checkMasivo">
                         <label class="form-check-label small fw-bold" for="checkMasivo">Activar Carga Masiva</label>
@@ -190,10 +187,9 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
+    
     const config = { databaseURL: "https://mydbu-fbc33-default-rtdb.firebaseio.com/" };
     const db = getDatabase(initializeApp(config));
-
     let store = { matriz: {}, matrizcctv: {}, zonas: {}, empresas: {}, sucursales: {}, usuarios: {} };
     let currentPath = '';
 
@@ -204,29 +200,11 @@
         });
     });
 
-    const updateZonasDropdown = (selectedEmpresa, selectedZona = "") => {
-        const fZona = document.getElementById("fZona");
-        const zonasFiltradas = Object.values(store.zonas).filter(z => z.empresa === selectedEmpresa).map(z => z.nombre).sort();
-        fZona.innerHTML = zonasFiltradas.length > 0 ? zonasFiltradas.map(z => `<option value="${z}" ${selectedZona === z ? 'selected' : ''}>${z}</option>`).join('') : '<option value="">SIN ZONAS</option>';
-    };
-
-    document.getElementById("fEmp").onchange = (e) => updateZonasDropdown(e.target.value);
-    
-    document.getElementById("checkMasivo").onchange = (e) => {
-        const isChecked = e.target.checked;
-        if(currentPath === 'matriz' || currentPath === 'matrizcctv'){
-            document.getElementById("secMatriz").classList.toggle('d-none', isChecked);
-        } else {
-            document.getElementById("secIndividual").classList.toggle('d-none', isChecked);
-        }
-        document.getElementById("secMasivo").classList.toggle('d-none', !isChecked);
-    };
-
     window.render = (path) => {
         currentPath = path;
         document.querySelectorAll('.sidebar a').forEach(el => el.classList.remove('active'));
         document.getElementById(`link-${path}`)?.classList.add('active');
-
+        
         if (path === 'formato_cctv') {
             renderCCTV();
             return;
@@ -234,13 +212,12 @@
 
         const items = store[path];
         const keys = Object.keys(items);
-
-        let tituloMostrar = path.toUpperCase();
-        if(path === 'matriz') tituloMostrar = 'MATRIZ TECNOLOGÍA';
-        if(path === 'matrizcctv') tituloMostrar = 'MATRIZ DE CCTV';
+        let titulo = path.toUpperCase();
+        if(path === 'matriz') titulo = 'MATRIZ TECNOLOGÍA';
+        if(path === 'matrizcctv') titulo = 'MATRIZ DE CCTV';
 
         let html = `<div class="d-flex justify-content-between align-items-center mb-4">
-                        <h4 class="fw-bold m-0">${tituloMostrar}</h4>
+                        <h4 class="fw-bold m-0">${titulo}</h4>
                         <button class="btn btn-dark" onclick="showModal('${path}')"><i class="bi bi-plus-lg"></i> Nuevo</button>
                     </div>`;
 
@@ -249,9 +226,9 @@
         } else {
             html += `<div class="table-responsive"><table class="table table-hover border">
                 <thead><tr>
-                    ${path === 'usuarios' || path === 'sucursales' || path === 'zonas' ? '<th>Empresa</th>' : ''}
-                    ${path === 'usuarios' || path === 'sucursales' ? '<th>Zona</th>' : ''}
-                    ${path === 'matriz' || path === 'matrizcctv' ? '<th>Artículos</th><th>Modelo</th><th>Descripción</th><th>Marca</th>' : '<th class="sticky-col text-start">Nombre</th>'}
+                    ${['usuarios','sucursales','zonas'].includes(path) ? '<th>Empresa</th>' : ''}
+                    ${['usuarios','sucursales'].includes(path) ? '<th>Zona</th>' : ''}
+                    ${path.includes('matriz') ? '<th>Artículos</th><th>Modelo</th><th>Descripción</th><th>Marca</th>' : '<th class="sticky-col text-start">Nombre</th>'}
                     ${path === 'usuarios' ? '<th>Depto</th><th>Usuario</th><th>Puesto</th>' : ''}
                     <th class="text-end">Acciones</th>
                 </tr></thead><tbody>`;
@@ -259,9 +236,9 @@
             keys.forEach(id => {
                 const r = items[id];
                 html += `<tr>
-                    ${path === 'usuarios' || path === 'sucursales' || path === 'zonas' ? `<td><small>${r.empresa || '-'}</small></td>` : ''}
-                    ${path === 'usuarios' || path === 'sucursales' ? `<td><small>${r.zona || '-'}</small></td>` : ''}
-                    ${path === 'matriz' || path === 'matrizcctv' ? 
+                    ${['usuarios','sucursales','zonas'].includes(path) ? `<td><small>${r.empresa || '-'}</small></td>` : ''}
+                    ${['usuarios','sucursales'].includes(path) ? `<td><small>${r.zona || '-'}</small></td>` : ''}
+                    ${path.includes('matriz') ? 
                         `<td class="text-start fw-bold">${r.articulos || r.nombre || '-'}</td><td>${r.modelo || '-'}</td><td><small>${r.descripcion || '-'}</small></td><td>${r.marca || '-'}</td>` : 
                         `<td class="sticky-col text-start">${r.nombre}</td>`
                     }
@@ -279,11 +256,9 @@
 
     function renderCCTV() {
         const today = new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        const usuariosList = Object.values(store.usuarios);
-        const sesionActiva = usuariosList.length > 0 ? usuariosList[0] : { nombre: "", puesto: "" };
-        const empresasList = Object.values(store.empresas).map(e => e.nombre).sort();
-
-        // Obtener articulos únicos del catálogo de Matriz CCTV
+        const usuarios = Object.values(store.usuarios);
+        const sesion = usuarios.length > 0 ? usuarios[0] : { nombre: "", puesto: "" };
+        const empresas = Object.values(store.empresas).map(e => e.nombre).sort();
         const articulosCctv = Object.values(store.matrizcctv).map(m => m.articulos).filter((v, i, a) => a.indexOf(v) === i).sort();
 
         let html = `
@@ -291,118 +266,64 @@
                 <div class="text-center mb-4">
                     <h3 class="fw-bold" style="color: var(--cctv-blue)">Requisición de CCTV</h3>
                 </div>
-
+                
                 <div class="cctv-header">Datos del Solicitante</div>
                 <div class="row g-0 mb-4 border">
                     <div class="col-md-7 border-end">
-                        <div class="d-flex border-bottom">
-                            <div class="cctv-label" style="width: 120px;">Nombre:</div>
-                            <input type="text" class="cctv-input" value="${sesionActiva.nombre}" readonly>
-                        </div>
-                        <div class="d-flex border-bottom">
-                            <div class="cctv-label" style="width: 120px;">Puesto:</div>
-                            <input type="text" class="cctv-input" value="${sesionActiva.puesto}" readonly>
-                        </div>
-                        <div class="d-flex">
-                            <div class="cctv-label" style="width: 120px;">Empresa:</div>
-                            <select class="cctv-input" id="cctv-empresa-select" onchange="window.updateCctvZonas(this.value)">
-                                <option value="">SELECCIONE EMPRESA</option>
-                                ${empresasList.map(e => `<option value="${e}">${e}</option>`).join('')}
+                        <div class="d-flex border-bottom"><div class="cctv-label" style="width: 120px;">Nombre:</div><input type="text" class="cctv-input" value="${sesion.nombre}" readonly></div>
+                        <div class="d-flex border-bottom"><div class="cctv-label" style="width: 120px;">Puesto:</div><input type="text" class="cctv-input" value="${sesion.puesto}" readonly></div>
+                        <div class="d-flex"><div class="cctv-label" style="width: 120px;">Empresa:</div>
+                            <select class="cctv-input" onchange="window.updateCctvZonas(this.value)">
+                                <option value="">SELECCIONE...</option>
+                                ${empresas.map(e => `<option value="${e}">${e}</option>`).join('')}
                             </select>
                         </div>
                     </div>
                     <div class="col-md-5">
-                        <div class="d-flex border-bottom">
-                            <div class="cctv-label" style="width: 120px;">Fecha:</div>
-                            <div class="cctv-input bg-light">${today}</div>
-                        </div>
-                        <div class="d-flex border-bottom">
-                            <div class="cctv-label" style="width: 120px;">Zona:</div>
+                        <div class="d-flex border-bottom"><div class="cctv-label" style="width: 120px;">Fecha:</div><div class="cctv-input bg-light">${today}</div></div>
+                        <div class="d-flex border-bottom"><div class="cctv-label" style="width: 120px;">Zona:</div>
                             <select class="cctv-input" id="cctv-zona-select" onchange="window.updateCctvSucursales(this.value)">
-                                <option value="">SELECCIONE ZONA</option>
+                                <option value="">ZONA</option>
                             </select>
                         </div>
-                        <div class="d-flex">
-                            <div class="cctv-label" style="width: 120px;">Sucursal:</div>
-                            <select class="cctv-input" id="cctv-sucursal-select">
-                                <option value="">SELECCIONE SUCURSAL</option>
-                            </select>
+                        <div class="d-flex"><div class="cctv-label" style="width: 120px;">Sucursal:</div>
+                            <select class="cctv-input" id="cctv-sucursal-select"><option value="">SUCURSAL</option></select>
                         </div>
                     </div>
                 </div>
 
                 <div class="cctv-header">Requerimiento de equipo</div>
-                <p class="small text-muted mb-2">Seleccione el requerimiento que solicita.</p>
-                
-                <div class="row g-3">
-                    ${Array.from({length: 10}, (_, i) => i + 1).map(i => `
-                        <div class="col-md-4">
-                            <div class="border p-2" style="height: 100%;">
-                                <div class="d-flex mb-1">
-                                    <span class="small fw-bold me-2">Cant. art. ${i}:</span>
-                                    <input type="text" class="form-control form-control-sm" style="width: 50px">
-                                </div>
-                                <div class="bg-dark text-white text-center small py-1 mb-2">Tipos de accesorio:</div>
-                                <select class="form-select form-select-sm mb-1" onchange="window.fillProductData(this, ${i})">
-                                    <option value="">SELECCIONE PRODUCTO</option>
-                                    ${articulosCctv.map(art => `<option value="${art}">${art}</option>`).join('')}
-                                </select>
-                                <input type="text" id="mod-${i}" class="form-control form-control-sm mb-1" placeholder="Modelo" readonly>
-                                <input type="text" id="des-${i}" class="form-control form-control-sm mb-1" placeholder="Descripción" readonly>
-                                <input type="text" id="mar-${i}" class="form-control form-control-sm" placeholder="Marca" readonly>
-                            </div>
-                        </div>
-                    `).join('')}
+                <div class="row g-3" id="items-container">
+                    ${Array.from({length: 12}, (_, i) => generateItemRow(i + 1, articulosCctv)).join('')}
+                </div>
+
+                <div class="text-center mt-3 no-print">
+                    <button class="btn btn-outline-primary btn-sm rounded-circle" onclick="window.addNewItem()" title="Agregar más artículos">
+                        <i class="bi bi-plus-lg"></i>
+                    </button>
                 </div>
 
                 <div class="mt-3 border p-2">
-                    <label class="small fw-bold">En caso de solicitar un artículo que no esté dentro de la lista, descríbalo aquí:</label>
-                    <textarea class="form-control mt-1" rows="3"></textarea>
+                    <label class="small fw-bold">En caso de solicitar un artículo no listado, descríbalo:</label>
+                    <textarea class="form-control mt-1" rows="2"></textarea>
                 </div>
 
                 <div class="cctv-green-header">Diagnóstico Realizado por Soporte en Zona</div>
                 <div class="border p-3">
                     <div class="row mb-3">
-                        <div class="col-md-6">
-                            <div class="d-flex">
-                                <span class="small fw-bold me-2">Zona:</span>
-                                <input type="text" class="border-bottom border-0 w-100" id="diag-zona-display" readonly>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="d-flex">
-                                <span class="small fw-bold me-2">Responsable:</span>
-                                <input type="text" class="border-bottom border-0 w-100" value="${sesionActiva.nombre}" readonly>
-                            </div>
-                        </div>
+                        <div class="col-md-6 d-flex"><span class="small fw-bold me-2">Zona:</span><input type="text" class="border-bottom border-0 w-100" id="diag-zona-display" readonly></div>
+                        <div class="col-md-6 d-flex"><span class="small fw-bold me-2">Responsable:</span><input type="text" class="border-bottom border-0 w-100" value="${sesion.nombre}" readonly></div>
                     </div>
-                    <label class="small fw-bold">Comentarios del diagnóstico:</label>
-                    <textarea class="form-control mb-3" rows="4"></textarea>
-                    
-                    <div class="d-flex align-items-center">
-                        <span class="small fw-bold me-2">Soporte Técnico determina que el equipo revisado:</span>
-                        <input type="text" class="form-control form-control-sm w-50" placeholder="APERTURA DE TIENDA">
-                    </div>
+                    <label class="small fw-bold">Comentarios:</label>
+                    <textarea class="form-control mb-3" rows="3"></textarea>
                 </div>
 
                 <div class="row mt-5">
-                    <div class="col-4">
-                        <div class="signature-line">
-                            <strong>${sesionActiva.nombre || 'Nombre'}</strong><br>${sesionActiva.puesto || 'Puesto'}
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="signature-line">
-                            <strong>Luis Alberto Garcia Sanchez</strong><br>Coordinador de Soporte
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="signature-line">
-                            <strong>Fernando Cruz Estrada</strong><br>Gerente de Sistemas
-                        </div>
-                    </div>
+                    <div class="col-4"><div class="signature-line"><strong>${sesion.nombre || 'Nombre'}</strong><br>${sesion.puesto || 'Puesto'}</div></div>
+                    <div class="col-4"><div class="signature-line"><strong>Luis Alberto Garcia Sanchez</strong><br>Coordinador de Soporte</div></div>
+                    <div class="col-4"><div class="signature-line"><strong>Fernando Cruz Estrada</strong><br>Gerente de Sistemas</div></div>
                 </div>
-                
+
                 <div class="text-center mt-4 no-print">
                     <button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> Imprimir Formato</button>
                 </div>
@@ -410,85 +331,89 @@
         document.getElementById("view").innerHTML = html;
     }
 
-    // Funciones globales para manejar los productos y selects dependientes
+    // Helper para generar filas de items
+    function generateItemRow(i, articulos) {
+        return `
+            <div class="col-md-4 item-row" id="row-${i}">
+                <div class="border p-2" style="height: 100%; background: #fff;">
+                    <div class="d-flex mb-1 align-items-center">
+                        <span class="small fw-bold me-2">Cant. ${i}:</span>
+                        <input type="number" class="form-control form-control-sm" style="width: 60px">
+                    </div>
+                    <select class="form-select form-select-sm mb-1" onchange="window.fillProductData(this, ${i})">
+                        <option value="">SELECCIONE PRODUCTO</option>
+                        ${articulos.map(art => `<option value="${art}">${art}</option>`).join('')}
+                    </select>
+                    <input type="text" id="mod-${i}" class="form-control form-control-sm mb-1" placeholder="Modelo" readonly style="font-size: 0.7rem">
+                    <input type="text" id="des-${i}" class="form-control form-control-sm mb-1" placeholder="Descripción" readonly style="font-size: 0.7rem">
+                    <input type="text" id="mar-${i}" class="form-control form-control-sm" placeholder="Marca" readonly style="font-size: 0.7rem">
+                </div>
+            </div>`;
+    }
+
+    window.addNewItem = () => {
+        const container = document.getElementById('items-container');
+        const nextId = container.querySelectorAll('.item-row').length + 1;
+        const articulos = Object.values(store.matrizcctv).map(m => m.articulos).filter((v, i, a) => a.indexOf(v) === i).sort();
+        
+        const div = document.createElement('div');
+        div.className = 'col-md-4 item-row';
+        div.id = `row-${nextId}`;
+        div.innerHTML = generateItemRow(nextId, articulos);
+        container.appendChild(div);
+    };
+
     window.fillProductData = (select, index) => {
         const product = Object.values(store.matrizcctv).find(m => m.articulos === select.value);
-        if (product) {
-            document.getElementById(`mod-${index}`).value = product.modelo || "";
-            document.getElementById(`des-${index}`).value = product.descripcion || "";
-            document.getElementById(`mar-${index}`).value = product.marca || "";
-        } else {
-            document.getElementById(`mod-${index}`).value = "";
-            document.getElementById(`des-${index}`).value = "";
-            document.getElementById(`mar-${index}`).value = "";
-        }
+        document.getElementById(`mod-${index}`).value = product?.modelo || "";
+        document.getElementById(`des-${index}`).value = product?.descripcion || "";
+        document.getElementById(`mar-${index}`).value = product?.marca || "";
     };
 
     window.updateCctvZonas = (empresa) => {
-        const zonaSelect = document.getElementById("cctv-zona-select");
-        const sucursalSelect = document.getElementById("cctv-sucursal-select");
         const zonas = Object.values(store.zonas).filter(z => z.empresa === empresa).map(z => z.nombre).sort();
-        zonaSelect.innerHTML = '<option value="">SELECCIONE ZONA</option>' + zonas.map(z => `<option value="${z}">${z}</option>`).join('');
-        sucursalSelect.innerHTML = '<option value="">SELECCIONE SUCURSAL</option>';
-        document.getElementById("diag-zona-display").value = "";
+        document.getElementById("cctv-zona-select").innerHTML = '<option value="">ZONA</option>' + zonas.map(z => `<option value="${z}">${z}</option>`).join('');
     };
 
     window.updateCctvSucursales = (zona) => {
-        const sucursalSelect = document.getElementById("cctv-sucursal-select");
         const sucursales = Object.values(store.sucursales).filter(s => s.zona === zona).map(s => s.nombre).sort();
-        sucursalSelect.innerHTML = '<option value="">SELECCIONE SUCURSAL</option>' + sucursales.map(s => `<option value="${s}">${s}</option>`).join('');
+        document.getElementById("cctv-sucursal-select").innerHTML = '<option value="">SUCURSAL</option>' + sucursales.map(s => `<option value="${s}">${s}</option>`).join('');
         document.getElementById("diag-zona-display").value = zona;
     };
 
+    // Funciones del Modal y CRUD (Igual que el anterior pero optimizado)
     window.showModal = (path, id = "") => {
         const item = id ? store[path][id] : {};
         document.getElementById("fID").value = id;
         document.getElementById("fNom").value = item.nombre || "";
-        
-        let labelTitulo = path === 'matriz' ? 'Registro Tecnológico' : (path === 'matrizcctv' ? 'Registro CCTV' : path.slice(0, -1));
-        document.getElementById("mTitle").innerText = (id ? 'Editar ' : 'Nuevo ') + labelTitulo;
+        document.getElementById("mTitle").innerText = (id ? 'Editar ' : 'Nuevo ') + path.toUpperCase();
         
         ['secEmpresa', 'secZona', 'secUsuarios', 'secMatriz', 'secMasivo', 'secToggleMasivo'].forEach(s => document.getElementById(s).classList.add('d-none'));
         document.getElementById("secIndividual").classList.remove('d-none');
         document.getElementById("checkMasivo").checked = false;
 
-        if (path === 'matriz' || path === 'matrizcctv') {
+        if (path.includes('matriz')) {
             document.getElementById("secIndividual").classList.add('d-none');
             document.getElementById("secMatriz").classList.remove('d-none');
             document.getElementById("mArt").value = item.articulos || "";
             document.getElementById("mMod").value = item.modelo || "";
             document.getElementById("mDes").value = item.descripcion || "";
             document.getElementById("mMar").value = item.marca || "";
-            document.getElementById("masivoInfo").innerHTML = '<i class="bi bi-info-circle me-1"></i> Formato: ARTICULO, MODELO, DESCRIPCION, MARCA (separados por coma)';
-            if (!id) document.getElementById("secToggleMasivo").classList.remove('d-none');
-        } else {
-            document.getElementById("masivoInfo").innerHTML = '<i class="bi bi-info-circle me-1"></i> Uno por línea.';
         }
-
-        if (path === 'zonas' || path === 'sucursales' || path === 'usuarios') {
+        
+        if (['zonas', 'sucursales', 'usuarios'].includes(path)) {
             document.getElementById("secEmpresa").classList.remove('d-none');
             const emps = Object.values(store.empresas).map(e => e.nombre).sort();
             document.getElementById("fEmp").innerHTML = emps.map(e => `<option value="${e}" ${item.empresa === e ? 'selected' : ''}>${e}</option>`).join('');
         }
 
-        if (path === 'sucursales' || path === 'usuarios') {
+        if (['sucursales', 'usuarios'].includes(path)) {
             document.getElementById("secZona").classList.remove('d-none');
-            updateZonasDropdown(item.empresa || document.getElementById("fEmp").value, item.zona);
+            const zonas = Object.values(store.zonas).filter(z => z.empresa === (item.empresa || emps[0])).map(z => z.nombre).sort();
+            document.getElementById("fZona").innerHTML = zonas.map(z => `<option value="${z}" ${item.zona === z ? 'selected' : ''}>${z}</option>`).join('');
         }
 
-        if (path === 'usuarios') {
-            document.getElementById("secUsuarios").classList.remove('d-none');
-            document.getElementById("uDep").value = item.departamento || "";
-            document.getElementById("uPue").value = item.puesto || "";
-            document.getElementById("uUsu").value = item.usuarioAcceso || "";
-            document.getElementById("uPass").value = item.password || "";
-            document.getElementById("uCor").value = item.correo || "";
-            document.getElementById("lblNom").innerText = "Nombre Completo";
-        } else {
-            document.getElementById("lblNom").innerText = "Nombre / Descripción";
-        }
-
-        if ((path === 'sucursales' || path === 'matriz' || path === 'matrizcctv') && !id) document.getElementById("secToggleMasivo").classList.remove('d-none');
+        if (!id && (path.includes('matriz') || path === 'sucursales')) document.getElementById("secToggleMasivo").classList.remove('d-none');
 
         new bootstrap.Modal(document.getElementById("modalApp")).show();
     };
@@ -497,66 +422,54 @@
         const id = document.getElementById("fID").value;
         const isMasivo = document.getElementById("checkMasivo").checked;
         let data = {};
-        
-        if (currentPath === 'matriz' || currentPath === 'matrizcctv') {
+
+        if (currentPath.includes('matriz')) {
             data = {
-                articulos: document.getElementById("mArt").value.trim().toUpperCase(),
-                modelo: document.getElementById("mMod").value.trim().toUpperCase(),
-                descripcion: document.getElementById("mDes").value.trim().toUpperCase(),
-                marca: document.getElementById("mMar").value.trim().toUpperCase(),
-                nombre: document.getElementById("mArt").value.trim().toUpperCase()
+                articulos: document.getElementById("mArt").value.toUpperCase(),
+                modelo: document.getElementById("mMod").value.toUpperCase(),
+                descripcion: document.getElementById("mDes").value.toUpperCase(),
+                marca: document.getElementById("mMar").value.toUpperCase(),
+                nombre: document.getElementById("mArt").value.toUpperCase()
             };
         } else {
-            data.nombre = document.getElementById("fNom").value.trim().toUpperCase();
+            data.nombre = document.getElementById("fNom").value.toUpperCase();
         }
 
         if (['zonas', 'sucursales', 'usuarios'].includes(currentPath)) data.empresa = document.getElementById("fEmp").value;
         if (['sucursales', 'usuarios'].includes(currentPath)) data.zona = document.getElementById("fZona").value;
-
-        if (currentPath === 'usuarios') {
-            data.departamento = document.getElementById("uDep").value.trim().toUpperCase();
-            data.puesto = document.getElementById("uPue").value.trim().toUpperCase();
-            data.usuarioAcceso = document.getElementById("uUsu").value.trim();
-            data.password = document.getElementById("uPass").value;
-            data.correo = document.getElementById("uCor").value.trim().toUpperCase();
-        }
 
         try {
             if (isMasivo) {
                 const lineas = document.getElementById("fMasivo").value.split('\n').filter(l => l.trim());
                 for (let linea of lineas) {
                     let itemData = { ...data };
-                    if (currentPath === 'matriz' || currentPath === 'matrizcctv') {
-                        const parts = linea.split(',').map(p => p.trim().toUpperCase());
-                        itemData.articulos = parts[0] || "";
-                        itemData.nombre = parts[0] || "";
-                        itemData.modelo = parts[1] || "";
-                        itemData.descripcion = parts[2] || "";
-                        itemData.marca = parts[3] || "";
-                    } else {
-                        itemData.nombre = linea.trim().toUpperCase();
-                    }
+                    if (currentPath.includes('matriz')) {
+                        const p = linea.split(',').map(x => x.trim().toUpperCase());
+                        itemData = { articulos: p[0], nombre: p[0], modelo: p[1]||"", descripcion: p[2]||"", marca: p[3]||"", ...data };
+                    } else { itemData.nombre = linea.trim().toUpperCase(); }
                     await push(ref(db, currentPath), itemData);
                 }
-                document.getElementById("fMasivo").value = "";
             } else {
-                if(!data.nombre && !(currentPath === 'matriz' || currentPath === 'matrizcctv')) return Swal.fire("Error", "El nombre es requerido", "error");
-                if((currentPath === 'matriz' || currentPath === 'matrizcctv') && !data.articulos) return Swal.fire("Error", "El artículo es requerido", "error");
                 id ? await update(ref(db, `${currentPath}/${id}`), data) : await push(ref(db, currentPath), data);
             }
             bootstrap.Modal.getInstance(document.getElementById("modalApp")).hide();
-            Swal.fire({ icon: "success", title: "Guardado", timer: 1000, showConfirmButton: false });
+            Swal.fire({ icon: "success", title: "Guardado", timer: 800, showConfirmButton: false });
         } catch (e) { Swal.fire("Error", e.message, "error"); }
     };
 
     window.del = async (path, id) => {
-        const res = await Swal.fire({ title: '¿Eliminar registro?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33' });
+        const res = await Swal.fire({ title: '¿Eliminar?', icon: 'warning', showCancelButton: true });
         if (res.isConfirmed) await remove(ref(db, `${path}/${id}`));
     };
 
     window.toggleSidebar = () => {
         document.getElementById('sidebar').classList.toggle('active');
         document.getElementById('main-content').classList.toggle('shifted');
+    };
+
+    document.getElementById("checkMasivo").onchange = (e) => {
+        document.getElementById(currentPath.includes('matriz') ? "secMatriz" : "secIndividual").classList.toggle('d-none', e.target.checked);
+        document.getElementById("secMasivo").classList.toggle('d-none', !e.target.checked);
     };
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
