@@ -199,8 +199,21 @@
     };
     function renderCCTV() {
         const today = new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        
+        // --- INICIO DE CAMBIO SOLICITADO ---
+        // Extrae nombre y puesto de los parámetros de la URL enviados por la página de Tecnología
+        const urlParams = new URLSearchParams(window.location.search);
+        const nombreExterno = urlParams.get('n')?.toUpperCase();
+        const puestoExterno = urlParams.get('p')?.toUpperCase();
+        
         const usuarios = Object.values(store.usuarios);
-        const sesion = usuarios.length > 0 ? usuarios[0] : { nombre: "SOPORTE", puesto: "TECNICO" };
+        const sesionFirebase = usuarios.length > 0 ? usuarios[0] : { nombre: "SOPORTE", puesto: "TECNICO" };
+        
+        // Prioriza el dato de la URL, si no existe usa el de Firebase
+        const nombreFinal = nombreExterno || sesionFirebase.nombre;
+        const puestoFinal = puestoExterno || sesionFirebase.puesto;
+        // --- FIN DE CAMBIO SOLICITADO ---
+
         const empresas = Object.values(store.empresas).map(e => e.nombre).sort();
         const articulosCctv = Object.values(store.matrizcctv).map(m => m.articulos).filter((v, i, a) => a.indexOf(v) === i).sort();
         let html = `
@@ -209,8 +222,8 @@
                <div class="cctv-header">Datos del Solicitante</div>
                 <div class="row g-0 mb-4 border">
                     <div class="col-md-7 border-end">
-                        <div class="d-flex border-bottom"><div class="cctv-label" style="width: 120px;">Nombre:</div><input type="text" class="cctv-input" value="${sesion.nombre}" readonly></div>
-                        <div class="d-flex border-bottom"><div class="cctv-label" style="width: 120px;">Puesto:</div><input type="text" class="cctv-input" value="${sesion.puesto}" readonly></div>
+                        <div class="d-flex border-bottom"><div class="cctv-label" style="width: 120px;">Nombre:</div><input type="text" class="cctv-input" value="${nombreFinal}" readonly></div>
+                        <div class="d-flex border-bottom"><div class="cctv-label" style="width: 120px;">Puesto:</div><input type="text" class="cctv-input" value="${puestoFinal}" readonly></div>
                         <div class="d-flex"><div class="cctv-label" style="width: 120px;">Empresa:</div>
                           <select class="cctv-input" onchange="window.updateCctvZonas(this.value)">
                                 <option value="">SELECCIONE...</option>
@@ -241,13 +254,13 @@
                 <div class="border p-3">
                     <div class="row mb-3">
                         <div class="col-md-6 d-flex"><span class="small fw-bold me-2">Zona:</span><input type="text" class="border-bottom border-0 w-100" id="diag-zona-display" readonly></div>
-                        <div class="col-md-6 d-flex"><span class="small fw-bold me-2">Responsable:</span><input type="text" class="border-bottom border-0 w-100" value="${sesion.nombre}" readonly></div>
+                        <div class="col-md-6 d-flex"><span class="small fw-bold me-2">Responsable:</span><input type="text" class="border-bottom border-0 w-100" value="${nombreFinal}" readonly></div>
                     </div>
                     <label class="small fw-bold">Comentarios:</label>
                     <textarea class="form-control" rows="3"></textarea>
                 </div>
                <div class="row mt-5">
-                   <div class="col-4"><div class="signature-line"><strong>SOLICITA</strong><br>${sesion.nombre}</div></div>
+                   <div class="col-4"><div class="signature-line"><strong>SOLICITA</strong><br>${nombreFinal}</div></div>
                     <div class="col-4"><div class="signature-line"><strong>REVISA</strong><br>Coordinador de Soporte</div></div>
                     <div class="col-4"><div class="signature-line"><strong>AUTORIZA</strong><br>Gerente de Sistemas</div></div>
                 </div>
