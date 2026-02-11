@@ -352,6 +352,8 @@
                     }
                     await push(ref(db, currentPath), itemData);
                 }
+                // Limpiar el recuadro después de guardar la carga masiva
+                document.getElementById("fMasivo").value = "";
             } else {
                 if(!data.nombre) return Swal.fire("Error", "El nombre/artículo es requerido", "error");
                 id ? await update(ref(db, `${currentPath}/${id}`), data) : await push(ref(db, currentPath), data);
