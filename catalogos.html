@@ -141,15 +141,22 @@
     const db = getDatabase(initializeApp(config));
     let store = { matriz: {}, matrizcctv: {}, zonas: {}, empresas: {}, sucursales: {}, usuarios: {} };
     let currentPath = '';
+    let loadsPending = Object.keys(store).length;
 
     Object.keys(store).forEach(path => {
         onValue(ref(db, path), (s) => {
             store[path] = s.val() || {};
-            if (currentPath === path) render(path);
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('tipo') === 'cctv' && currentPath === '') {
-                document.body.classList.add('hide-menu');
-                render('formato_cctv');
+            
+            if (loadsPending > 0) loadsPending--;
+
+            if (loadsPending === 0) {
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('tipo') === 'cctv' && currentPath === '') {
+                    document.body.classList.add('hide-menu');
+                    render('formato_cctv');
+                } else if (currentPath === path) {
+                    render(path);
+                }
             }
         });
     });
@@ -203,9 +210,11 @@
         const nURL = urlParams.get('n')?.toUpperCase();
         const pURL = urlParams.get('p')?.toUpperCase();
         
-        const uDB = Object.values(store.usuarios)[0] || { nombre: "SOPORTE", puesto: "TECNICO" };
-        const fNombre = nURL || uDB.nombre;
-        const fPuesto = pURL || uDB.puesto;
+        const usuariosArr = Object.values(store.usuarios);
+        const usuarioEncontrado = usuariosArr.find(u => u.nombre === nURL || u.usuario === nURL);
+
+        const fNombre = usuarioEncontrado?.nombre || nURL || "SOPORTE";
+        const fPuesto = usuarioEncontrado?.puesto || pURL || "TECNICO";
 
         const emps = Object.values(store.empresas).map(e => e.nombre).sort();
         const arts = Object.values(store.matrizcctv).map(m => m.articulos).filter((v, i, a) => a.indexOf(v) === i).sort();
@@ -308,7 +317,6 @@
         document.getElementById("fID").value = id;
         document.getElementById("mTitle").innerText = (id ? 'Editar ' : 'Nuevo ') + path.toUpperCase();
         
-        // Reset de secciones
         ['secEmpresa', 'secZona', 'secUsuarios', 'secMatriz', 'secMasivo', 'secToggleMasivo'].forEach(s => document.getElementById(s).classList.add('d-none'));
         document.getElementById("secIndividual").classList.remove('d-none');
         document.getElementById("checkMasivo").checked = false;
@@ -362,7 +370,6 @@
         if (['zonas', 'sucursales', 'usuarios'].includes(currentPath)) data.empresa = document.getElementById("fEmp").value;
         if (['sucursales', 'usuarios'].includes(currentPath)) data.zona = document.getElementById("fZona").value;
         
-        // --- CAMBIO PARA USUARIOS ---
         if (currentPath === 'usuarios') {
             data.departamento = document.getElementById("uDep").value.toUpperCase();
             data.puesto = document.getElementById("uPue").value.toUpperCase();
