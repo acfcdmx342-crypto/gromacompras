@@ -101,7 +101,7 @@ body.dark-mode .input-group i {
   position: fixed;
   top: 15px;
   right: 15px;
-  z-index: 10000; 
+  z-index: 10000; /* Por encima de todo */
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -185,6 +185,7 @@ body.dark-mode #loader {
 <script>emailjs.init("0aHlArLgvHrj2Xbk8");</script>
 
 <script>
+    // 1. LÓGICA MODO OSCURO (Síncrona para evitar parpadeos)
     const btnToggle = document.getElementById('darkModeToggle');
     const iconDark = btnToggle.querySelector('i');
     if (localStorage.getItem('theme') === 'dark') {
@@ -198,75 +199,56 @@ body.dark-mode #loader {
         iconDark.classList.toggle('fa-moon', !isDark);
         iconDark.classList.toggle('fa-sun', isDark);
     };
+    // 2. CONTROL DEL LOADER
     const mostrarCargando = () => { document.getElementById("loader").style.display = "flex"; };
     const ocultarCargando = () => { document.getElementById("loader").style.display = "none"; };
 </script>
-
 <script type="module">
     import { database, ref, get } from "./firebase.js";
     const loginUser = document.getElementById("loginUser");
     const loginPass = document.getElementById("loginPass");
     const toggleBtn = document.getElementById("toggleBtn");
 
+    // Mostrar/Ocultar contraseña
     toggleBtn.onclick = () => {
         const isPass = loginPass.type === "password";
         loginPass.type = isPass ? "text" : "password";
         toggleBtn.classList.toggle("fa-eye");
         toggleBtn.classList.toggle("fa-eye-slash");
     };
-
+    // Login
     document.getElementById("btnLogin").onclick = async () => {
         const usuario = loginUser.value.trim().toUpperCase();
         const pass = loginPass.value.trim();
-        
         if (!usuario || !pass) return alert("Completa todos los campos");
-        
         mostrarCargando();
-        
         try {
             const snap = await get(ref(database, "usuarios/" + usuario));
-            
             if (!snap.exists()) {
                 ocultarCargando();
                 return alert("❌ Usuario NO registrado");
             }
-            
             const data = snap.val();
-            
-            // Validar contraseña (usando el campo .pass que viene de Firebase)
-            if (data.pass !== pass) {
+            if (data.contrasena !== pass) {
                 ocultarCargando();
                 return alert("❌ Contraseña incorrecta");
             }
-            
             if (data.bloqueado) {
                 ocultarCargando();
                 return alert("❌ Este usuario está desactivado. Contacta a sistemas.");
             }
-            
-            // Guardar datos en LocalStorage
             localStorage.setItem("usuarioLogueado", JSON.stringify({
-                usuario: data.usuario || usuario,
+                usuario: data.usuario,
                 nombre: data.nombre,
-                puesto: data.puesto ? data.puesto.toUpperCase() : "TECNICO",
-                tipo: data.tipo || "USUARIO"
+                puesto: data.puesto.toUpperCase()
             }));
-
-            // Redirección inteligente
-            if (data.tipo === "CCTV") {
-                // Redirige al catálogo pasando parámetros para que abra el formato directamente
-                window.location.href = `catalogos.html?tipo=cctv&n=${encodeURIComponent(data.nombre)}&p=${encodeURIComponent(data.puesto)}`;
-            } else {
-                window.location.href = "tecnologia.html";
-            }
-
+            window.location.href = "tecnologia.html";
         } catch (error) {
             ocultarCargando();
-            console.error(error);
             alert("❌ Error de conexión.");
         }
     };
-
+    // Recuperar Contraseña
     document.getElementById("btnRecover").onclick = async () => {
         const usuario = prompt("Ingresa tu NOMBRE DE USUARIO para recuperar la contraseña:");
         if (!usuario) return;
@@ -286,7 +268,7 @@ body.dark-mode #loader {
             const templateParams = {
                 to_name: data.nombre,
                 user_email: data.correo,
-                user_pass: data.pass // Usando el campo correcto
+                user_pass: data.contrasena
             };
             emailjs.send('default_service', 'template_ub0ksu5', templateParams)
                 .then(() => {
@@ -302,13 +284,19 @@ body.dark-mode #loader {
         }
     };
 </script>
-
 <script>
-  // Seguridad y Bloqueo de inspección
-  document.addEventListener('contextmenu', e => e.preventDefault());
-  document.onkeydown = e => {
-      if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
+  // Seguridad
+  document.addEventListener('contextmenu', (e) => e.preventDefault());
+  document.onkeydown = function(e) {
+    if(e.keyCode == 123) return false;
+    if(e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) return false;
+    if(e.ctrlKey && e.keyCode == 85) return false;
   };
+
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.onkeydown = e => {
+    if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
+};
 </script>
 </body>
 </html>
