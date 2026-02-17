@@ -45,7 +45,6 @@
         #preview-container { border: 2px dashed #ccc; border-radius: 10px; min-height: 100px; display: flex; align-items: center; justify-content: center; background: #fff; overflow: hidden; margin-top: 5px; }
         #preview-container iframe, #preview-container img { width: 100%; height: 200px; object-fit: contain; }
 
-        /* Estilos para el nuevo icono CCTV */
         .cctv-link {
             text-decoration: none;
             color: inherit;
@@ -260,6 +259,51 @@
         });
         document.getElementById("loader").style.display = "none";
     }
+
+    // --- FUNCIÓN EDITAR REGISTRO ---
+    window.editarRegistro = async (idKey) => {
+        try {
+            const docRef = ref(database, `tecnologia/${idKey}`);
+            const snap = await get(docRef);
+            if (!snap.exists()) return;
+            const data = snap.val();
+
+            const { value: formValues } = await Swal.fire({
+                title: 'Editar Solicitud',
+                html: `
+                    <div class="text-start">
+                        <label class="fw-bold small mb-1">Empresa</label>
+                        <input id="edit-empresa" class="form-control text-uppercase mb-3" value="${data.empresa}">
+                        <label class="fw-bold small mb-1">Sucursal</label>
+                        <input id="edit-sucursal" class="form-control text-uppercase" value="${data.sucursal}">
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Actualizar',
+                cancelButtonText: 'Cancelar',
+                preConfirm: () => {
+                    const empresa = document.getElementById('edit-empresa').value.trim();
+                    const sucursal = document.getElementById('edit-sucursal').value.trim();
+                    if (!empresa || !sucursal) {
+                        Swal.showValidationMessage('Ambos campos son obligatorios');
+                        return false;
+                    }
+                    return { empresa: empresa.toUpperCase(), sucursal: sucursal.toUpperCase() };
+                }
+            });
+
+            if (formValues) {
+                document.getElementById("loader").style.display = "flex";
+                await update(docRef, formValues);
+                document.getElementById("loader").style.display = "none";
+                Swal.fire("Actualizado", "Los datos se han modificado correctamente", "success");
+            }
+        } catch (error) {
+            console.error(error);
+            document.getElementById("loader").style.display = "none";
+            Swal.fire("Error", "No se pudo actualizar el registro", "error");
+        }
+    };
 
     window.confirmarEntrega = async (idKey, folio) => {
         const { value: formValues } = await Swal.fire({
@@ -537,7 +581,6 @@
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-};
 <script>
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.onkeydown = e => {
@@ -546,7 +589,3 @@ document.onkeydown = e => {
 </script> 
 </body>
 </html>
-
-
-
-
