@@ -51,7 +51,6 @@
         .btn-toggle { display: none; position: fixed; bottom: 20px; right: 20px; z-index: 1001; width: 50px; height: 50px; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         @media (max-width: 768px) { .btn-toggle { display: block; } }
         
-        /* Estilos específicos para el PDF */
         .pdf-actions { margin-bottom: 20px; display: flex; gap: 10px; justify-content: flex-end; }
         .btn-pdf { background-color: #0070c0; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; }
         .btn-back { background-color: #dc3545; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; }
@@ -235,7 +234,7 @@
                 <button class="btn-pdf" onclick="window.generatePDF()" title="Descargar PDF">
                     <i class="bi bi-file-earmark-pdf-fill fs-5"></i>
                 </button>
-                <button class="btn-back" onclick="window.location.reload()" title="Regresar">
+                <button class="btn-back" onclick="window.location.href='tecnologia.php'" title="Regresar">
                     <i class="bi bi-arrow-left-circle-fill fs-5"></i>
                 </button>
             </div>
@@ -247,7 +246,7 @@
                         <div class="d-flex border-bottom"><div class="cctv-label" style="width: 120px;">Nombre:</div><input type="text" class="cctv-input" value="${fNombre}" readonly></div>
                         <div class="d-flex border-bottom"><div class="cctv-label" style="width: 120px;">Puesto:</div><input type="text" class="cctv-input" value="${fPuesto}" readonly></div>
                         <div class="d-flex"><div class="cctv-label" style="width: 120px;">Empresa:</div>
-                            <select class="cctv-input" onchange="window.updateCctvZonas(this.value)">
+                            <select class="cctv-input" id="cctv-empresa-select" onchange="window.updateCctvZonas(this.value)">
                                 <option value="">SELECCIONE...</option>
                                 ${emps.map(e => `<option value="${e}">${e}</option>`).join('')}
                             </select>
@@ -287,12 +286,21 @@
         document.getElementById("view").innerHTML = html;
     }
 
-    // Función para descargar en PDF manteniendo el formato
+    // Función para descargar en PDF con nomenclatura específica
     window.generatePDF = () => {
         const element = document.getElementById('cctv-form-capture');
+        
+        // Obtener valores para la nomenclatura
+        const empVal = document.getElementById("cctv-empresa-select")?.value || "N_A";
+        const zonVal = document.getElementById("cctv-zona-select")?.value || "N_A";
+        const sucVal = document.getElementById("cctv-sucursal-select")?.value || "N_A";
+
+        // Formatear nombre: ReqCctv + 3 caracteres de cada campo
+        const fileName = `ReqCctv${empVal.substring(0,3)}${zonVal.substring(0,3)}${sucVal.substring(0,3)}.pdf`.toUpperCase();
+
         const opt = {
             margin: [10, 10],
-            filename: 'Formato_CCTV.pdf',
+            filename: fileName,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2, useCORS: true, letterRendering: true },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
