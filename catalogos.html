@@ -207,14 +207,21 @@
     function renderCCTV() {
         const today = new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         const urlParams = new URLSearchParams(window.location.search);
-        const nURL = urlParams.get('n')?.toUpperCase();
-        const pURL = urlParams.get('p')?.toUpperCase();
         
+        // Obtener valor de la URL (Nombre o Usuario de acceso)
+        const nURL = urlParams.get('n')?.toUpperCase() || "";
+        const pURL = urlParams.get('p')?.toUpperCase() || "";
+        
+        // Buscar en el catálogo de usuarios para obtener datos reales
         const usuariosArr = Object.values(store.usuarios);
-        const usuarioEncontrado = usuariosArr.find(u => u.nombre === nURL || u.usuario === nURL);
+        const usuarioEncontrado = usuariosArr.find(u => 
+            (u.nombre && u.nombre.toUpperCase() === nURL) || 
+            (u.usuario && u.usuario.toUpperCase() === nURL)
+        );
 
-        const fNombre = usuarioEncontrado?.nombre || nURL || "SOPORTE";
-        const fPuesto = usuarioEncontrado?.puesto || pURL || "TECNICO";
+        // Si se encuentra en el catálogo se usa su info, si no, se usa lo que venga en URL o default
+        const fNombre = usuarioEncontrado?.nombre || (nURL !== "NOMBRE" ? nURL : "SOPORTE");
+        const fPuesto = usuarioEncontrado?.puesto || (pURL !== "PUESTO" ? pURL : "TECNICO");
 
         const emps = Object.values(store.empresas).map(e => e.nombre).sort();
         const arts = Object.values(store.matrizcctv).map(m => m.articulos).filter((v, i, a) => a.indexOf(v) === i).sort();
@@ -308,7 +315,6 @@
             .sort();
         
         document.getElementById("cctv-zona-select").innerHTML = '<option value="">ZONA</option>' + zs.map(z => `<option value="${z}">${z}</option>`).join('');
-        // Limpiar sucursales al cambiar empresa
         document.getElementById("cctv-sucursal-select").innerHTML = '<option value="">SUCURSAL</option>';
         document.getElementById("diag-zona-display").value = "";
     };
