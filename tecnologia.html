@@ -86,7 +86,7 @@
                 <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
             </div>
             <div class="aviso-devolucion d-none d-md-block">
-                <strong>⚠️ Aviso:</strong>Se les recuerda que para hacer una devolución de mercancía los empaques deben de estar lo más intactos posibles, sin Rayaduras o Enmendaduras.
+                <strong>⚠️ Aviso:</strong> Se les recuerda que para hacer una devolución de mercancía los empaques deben de estar lo más intactos posibles, sin Rayaduras o Enmendaduras.
             </div>
         </div>
         <div class="d-flex align-items-center">
@@ -107,12 +107,12 @@
     <div class="card shadow p-4 mb-4">
         <h5 class="fw-bold mb-3 border-bottom pb-2 text-secondary">Nueva Solicitud</h5>
         <form id="formTec" class="row g-3">
-            <div class="col-md-3"><label class="small fw-bold">Empresa</label><input id="empresa" class="form-control text-uppercase"></div>
-            <div class="col-md-3"><label class="small fw-bold">Zona</label><input id="zona" class="form-control text-uppercase"></div>
+            <div class="col-md-3"><label class="small fw-bold">Empresa</label><input id="empresa" class="form-control text-uppercase" placeholder="EJ: PROCOMEX"></div>
+            <div class="col-md-3"><label class="small fw-bold">Zona</label><input id="zona" class="form-control text-uppercase" placeholder="EJ: PACHUCA"></div>
             <div class="col-md-3"><label class="small fw-bold">Soporte</label><input id="soporte" class="form-control text-uppercase" readonly></div>
-            <div class="col-md-3"><label class="small fw-bold">Sucursal</label><input id="sucursal" class="form-control text-uppercase"></div>
+            <div class="col-md-3"><label class="small fw-bold">Sucursal</label><input id="sucursal" class="form-control text-uppercase" placeholder="EJ: CENTRAL"></div>
             <div class="col-md-6">
-                <label class="small fw-bold">Requisición</label>
+                <label class="small fw-bold">Requisición (PDF/Imagen)</label>
                 <div class="input-group">
                     <input id="archivo" type="file" class="form-control" onchange="previewArchivo(this)">
                     <div class="input-group-text">
@@ -124,7 +124,7 @@
             </div>
             
             <div class="col-md-6 d-flex align-items-center justify-content-center">
-                   <a href="catalogos.html?tipo=cctv&n=ARMANDO%20HERNANDEZ&p=SOPORTE%20TECNICO" class="cctv-link">
+                   <a id="linkCCTV" href="#" class="cctv-link">
                     <div class="cctv-icon-container">
                         <i class="fa-solid fa-video"></i>
                     </div>
@@ -181,6 +181,7 @@
 
     const sesion = JSON.parse(localStorage.getItem("usuarioLogueado") || "{}");
     if(!sesion.usuario) location.href = "index.html";
+    
     window.nombreSesion = sesion.nombre;
     window.usuarioSesion = sesion.usuario;
     window.puestoSesion = (sesion.puesto || "").toUpperCase();
@@ -192,6 +193,12 @@
     document.getElementById("usuarioActivo").textContent = window.nombreSesion;
     document.getElementById("puestoActivo").textContent = window.puestoSesion;
     document.getElementById("soporte").value = window.nombreSesion;
+
+    // Configurar enlace CCTV dinámico
+    const linkCCTV = document.getElementById("linkCCTV");
+    const nombreLimpio = encodeURIComponent(window.nombreSesion);
+    const puestoLimpio = encodeURIComponent(window.puestoSesion);
+    linkCCTV.href = `catalogos.html?tipo=cctv&n=${nombreLimpio}&p=${puestoLimpio}`;
 
     if (window.esAdmin) {
         document.getElementById("liBase").innerHTML = '<a class="dropdown-item" href="base.html">🏠 Página Base</a>';
@@ -260,7 +267,8 @@
         document.getElementById("loader").style.display = "none";
     }
 
-    // --- FUNCIÓN EDITAR REGISTRO ---
+    // --- FUNCIONES DE VENTANA / ACCIONES ---
+
     window.editarRegistro = async (idKey) => {
         try {
             const docRef = ref(database, `tecnologia/${idKey}`);
@@ -464,7 +472,6 @@
                 };
 
                 await push(seguimientoRef, nuevoSeguimiento);
-
                 document.getElementById("loader").style.display = "none";
                 await Swal.fire("Registrado", "Devolución reportada correctamente. La solicitud sigue en proceso.", "info");
             } catch (error) {
@@ -520,13 +527,20 @@
         const suc = document.getElementById("sucursal").value;
         const arc = document.getElementById("archivo").files[0];
         const local = document.getElementById("checkLocal").checked;
-        if(!emp || !zon || !suc || !arc) return Swal.fire("Error", "Faltan campos", "error");
+        
+        if(!emp || !zon || !suc || !arc) return Swal.fire("Error", "Faltan campos por completar", "error");
+        
         document.getElementById("loader").style.display = "flex";
+        
         const snap = await get(solicitudesRef);
-        const contador = snap.exists() ? Object.keys(snap.val()).length + 1 : 1;
+        let contador = 1;
+        if (snap.exists()) {
+             contador = Object.keys(snap.val()).length + 1;
+        }
+
         const reader = new FileReader();
         reader.onload = async () => {
-            const fol = `TEC-${emp}-${zon}-${contador.toString().padStart(4, '0')}`.toUpperCase();
+            const fol = `TEC-${emp.substring(0,3)}-${zon.substring(0,3)}-${contador.toString().padStart(4, '0')}`.toUpperCase();
             await push(solicitudesRef, {
                 folio: fol, 
                 empresa: emp.toUpperCase(), 
@@ -544,18 +558,21 @@
             });
             document.getElementById("formTec").reset();
             document.getElementById("preview-container").innerHTML = '<small class="text-muted">Vista previa</small>';
-            Swal.fire("Éxito", "Guardado", "success");
+            document.getElementById("loader").style.display = "none";
+            Swal.fire("Éxito", "Solicitud guardada correctamente", "success");
         };
         reader.readAsDataURL(arc);
     };
 
     window.verPDF = (base64, folio) => {
         const w = window.open();
-        w.document.write(`<iframe src="${base64}" style="width:100%; height:100%; border:none;"></iframe>`);
+        w.document.write(`<iframe src="${base64}" title="${folio}" style="width:100%; height:100%; border:none;"></iframe>`);
     };
 
     window.verHistorial = (fol) => {
         const h = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
+        if(h.length === 0) return Swal.fire("Aviso", "No hay historial para este folio", "info");
+        
         let rows = h.map(i => `
             <tr>
                 <td>${new Date(i.fechaRegistro).toLocaleString()}</td>
@@ -566,7 +583,12 @@
                     ${i.evidenciaImagen ? `<a href="#" onclick="Swal.fire({imageUrl: '${i.evidenciaImagen}', imageWidth: 400})">Ver Evidencia</a>` : ''}
                 </td>
             </tr>`).join('');
-        Swal.fire({ title: 'Historial ' + fol, html: `<div class="table-responsive"><table class="table table-sm small"><thead><tr><th>Fecha</th><th>Status</th><th>Detalle</th></tr></thead><tbody>${rows}</tbody></table></div>`, width: '800px' });
+            
+        Swal.fire({ 
+            title: 'Historial ' + fol, 
+            html: `<div class="table-responsive"><table class="table table-sm small"><thead><tr><th>Fecha</th><th>Status</th><th>Detalle</th></tr></thead><tbody>${rows}</tbody></table></div>`, 
+            width: '800px' 
+        });
     };
 
     window.previewArchivo = (input) => {
@@ -583,12 +605,11 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-document.addEventListener('contextmenu', e => e.preventDefault());
-document.onkeydown = e => {
-    if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
-};
+    // Seguridad básica
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.onkeydown = e => {
+        if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
+    };
 </script> 
 </body>
 </html>
-
-
