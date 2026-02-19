@@ -7,6 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         :root { --dark: #0f172a; --accent: #38bdf8; --cctv-blue: #0070c0; --cctv-green: #38b050; }
         body { background: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow-x: hidden; }
@@ -49,6 +50,12 @@
         .signature-line { border-top: 1px solid #000; margin-top: 40px; font-size: 0.7rem; text-align: center; }
         .btn-toggle { display: none; position: fixed; bottom: 20px; right: 20px; z-index: 1001; width: 50px; height: 50px; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         @media (max-width: 768px) { .btn-toggle { display: block; } }
+        
+        /* Estilos específicos para el PDF */
+        .pdf-actions { margin-bottom: 20px; display: flex; gap: 10px; justify-content: flex-end; }
+        .btn-pdf { background-color: #0070c0; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; }
+        .btn-back { background-color: #dc3545; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; }
+
         @media print {
             .no-print { display: none !important; }
             .sidebar { display: none !important; }
@@ -208,18 +215,15 @@
         const today = new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         const urlParams = new URLSearchParams(window.location.search);
         
-        // Obtener valor de la URL (Nombre o Usuario de acceso)
         const nURL = urlParams.get('n')?.toUpperCase() || "";
         const pURL = urlParams.get('p')?.toUpperCase() || "";
         
-        // Buscar en el catálogo de usuarios para obtener datos reales
         const usuariosArr = Object.values(store.usuarios);
         const usuarioEncontrado = usuariosArr.find(u => 
             (u.nombre && u.nombre.toUpperCase() === nURL) || 
             (u.usuario && u.usuario.toUpperCase() === nURL)
         );
 
-        // Si se encuentra en el catálogo se usa su info, si no, se usa lo que venga en URL o default
         const fNombre = usuarioEncontrado?.nombre || (nURL !== "NOMBRE" ? nURL : "SOPORTE");
         const fPuesto = usuarioEncontrado?.puesto || (pURL !== "PUESTO" ? pURL : "TECNICO");
 
@@ -227,7 +231,15 @@
         const arts = Object.values(store.matrizcctv).map(m => m.articulos).filter((v, i, a) => a.indexOf(v) === i).sort();
 
         let html = `
-            <div class="p-4" style="max-width: 1000px; margin: auto; background: white; border: 1px solid #ccc;">
+            <div class="pdf-actions no-print">
+                <button class="btn-pdf" onclick="window.generatePDF()" title="Descargar PDF">
+                    <i class="bi bi-file-earmark-pdf-fill fs-5"></i>
+                </button>
+                <button class="btn-back" onclick="window.location.reload()" title="Regresar">
+                    <i class="bi bi-arrow-left-circle-fill fs-5"></i>
+                </button>
+            </div>
+            <div id="cctv-form-capture" class="p-4" style="max-width: 1000px; margin: auto; background: white; border: 1px solid #ccc;">
                 <div class="text-center mb-4"><h3 class="fw-bold" style="color: var(--cctv-blue)">Requisición de CCTV</h3></div>
                 <div class="cctv-header">Datos del Solicitante</div>
                 <div class="row g-0 mb-4 border">
@@ -271,12 +283,22 @@
                     <div class="col-4"><div class="signature-line"><strong>REVISA</strong><br>Coordinador de Soporte</div></div>
                     <div class="col-4"><div class="signature-line"><strong>AUTORIZA</strong><br>Gerente de Sistemas</div></div>
                 </div>
-                <div class="text-center mt-4 no-print">
-                    <button class="btn btn-dark" onclick="window.print()"><i class="bi bi-printer me-2"></i>Imprimir Formato</button>
-                </div>
             </div>`;
         document.getElementById("view").innerHTML = html;
     }
+
+    // Función para descargar en PDF manteniendo el formato
+    window.generatePDF = () => {
+        const element = document.getElementById('cctv-form-capture');
+        const opt = {
+            margin: [10, 10],
+            filename: 'Formato_CCTV.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(element).save();
+    };
 
     function generateItemHTML(i, articulos) {
         return `<div class="col-md-4 item-row" id="row-${i}"><div class="item-box">
