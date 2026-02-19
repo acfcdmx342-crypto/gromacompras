@@ -302,12 +302,23 @@
     };
 
     window.updateCctvZonas = (emp) => {
-        const zs = Object.values(store.zonas).filter(z => z.empresa === emp).map(z => z.nombre).sort();
+        const zs = Object.values(store.zonas)
+            .filter(z => z.empresa === emp)
+            .map(z => z.nombre)
+            .sort();
+        
         document.getElementById("cctv-zona-select").innerHTML = '<option value="">ZONA</option>' + zs.map(z => `<option value="${z}">${z}</option>`).join('');
+        // Limpiar sucursales al cambiar empresa
+        document.getElementById("cctv-sucursal-select").innerHTML = '<option value="">SUCURSAL</option>';
+        document.getElementById("diag-zona-display").value = "";
     };
 
     window.updateCctvSucursales = (z) => {
-        const ss = Object.values(store.sucursales).filter(s => s.zona === z).map(s => s.nombre).sort();
+        const ss = Object.values(store.sucursales)
+            .filter(s => s.zona === z)
+            .map(s => s.nombre)
+            .sort();
+            
         document.getElementById("cctv-sucursal-select").innerHTML = '<option value="">SUCURSAL</option>' + ss.map(s => `<option value="${s}">${s}</option>`).join('');
         document.getElementById("diag-zona-display").value = z;
     };
