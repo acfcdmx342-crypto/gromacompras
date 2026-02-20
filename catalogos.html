@@ -51,7 +51,6 @@
         .btn-toggle { display: none; position: fixed; bottom: 20px; right: 20px; z-index: 1001; width: 50px; height: 50px; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         @media (max-width: 768px) { .btn-toggle { display: block; } }
         
-        /* Botones de acción del PDF */
         .pdf-actions { margin-bottom: 20px; display: flex; gap: 10px; justify-content: flex-end; }
         .btn-pdf { background-color: #0070c0; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; }
         .btn-back { background-color: #dc3545; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; }
@@ -153,9 +152,7 @@
     Object.keys(store).forEach(path => {
         onValue(ref(db, path), (s) => {
             store[path] = s.val() || {};
-            
             if (loadsPending > 0) loadsPending--;
-
             if (loadsPending === 0) {
                 const urlParams = new URLSearchParams(window.location.search);
                 if (urlParams.get('tipo') === 'cctv' && currentPath === '') {
@@ -214,7 +211,6 @@
     function renderCCTV() {
         const today = new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         const urlParams = new URLSearchParams(window.location.search);
-        
         const nURL = urlParams.get('n')?.toUpperCase() || "";
         const pURL = urlParams.get('p')?.toUpperCase() || "";
         
@@ -224,8 +220,8 @@
             (u.usuario && u.usuario.toUpperCase() === nURL)
         );
 
-        const fNombre = usuarioEncontrado?.nombre || (nURL !== "NOMBRE" ? nURL : "SOPORTE");
-        const fPuesto = usuarioEncontrado?.puesto || (pURL !== "PUESTO" ? pURL : "TECNICO");
+        const fNombre = usuarioEncontrado?.nombre || (nURL !== "NOMBRE" && nURL !== "" ? nURL : "SOPORTE");
+        const fPuesto = usuarioEncontrado?.puesto || (pURL !== "PUESTO" && pURL !== "" ? pURL : "TECNICO");
 
         const emps = Object.values(store.empresas).map(e => e.nombre).sort();
         const arts = Object.values(store.matrizcctv).map(m => m.articulos).filter((v, i, a) => a.indexOf(v) === i).sort();
@@ -287,53 +283,50 @@
         document.getElementById("view").innerHTML = html;
     }
 
-    // FUNCIÓN DE PDF CORREGIDA
+    // FUNCIÓN DE PDF OPTIMIZADA
     window.generatePDF = () => {
         const element = document.getElementById('cctv-form-capture');
+        
         if (!element) {
-        Swal.fire("Error", "No se encontró el contenido para exportar", "error");
-        return;
-    }
-// 2. Obtener valores de los campos para el nombre del archivo
-    const emp = document.getElementById("cctv-empresa-select")?.value || "SIN";
-    const zon = document.getElementById("cctv-zona-select")?.value || "ZON";
-    const suc = document.getElementById("cctv-sucursal-select")?.value || "SUC";
-
-    // Formatear nombre: REQ_CCTV_EMP_ZON_SUC.pdf
-    const fileName = `REQ_CCTV_${emp}_${zon}_${suc}`.toUpperCase().replace(/\s+/g, '_') + '.pdf';
-
-    // 3. Configuración de la librería html2pdf
-    const opt = {
-        margin:       [10, 10, 10, 10], // Márgenes en mm
-        filename:     fileName,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { 
-            scale: 2, 
-            useCORS: true, 
-            letterRendering: true,
-            scrollY: 0 
-        },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
-    };
-
-    // 4. Ejecución del proceso
-    // Añadimos un pequeño delay para asegurar que el DOM esté listo
-    Swal.fire({
-        title: 'Generando PDF',
-        text: 'Espere un momento...',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-            html2pdf().set(opt).from(element).save().then(() => {
-                Swal.close();
-            }).catch(err => {
-                console.error("Error PDF:", err);
-                Swal.fire("Error", "No se pudo generar el PDF", "error");
-            });
+            Swal.fire("Error", "No se encontró el contenido para exportar. Asegúrate de estar en el Formato CCTV.", "error");
+            return;
         }
-    });
-};
+
+        const emp = document.getElementById("cctv-empresa-select")?.value || "SIN";
+        const zon = document.getElementById("cctv-zona-select")?.value || "ZON";
+        const suc = document.getElementById("cctv-sucursal-select")?.value || "SUC";
+        const fileName = `REQ_CCTV_${emp}_${zon}_${suc}`.toUpperCase().replace(/\s+/g, '_') + '.pdf';
+
+        const opt = {
+            margin:       [10, 10, 10, 10],
+            filename:     fileName,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { 
+                scale: 2, 
+                useCORS: true, 
+                letterRendering: true,
+                scrollY: 0 
+            },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+
+        Swal.fire({
+            title: 'Generando PDF',
+            text: 'Preparando documento...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+                html2pdf().set(opt).from(element).save().then(() => {
+                    Swal.close();
+                    Swal.fire({ icon: 'success', title: 'Descarga completa', timer: 1500, showConfirmButton: false });
+                }).catch(err => {
+                    console.error("Error PDF:", err);
+                    Swal.fire("Error", "Ocurrió un fallo al renderizar el PDF.", "error");
+                });
+            }
+        });
+    };
 
     function generateItemHTML(i, articulos) {
         return `<div class="col-md-4 item-row" id="row-${i}"><div class="item-box">
@@ -354,8 +347,19 @@
         const count = container.querySelectorAll('.item-row').length + 1;
         const arts = Object.values(store.matrizcctv).map(m => m.articulos).filter((v, i, a) => a.indexOf(v) === i).sort();
         const temp = document.createElement('div');
-        temp.innerHTML = generateItemHTML(count, arts);
-        container.appendChild(temp.firstElementChild);
+        temp.className = "col-md-4 item-row";
+        temp.innerHTML = `<div class="item-box">
+            <div class="d-flex mb-2 align-items-center"><span class="small fw-bold me-2">Cant. art. ${count}:</span><input type="number" class="form-control form-control-sm" style="width: 70px"></div>
+            <div class="bg-dark text-white text-center small py-1 mb-2">Tipos de accesorio:</div>
+            <select class="form-select form-select-sm mb-1" onchange="window.fillProductData(this, ${count})">
+                <option value="">SELECCIONE...</option>
+                ${arts.map(art => `<option value="${art}">${art}</option>`).join('')}
+            </select>
+            <input type="text" id="mod-${count}" class="form-control form-control-sm mb-1" placeholder="PRODUCTO/MODELO" readonly style="font-size: 0.7rem">
+            <input type="text" id="des-${count}" class="form-control form-control-sm mb-1" placeholder="DESCRIPCIÓN" readonly style="font-size: 0.7rem">
+            <input type="text" id="mar-${count}" class="form-control form-control-sm" placeholder="MARCA" readonly style="font-size: 0.7rem">
+        </div>`;
+        container.appendChild(temp);
     };
 
     window.fillProductData = (sel, idx) => {
@@ -366,22 +370,14 @@
     };
 
     window.updateCctvZonas = (emp) => {
-        const zs = Object.values(store.zonas)
-            .filter(z => z.empresa === emp)
-            .map(z => z.nombre)
-            .sort();
-        
+        const zs = Object.values(store.zonas).filter(z => z.empresa === emp).map(z => z.nombre).sort();
         document.getElementById("cctv-zona-select").innerHTML = '<option value="">ZONA</option>' + zs.map(z => `<option value="${z}">${z}</option>`).join('');
         document.getElementById("cctv-sucursal-select").innerHTML = '<option value="">SUCURSAL</option>';
         document.getElementById("diag-zona-display").value = "";
     };
 
     window.updateCctvSucursales = (z) => {
-        const ss = Object.values(store.sucursales)
-            .filter(s => s.zona === z)
-            .map(s => s.nombre)
-            .sort();
-            
+        const ss = Object.values(store.sucursales).filter(s => s.zona === z).map(s => s.nombre).sort();
         document.getElementById("cctv-sucursal-select").innerHTML = '<option value="">SUCURSAL</option>' + ss.map(s => `<option value="${s}">${s}</option>`).join('');
         document.getElementById("diag-zona-display").value = z;
     };
