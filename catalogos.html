@@ -235,7 +235,7 @@
                 <button class="btn-pdf" onclick="window.generatePDF()" title="Descargar PDF">
                     <i class="bi bi-file-earmark-pdf-fill fs-5"></i>
                 </button>
-                <button class="btn-back" onclick="window.location.href='tecnologia.php'" title="Regresar">
+                <button class="btn-back" onclick="window.location.href='tecnologia.html'" title="Regresar">
                     <i class="bi bi-arrow-left-circle-fill fs-5"></i>
                 </button>
             </div>
@@ -290,31 +290,50 @@
     // FUNCIÓN DE PDF CORREGIDA
     window.generatePDF = () => {
         const element = document.getElementById('cctv-form-capture');
-        if (!element) return;
+        if (!element) {
+        Swal.fire("Error", "No se encontró el contenido para exportar", "error");
+        return;
+    }
+// 2. Obtener valores de los campos para el nombre del archivo
+    const emp = document.getElementById("cctv-empresa-select")?.value || "SIN";
+    const zon = document.getElementById("cctv-zona-select")?.value || "ZON";
+    const suc = document.getElementById("cctv-sucursal-select")?.value || "SUC";
 
-        // Capturar valores de los selects directamente
-        const empSelect = document.getElementById("cctv-empresa-select");
-        const zonSelect = document.getElementById("cctv-zona-select");
-        const sucSelect = document.getElementById("cctv-sucursal-select");
+    // Formatear nombre: REQ_CCTV_EMP_ZON_SUC.pdf
+    const fileName = `REQ_CCTV_${emp}_${zon}_${suc}`.toUpperCase().replace(/\s+/g, '_') + '.pdf';
 
-        const empTxt = empSelect?.value || "SIN";
-        const zonTxt = zonSelect?.value || "ZON";
-        const sucTxt = sucSelect?.value || "SUC";
-
-        // Crear nomenclatura: ReqCctv + 3 carac de cada uno
-        const finalName = `ReqCctv${empTxt.substring(0,3)}${zonTxt.substring(0,3)}${sucTxt.substring(0,3)}.pdf`.toUpperCase();
-
-        const opt = {
-            margin: [10, 10],
-            filename: finalName,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
-        // Ejecutar guardado
-        html2pdf().set(opt).from(element).save();
+    // 3. Configuración de la librería html2pdf
+    const opt = {
+        margin:       [10, 10, 10, 10], // Márgenes en mm
+        filename:     fileName,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { 
+            scale: 2, 
+            useCORS: true, 
+            letterRendering: true,
+            scrollY: 0 
+        },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
     };
+
+    // 4. Ejecución del proceso
+    // Añadimos un pequeño delay para asegurar que el DOM esté listo
+    Swal.fire({
+        title: 'Generando PDF',
+        text: 'Espere un momento...',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+            html2pdf().set(opt).from(element).save().then(() => {
+                Swal.close();
+            }).catch(err => {
+                console.error("Error PDF:", err);
+                Swal.fire("Error", "No se pudo generar el PDF", "error");
+            });
+        }
+    });
+};
 
     function generateItemHTML(i, articulos) {
         return `<div class="col-md-4 item-row" id="row-${i}"><div class="item-box">
