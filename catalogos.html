@@ -51,11 +51,10 @@
         .btn-toggle { display: none; position: fixed; bottom: 20px; right: 20px; z-index: 1001; width: 50px; height: 50px; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         @media (max-width: 768px) { .btn-toggle { display: block; } }
         
-        /* Ajuste de iconos alineados al espacio en blanco */
         .pdf-header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .pdf-actions { display: flex; gap: 8px; }
-        .btn-pdf { background-color: #0070c0; color: white; border: none; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
-        .btn-back { background-color: #dc3545; color: white; border: none; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .btn-pdf { background-color: #0070c0; color: white; border: none; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: 0.2s; cursor: pointer;}
+        .btn-back { background-color: #dc3545; color: white; border: none; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: 0.2s; cursor: pointer;}
         .btn-pdf:hover, .btn-back:hover { opacity: 0.8; transform: scale(1.05); }
 
         @media print {
@@ -241,8 +240,8 @@
                             <i class="bi bi-file-earmark-pdf-fill fs-5"></i>
                         </button>
                         <button class="btn-back" onclick="window.location.href='tecnologia.html'" title="Regresar">
-    <i class="bi bi-arrow-left-circle-fill fs-5"></i>
-</button>
+                            <i class="bi bi-arrow-left-circle-fill fs-5"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -302,10 +301,16 @@
         const fileName = `REQ_CCTV_${emp}_${zon}_${suc}`.toUpperCase().replace(/\s+/g, '_') + '.pdf';
 
         const opt = {
-            margin: [5, 5, 5, 5],
+            margin: [10, 5, 10, 5],
             filename: fileName,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+            html2canvas: { 
+                scale: 2, 
+                useCORS: true, 
+                letterRendering: true,
+                scrollY: 0,
+                windowWidth: 1000
+            },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
@@ -319,8 +324,8 @@
                     Swal.close();
                     Swal.fire({ icon: 'success', title: 'Descarga completa', timer: 1500, showConfirmButton: false });
                 }).catch(err => {
-                    console.error(err);
-                    Swal.fire("Error", "Ocurrió un fallo al renderizar el PDF.", "error");
+                    console.error("PDF Error:", err);
+                    Swal.fire("Error", "Ocurrió un fallo al renderizar el PDF. Intenta cerrar el menú lateral antes.", "error");
                 });
             }
         });
@@ -366,7 +371,7 @@
 
     window.updateCctvSucursales = (z) => {
         const ss = Object.values(store.sucursales).filter(s => s.zona === z).map(s => s.nombre).sort();
-        document.getElementById("cctv-sucursal-select").innerHTML = '<option value="">SUCURSAL</option>' + ss.map(s => `<option value="${z}">${s}</option>`).join('');
+        document.getElementById("cctv-sucursal-select").innerHTML = '<option value="">SUCURSAL</option>' + ss.map(s => `<option value="${s}">${s}</option>`).join('');
         document.getElementById("diag-zona-display").value = z;
     };
 
