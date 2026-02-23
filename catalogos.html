@@ -183,16 +183,16 @@
         } else {
             html += `<div class="table-responsive"><table class="table table-hover border">
                 <thead><tr>
-                    ${['usuarios','sucursales','zonas'].includes(path) ? '<th>Empresa</th>' : ''}
-                    ${['usuarios','sucursales'].includes(path) ? '<th>Zona</th>' : ''}
+                    ${['usuarios', 'sucursales', 'zonas'].includes(path) ? '<th>Empresa</th>' : ''}
+                    ${['usuarios', 'sucursales'].includes(path) ? '<th>Zona</th>' : ''}
                     ${path.includes('matriz') ? '<th>Artículos</th><th>Modelo</th><th>Descripción</th><th>Marca</th>' : '<th class="text-start">Nombre</th>'}
                     <th class="text-end">Acciones</th>
                 </tr></thead><tbody>`;
             keys.forEach(id => {
                 const r = items[id];
                 html += `<tr>
-                    ${['usuarios','sucursales','zonas'].includes(path) ? `<td><small>${r.empresa || '-'}</small></td>` : ''}
-                    ${['usuarios','sucursales'].includes(path) ? `<td><small>${r.zona || '-'}</small></td>` : ''}
+                    ${['usuarios', 'sucursales', 'zonas'].includes(path) ? `<td><small>${r.empresa || '-'}</small></td>` : ''}
+                    ${['usuarios', 'sucursales'].includes(path) ? `<td><small>${r.zona || '-'}</small></td>` : ''}
                     ${path.includes('matriz') ? 
                         `<td class="text-start fw-bold">${r.articulos || '-'}</td><td>${r.modelo || '-'}</td><td><small>${r.descripcion || '-'}</small></td><td>${r.marca || '-'}</td>` : 
                         `<td class="text-start">${r.nombre}</td>`
