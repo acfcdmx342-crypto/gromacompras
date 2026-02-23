@@ -51,9 +51,12 @@
         .btn-toggle { display: none; position: fixed; bottom: 20px; right: 20px; z-index: 1001; width: 50px; height: 50px; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         @media (max-width: 768px) { .btn-toggle { display: block; } }
         
-        .pdf-actions { margin-bottom: 20px; display: flex; gap: 10px; justify-content: flex-end; }
-        .btn-pdf { background-color: #0070c0; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; }
-        .btn-back { background-color: #dc3545; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; }
+        /* Ajuste de iconos alineados al espacio en blanco */
+        .pdf-header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .pdf-actions { display: flex; gap: 8px; }
+        .btn-pdf { background-color: #0070c0; color: white; border: none; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .btn-back { background-color: #dc3545; color: white; border: none; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .btn-pdf:hover, .btn-back:hover { opacity: 0.8; transform: scale(1.05); }
 
         @media print {
             .no-print { display: none !important; }
@@ -228,16 +231,21 @@
         const arts = Object.values(store.matrizcctv).map(m => m.articulos).filter((v, i, a) => a.indexOf(v) === i).sort();
 
         let html = `
-            <div class="pdf-actions no-print">
-                <button class="btn-pdf" onclick="window.generatePDF()" title="Descargar PDF">
-                    <i class="bi bi-file-earmark-pdf-fill fs-5"></i>
-                </button>
-                <button class="btn-back" onclick="location.reload()" title="Regresar">
-                    <i class="bi bi-arrow-left-circle-fill fs-5"></i>
-                </button>
-            </div>
             <div id="cctv-form-capture" class="p-4" style="max-width: 1000px; margin: auto; background: white; border: 1px solid #ccc;">
-                <div class="text-center mb-4"><h3 class="fw-bold" style="color: var(--cctv-blue)">Requisición de CCTV</h3></div>
+                <div class="pdf-header-container">
+                    <div style="flex-grow: 1;">
+                        <h3 class="fw-bold m-0" style="color: var(--cctv-blue)">Requisición de CCTV</h3>
+                    </div>
+                    <div class="pdf-actions no-print">
+                        <button class="btn-pdf" onclick="window.generatePDF()" title="Descargar PDF">
+                            <i class="bi bi-file-earmark-pdf-fill fs-5"></i>
+                        </button>
+                        <button class="btn-back" onclick="location.reload()" title="Regresar">
+                            <i class="bi bi-arrow-left-circle-fill fs-5"></i>
+                        </button>
+                    </div>
+                </div>
+
                 <div class="cctv-header">Datos del Solicitante</div>
                 <div class="row g-0 mb-4 border">
                     <div class="col-md-7 border-end">
@@ -294,10 +302,10 @@
         const fileName = `REQ_CCTV_${emp}_${zon}_${suc}`.toUpperCase().replace(/\s+/g, '_') + '.pdf';
 
         const opt = {
-            margin: 10,
+            margin: [5, 5, 5, 5],
             filename: fileName,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
+            html2canvas: { scale: 2, useCORS: true, letterRendering: true },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
@@ -311,6 +319,7 @@
                     Swal.close();
                     Swal.fire({ icon: 'success', title: 'Descarga completa', timer: 1500, showConfirmButton: false });
                 }).catch(err => {
+                    console.error(err);
                     Swal.fire("Error", "Ocurrió un fallo al renderizar el PDF.", "error");
                 });
             }
@@ -357,7 +366,7 @@
 
     window.updateCctvSucursales = (z) => {
         const ss = Object.values(store.sucursales).filter(s => s.zona === z).map(s => s.nombre).sort();
-        document.getElementById("cctv-sucursal-select").innerHTML = '<option value="">SUCURSAL</option>' + ss.map(s => `<option value="${s}">${s}</option>`).join('');
+        document.getElementById("cctv-sucursal-select").innerHTML = '<option value="">SUCURSAL</option>' + ss.map(s => `<option value="${z}">${s}</option>`).join('');
         document.getElementById("diag-zona-display").value = z;
     };
 
