@@ -357,14 +357,21 @@
 
     window.updateFormZonas = (emp) => {
         const zs = Object.values(store.zonas).filter(z => z.empresa === emp).map(z => z.nombre).sort();
-        document.getElementById("form-zona-select").innerHTML = '<option value="">ZONA</option>' + zs.map(z => `<option value="${z}">${z}</option>`).join('');
-        document.getElementById("form-sucursal-select").innerHTML = '<option value="">SUCURSAL</option>';
+        const sel = document.getElementById("form-zona-select");
+        if(sel) {
+            sel.innerHTML = '<option value="">ZONA</option>' + zs.map(z => `<option value="${z}">${z}</option>`).join('');
+            document.getElementById("form-sucursal-select").innerHTML = '<option value="">SUCURSAL</option>';
+        }
     };
 
     window.updateFormSucursales = (z) => {
         const ss = Object.values(store.sucursales).filter(s => s.zona === z).map(s => s.nombre).sort();
-        document.getElementById("form-sucursal-select").innerHTML = '<option value="">SUCURSAL</option>' + ss.map(s => `<option value="${s}">${s}</option>`).join('');
-        document.getElementById("diag-zona-display").value = z;
+        const sel = document.getElementById("form-sucursal-select");
+        if(sel) {
+            sel.innerHTML = '<option value="">SUCURSAL</option>' + ss.map(s => `<option value="${s}">${s}</option>`).join('');
+            const diag = document.getElementById("diag-zona-display");
+            if(diag) diag.value = z;
+        }
     };
 
     window.showModal = (path, id = "") => {
@@ -388,12 +395,15 @@
         if (['zonas', 'sucursales', 'usuarios'].includes(path)) {
             document.getElementById("secEmpresa").classList.remove('d-none');
             const emps = Object.values(store.empresas).map(e => e.nombre).sort();
-            document.getElementById("fEmp").innerHTML = emps.map(e => `<option value="${e}" ${item.empresa === e ? 'selected' : ''}>${e}</option>`).join('');
-        }
-        if (['sucursales', 'usuarios'].includes(path)) {
-            document.getElementById("secZona").classList.remove('d-none');
-            const zonas = Object.values(store.zonas).map(z => z.nombre).sort();
-            document.getElementById("fZona").innerHTML = zonas.map(z => `<option value="${z}" ${item.zona === z ? 'selected' : ''}>${z}</option>`).join('');
+            const fEmp = document.getElementById("fEmp");
+            fEmp.innerHTML = '<option value="">SELECCIONE...</option>' + emps.map(e => `<option value="${e}" ${item.empresa === e ? 'selected' : ''}>${e}</option>`).join('');
+            
+            // Lógica para cargar zonas si estamos editando
+            if(item.empresa) {
+               const zs = Object.values(store.zonas).filter(z => z.empresa === item.empresa).map(z => z.nombre).sort();
+               document.getElementById("secZona").classList.remove('d-none');
+               document.getElementById("fZona").innerHTML = zs.map(z => `<option value="${z}" ${item.zona === z ? 'selected' : ''}>${z}</option>`).join('');
+            }
         }
         if (path === 'usuarios') {
             document.getElementById("secUsuarios").classList.remove('d-none');
@@ -404,6 +414,16 @@
         }
         document.getElementById("fNom").value = item.nombre || "";
         if (!id) document.getElementById("secToggleMasivo").classList.remove('d-none');
+        
+        // Listener para cambio de empresa en modal
+        document.getElementById("fEmp").onchange = (e) => {
+            if(['sucursales', 'usuarios'].includes(path)){
+                const zs = Object.values(store.zonas).filter(z => z.empresa === e.target.value).map(z => z.nombre).sort();
+                document.getElementById("secZona").classList.remove('d-none');
+                document.getElementById("fZona").innerHTML = zs.map(z => `<option value="${z}">${z}</option>`).join('');
+            }
+        };
+
         new bootstrap.Modal(document.getElementById("modalApp")).show();
     };
 
@@ -470,7 +490,7 @@
     };
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
+<script>
     document.addEventListener('contextmenu', e => e.preventDefault());
     document.onkeydown = e => {
         if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
