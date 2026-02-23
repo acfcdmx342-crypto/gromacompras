@@ -286,6 +286,9 @@
             { header: 'SOPORTE', key: 'soporte', width: 25 },
             { header: 'STATUS ACTUAL', key: 'status', width: 15 },
             { header: 'FECHA CREACIÓN', key: 'fecha', width: 20 }
+            { header: 'FECHA FECHA ACTUAL', key: 'fecha_actual', width: 22 }
+            { header: 'FECHA TIEMPO SOLICITUD (D/H/M)', key: 'tiempo_solicitud', width: 25 }
+            
         ];
 
         for (let i = 1; i <= maxSeguimientos; i++) {
@@ -297,6 +300,15 @@
         worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '0D6EFD' } };
 
         datosParaExcel.forEach(sol => {
+                // Calculo de tiempo
+     const fechaInicio = sol.fechaISO ? new Date(sol.fechaISO) : new Date();
+    const diferenciaMs = ahora - fechaInicio; // Diferencia en milisegundos
+    
+    const dias = Math.floor(diferenciaMs / (1000 * 60 * 60 * 24));
+    const horas = Math.floor((diferenciaMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutos = Math.floor((diferenciaMs % (1000 * 60 * 60)) / (1000 * 60));
+    const tiempoTranscurrido = `${dias}d ${horas}h ${minutos}m`;
+            
             const statusFinal = sol.listaSegs.length > 0 ? sol.listaSegs[sol.listaSegs.length - 1].status : sol.status;
             let fila = {
                 folio: sol.folio,
@@ -306,6 +318,14 @@
                 soporte: sol.soporte,
                 status: statusFinal,
                 fecha: sol.fechaISO ? new Date(sol.fechaISO).toLocaleString() : 'N/A'
+// ... datos anteriores ...
+        fecha: fechaInicio.toLocaleString(),
+        // LLENADO DE NUEVOS CAMPOS:
+        fecha_actual: ahora.toLocaleDateString(), // Solo fecha
+        fecha_descarga: ahora.toLocaleString(),   // Fecha y hora
+        tiempo_solicitud: tiempoTranscurrido      // Resultado del cálculo
+    };
+                
             };
 
             sol.listaSegs.forEach((s, index) => {
@@ -651,5 +671,6 @@
 </script> 
 </body>
 </html>
+
 
 
