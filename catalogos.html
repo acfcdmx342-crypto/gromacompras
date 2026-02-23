@@ -63,6 +63,7 @@
             .sidebar { display: none !important; }
             .main-content { margin-left: 0 !important; padding: 0 !important; }
             .table-container { box-shadow: none !important; border: none !important; }
+            #capture-area { border: none !important; }
         }
     </style>
 </head>
@@ -239,7 +240,7 @@
         const arts = Object.values(store[storeKey]).map(m => m.articulos).filter((v, i, a) => a.indexOf(v) === i).sort();
 
         let html = `
-            <div id="capture-area" class="p-4" style="max-width: 1000px; margin: auto; background: white; border: 1px solid #ccc;">
+            <div id="capture-area" class="p-4" style="width: 100%; max-width: 900px; margin: auto; background: white; border: 1px solid #ccc;">
                 <div class="pdf-header-container">
                     <div style="flex-grow: 1;">
                         <h3 class="fw-bold m-0" style="color: var(${colorVar})">${title}</h3>
@@ -307,16 +308,25 @@
         const suc = document.getElementById("form-sucursal-select")?.value || "SUC";
         const fileName = `REQ_${tipo}_${emp}_${zon}_${suc}`.toUpperCase().replace(/\s+/g, '_') + '.pdf';
 
+        // Cerramos el sidebar si está abierto para evitar ruidos de renderizado
+        document.getElementById('sidebar').classList.remove('active');
+
         const opt = {
             margin: [10, 5, 10, 5],
             filename: fileName,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+            html2canvas: { 
+                scale: 2, 
+                useCORS: true, 
+                letterRendering: true,
+                width: element.clientWidth // Captura exactamente el ancho del elemento
+            },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
         Swal.fire({
             title: 'Generando PDF',
+            text: 'Ajustando márgenes de captura...',
             didOpen: () => {
                 Swal.showLoading();
                 html2pdf().set(opt).from(element).save().then(() => Swal.close());
@@ -398,7 +408,6 @@
             const fEmp = document.getElementById("fEmp");
             fEmp.innerHTML = '<option value="">SELECCIONE...</option>' + emps.map(e => `<option value="${e}" ${item.empresa === e ? 'selected' : ''}>${e}</option>`).join('');
             
-            // Lógica para cargar zonas si estamos editando
             if(item.empresa) {
                const zs = Object.values(store.zonas).filter(z => z.empresa === item.empresa).map(z => z.nombre).sort();
                document.getElementById("secZona").classList.remove('d-none');
@@ -415,7 +424,6 @@
         document.getElementById("fNom").value = item.nombre || "";
         if (!id) document.getElementById("secToggleMasivo").classList.remove('d-none');
         
-        // Listener para cambio de empresa en modal
         document.getElementById("fEmp").onchange = (e) => {
             if(['sucursales', 'usuarios'].includes(path)){
                 const zs = Object.values(store.zonas).filter(z => z.empresa === e.target.value).map(z => z.nombre).sort();
