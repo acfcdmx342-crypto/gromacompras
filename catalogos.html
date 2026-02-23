@@ -11,33 +11,13 @@
     <style>
         :root { --dark: #0f172a; --accent: #38bdf8; --cctv-blue: #0070c0; --cctv-green: #38b050; }
         body { background: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow-x: hidden; }
-        .sidebar { 
-            width: 240px; 
-            min-height: 100vh; 
-            background: var(--dark); 
-            color: white; 
-            position: fixed; 
-            z-index: 1000; 
-            transition: all 0.3s;
-            left: 0;
-        }
+        .sidebar { width: 240px; min-height: 100vh; background: var(--dark); color: white; position: fixed; z-index: 1000; transition: all 0.3s; left: 0; }
         .sidebar a { color: #94a3b8; text-decoration: none; padding: 12px 20px; display: block; transition: 0.3s; cursor: pointer; font-size: 0.9rem; }
         .sidebar a:hover { background: #1e293b; color: var(--accent); }
         .sidebar a.active { color: white; border-left: 4px solid var(--accent); background: #1e293b; }
-        .main-content { 
-            margin-left: 240px; 
-            padding: 20px; 
-            transition: all 0.3s;
-        }
+        .main-content { margin-left: 240px; padding: 20px; transition: all 0.3s; }
         body.hide-menu .sidebar { display: none !important; }
         body.hide-menu .main-content { margin-left: 0 !important; }
-        body.hide-menu .btn-toggle { display: none !important; }
-        @media (max-width: 768px) {
-            .sidebar { left: -240px; }
-            .sidebar.active { left: 0; }
-            .main-content { margin-left: 0; }
-            .main-content.shifted { margin-left: 0; filter: blur(2px); pointer-events: none; }
-        }
         .table-container { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); min-height: 300px; }
         th { font-size: 0.7rem; color: #64748b; text-transform: uppercase; text-align: center; background: #f8fafc !important; }
         td { vertical-align: middle; text-align: center; font-size: 0.85rem; }
@@ -49,18 +29,11 @@
         .item-box { border: 1px solid #dee2e6; padding: 10px; background: #fff; height: 100%; }
         .signature-line { border-top: 1px solid #000; margin-top: 40px; font-size: 0.7rem; text-align: center; }
         .btn-toggle { display: none; position: fixed; bottom: 20px; right: 20px; z-index: 1001; width: 50px; height: 50px; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        @media (max-width: 768px) { .btn-toggle { display: block; } }
-        
+        @media (max-width: 768px) { .btn-toggle { display: block; } .sidebar { left: -240px; } .sidebar.active { left: 0; } .main-content { margin-left: 0; } }
         .pdf-actions { margin-bottom: 20px; display: flex; gap: 10px; justify-content: flex-end; }
         .btn-pdf { background-color: #0070c0; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; }
         .btn-back { background-color: #dc3545; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; }
-
-        @media print {
-            .no-print { display: none !important; }
-            .sidebar { display: none !important; }
-            .main-content { margin-left: 0 !important; padding: 0 !important; }
-            .table-container { box-shadow: none !important; border: none !important; }
-        }
+        @media print { .no-print { display: none !important; } .sidebar { display: none !important; } .main-content { margin-left: 0 !important; padding: 0 !important; } }
     </style>
 </head>
 <body>
@@ -149,6 +122,7 @@
     let currentPath = '';
     let loadsPending = Object.keys(store).length;
 
+    // Sincronización Realtime
     Object.keys(store).forEach(path => {
         onValue(ref(db, path), (s) => {
             store[path] = s.val() || {};
@@ -165,10 +139,12 @@
         });
     });
 
+    // Función Render Principal
     window.render = (path) => {
         currentPath = path;
         document.querySelectorAll('.sidebar a').forEach(el => el.classList.remove('active'));
         document.getElementById(`link-${path}`)?.classList.add('active');
+        
         if (path === 'formato_cctv') { renderCCTV(); return; }
         
         const items = store[path];
@@ -208,42 +184,38 @@
         document.getElementById("view").innerHTML = html;
     };
 
+    // Render Formato CCTV
     function renderCCTV() {
         const today = new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         const urlParams = new URLSearchParams(window.location.search);
         const nURL = urlParams.get('n')?.toUpperCase() || "";
-        const pURL = urlParams.get('p')?.toUpperCase() || "";
         
         const usuariosArr = Object.values(store.usuarios);
-        const usuarioEncontrado = usuariosArr.find(u => 
-            (u.nombre && u.nombre.toUpperCase() === nURL) || 
-            (u.usuario && u.usuario.toUpperCase() === nURL)
-        );
-
-        const fNombre = usuarioEncontrado?.nombre || (nURL !== "NOMBRE" && nURL !== "" ? nURL : "SOPORTE");
-        const fPuesto = usuarioEncontrado?.puesto || (pURL !== "PUESTO" && pURL !== "" ? pURL : "TECNICO");
+        const uE = usuariosArr.find(u => (u.nombre && u.nombre.toUpperCase() === nURL) || (u.usuario && u.usuario.toUpperCase() === nURL));
+        const fNombre = uE?.nombre || "SOPORTE";
+        const fPuesto = uE?.puesto || "TECNICO";
 
         const emps = Object.values(store.empresas).map(e => e.nombre).sort();
         const arts = Object.values(store.matrizcctv).map(m => m.articulos).filter((v, i, a) => a.indexOf(v) === i).sort();
 
         let html = `
             <div class="pdf-actions no-print">
-                <button class="btn-pdf" onclick="window.generatePDF()" title="Descargar PDF">
-                    <i class="bi bi-file-earmark-pdf-fill fs-5"></i> Guardar PDF
+                <button class="btn-pdf" onclick="window.generatePDF()">
+                    <i class="bi bi-file-earmark-pdf-fill"></i> GUARDAR PDF
                 </button>
-                <button class="btn-back" onclick="window.location.href='tecnologia.html'" title="Regresar">
-                    <i class="bi bi-arrow-left-circle-fill fs-5"></i>
+                <button class="btn-back" onclick="location.reload()">
+                    <i class="bi bi-arrow-left"></i> VOLVER
                 </button>
             </div>
-            <div id="cctv-form-capture" class="p-4" style="max-width: 1000px; margin: auto; background: white; border: 1px solid #ccc;">
-                <div class="text-center mb-4"><h3 class="fw-bold" style="color: var(--cctv-blue)">Requisición de CCTV</h3></div>
+            <div id="cctv-form-capture" style="background: white; border: 1px solid #ccc; padding: 30px; max-width: 950px; margin: auto;">
+                <div class="text-center mb-4"><h3 class="fw-bold" style="color: var(--cctv-blue)">REQUISICIÓN DE CCTV</h3></div>
                 <div class="cctv-header">Datos del Solicitante</div>
                 <div class="row g-0 mb-4 border">
                     <div class="col-md-7 border-end">
                         <div class="d-flex border-bottom"><div class="cctv-label" style="width: 120px;">Nombre:</div><input type="text" class="cctv-input" value="${fNombre}" readonly></div>
                         <div class="d-flex border-bottom"><div class="cctv-label" style="width: 120px;">Puesto:</div><input type="text" class="cctv-input" value="${fPuesto}" readonly></div>
                         <div class="d-flex"><div class="cctv-label" style="width: 120px;">Empresa:</div>
-                            <select class="cctv-input" id="cctv-empresa-select" onchange="window.updateCctvZonas(this.value)">
+                            <select class="cctv-input" id="pdf-emp" onchange="window.updateCctvZonas(this.value)">
                                 <option value="">SELECCIONE...</option>
                                 ${emps.map(e => `<option value="${e}">${e}</option>`).join('')}
                             </select>
@@ -251,127 +223,82 @@
                     </div>
                     <div class="col-md-5">
                         <div class="d-flex border-bottom"><div class="cctv-label" style="width: 120px;">Fecha:</div><div class="cctv-input bg-light">${today}</div></div>
-                        <div class="d-flex border-bottom"><div class="cctv-label" style="width: 120px;">Zona:</div><select class="cctv-input" id="cctv-zona-select" onchange="window.updateCctvSucursales(this.value)"><option value="">ZONA</option></select></div>
-                        <div class="d-flex"><div class="cctv-label" style="width: 120px;">Sucursal:</div><select class="form-select cctv-input" id="cctv-sucursal-select"><option value="">SUCURSAL</option></select></div>
+                        <div class="d-flex border-bottom"><div class="cctv-label" style="width: 120px;">Zona:</div><select class="cctv-input" id="pdf-zon" onchange="window.updateCctvSucursales(this.value)"><option value="">ZONA</option></select></div>
+                        <div class="d-flex"><div class="cctv-label" style="width: 120px;">Sucursal:</div><select class="cctv-input" id="pdf-suc"><option value="">SUCURSAL</option></select></div>
                     </div>
                 </div>
                 <div class="cctv-header">Requerimiento de equipo</div>
                 <div class="row g-2" id="items-container">
-                    ${Array.from({length: 9}, (_, i) => generateItemHTML(i + 1, arts)).join('')}
-                </div>
-                <div class="text-center mt-3 no-print">
-                    <button class="btn btn-primary btn-sm rounded-pill px-4" onclick="window.addNewItem()"><i class="bi bi-plus-circle me-2"></i>Añadir más artículos</button>
-                </div>
-                <div class="mt-4 border p-2">
-                    <label class="small fw-bold">En caso de solicitar un artículo no listado, descríbalo:</label>
-                    <textarea class="form-control mt-1" rows="2"></textarea>
-                </div>
-                <div class="cctv-green-header">Diagnóstico Realizado por Soporte en Zona</div>
-                <div class="border p-3">
-                    <div class="row mb-3">
-                        <div class="col-md-6 d-flex"><span class="small fw-bold me-2">Zona:</span><input type="text" class="border-bottom border-0 w-100" id="diag-zona-display" readonly></div>
-                        <div class="col-md-6 d-flex"><span class="small fw-bold me-2">Responsable:</span><input type="text" class="border-bottom border-0 w-100" value="${fNombre}" readonly></div>
-                    </div>
-                    <textarea class="form-control" rows="3" placeholder="Comentarios..."></textarea>
+                    ${Array.from({length: 6}, (_, i) => generateItemHTML(i + 1, arts)).join('')}
                 </div>
                 <div class="row mt-5">
                     <div class="col-4"><div class="signature-line"><strong>SOLICITA</strong><br>${fNombre}</div></div>
-                    <div class="col-4"><div class="signature-line"><strong>REVISA</strong><br>Coordinador de Soporte</div></div>
-                    <div class="col-4"><div class="signature-line"><strong>AUTORIZA</strong><br>Gerente de Sistemas</div></div>
+                    <div class="col-4"><div class="signature-line"><strong>REVISA</strong><br>Coordinador</div></div>
+                    <div class="col-4"><div class="signature-line"><strong>AUTORIZA</strong><br>Gerente</div></div>
                 </div>
             </div>`;
         document.getElementById("view").innerHTML = html;
     }
 
-    // FUNCIÓN DE PDF CON OPCIÓN DE NOMBRE DINÁMICO
+    // Lógica del PDF
     window.generatePDF = () => {
         const element = document.getElementById('cctv-form-capture');
-        if (!element) return;
-
-        // Captura valores para el nombre de archivo
-        const emp = document.getElementById("cctv-empresa-select")?.value || "SIN_EMPRESA";
-        const zon = document.getElementById("cctv-zona-select")?.value || "SIN_ZONA";
-        const suc = document.getElementById("cctv-sucursal-select")?.value || "SIN_SUCURSAL";
-        const nombreArchivo = `REQ_CCTV_${emp}_${zon}_${suc}`.toUpperCase().replace(/\s+/g, '_') + '.pdf';
+        const emp = document.getElementById('pdf-emp').value || "EMPRESA";
+        const zon = document.getElementById('pdf-zon').value || "ZONA";
+        const suc = document.getElementById('pdf-suc').value || "SUCURSAL";
+        const fileName = `REQ_CCTV_${emp}_${zon}_${suc}.pdf`.toUpperCase();
 
         const opt = {
-            margin:       [10, 10, 10, 10],
-            filename:     nombreArchivo,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            margin: 10,
+            filename: fileName,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
         Swal.fire({
-            title: 'Generando PDF',
-            text: 'Preparando archivo para guardar...',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-                html2pdf().set(opt).from(element).save().then(() => {
-                    Swal.close();
-                    Swal.fire({ icon: 'success', title: 'Listo', text: 'El navegador solicitará dónde guardar el archivo.', timer: 2000 });
-                }).catch(err => {
-                    Swal.fire("Error", "No se pudo generar el PDF", "error");
-                });
+            title: '¿Guardar PDF?',
+            text: `Se descargará como: ${fileName}`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Descargar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                html2pdf().set(opt).from(element).save();
             }
         });
     };
 
-    function generateItemHTML(i, articulos) {
-        return `<div class="col-md-4 item-row" id="row-${i}"><div class="item-box">
-            <div class="d-flex mb-2 align-items-center"><span class="small fw-bold me-2">Cant. art. ${i}:</span><input type="number" class="form-control form-control-sm" style="width: 70px"></div>
-            <div class="bg-dark text-white text-center small py-1 mb-2">Tipos de accesorio:</div>
+    // Funciones de Apoyo (Items y Combos)
+    function generateItemHTML(i, arts) {
+        return `<div class="col-md-4 item-row"><div class="item-box">
+            <div class="d-flex mb-2"><span class="small fw-bold me-2">Cant:</span><input type="number" class="form-control form-control-sm"></div>
             <select class="form-select form-select-sm mb-1" onchange="window.fillProductData(this, ${i})">
-                <option value="">SELECCIONE...</option>
-                ${articulos.map(art => `<option value="${art}">${art}</option>`).join('')}
+                <option value="">ARTÍCULO...</option>
+                ${arts.map(a => `<option value="${a}">${a}</option>`).join('')}
             </select>
-            <input type="text" id="mod-${i}" class="form-control form-control-sm mb-1" placeholder="PRODUCTO/MODELO" readonly style="font-size: 0.7rem">
-            <input type="text" id="des-${i}" class="form-control form-control-sm mb-1" placeholder="DESCRIPCIÓN" readonly style="font-size: 0.7rem">
-            <input type="text" id="mar-${i}" class="form-control form-control-sm" placeholder="MARCA" readonly style="font-size: 0.7rem">
+            <input type="text" id="mod-${i}" class="cctv-input mb-1" placeholder="MODELO" readonly>
+            <input type="text" id="des-${i}" class="cctv-input mb-1" placeholder="DESCRIPCIÓN" readonly>
         </div></div>`;
     }
-
-    window.addNewItem = () => {
-        const container = document.getElementById('items-container');
-        const count = container.querySelectorAll('.item-row').length + 1;
-        const arts = Object.values(store.matrizcctv).map(m => m.articulos).filter((v, i, a) => a.indexOf(v) === i).sort();
-        const temp = document.createElement('div');
-        temp.className = "col-md-4 item-row";
-        temp.innerHTML = `<div class="item-box">
-            <div class="d-flex mb-2 align-items-center"><span class="small fw-bold me-2">Cant. art. ${count}:</span><input type="number" class="form-control form-control-sm" style="width: 70px"></div>
-            <div class="bg-dark text-white text-center small py-1 mb-2">Tipos de accesorio:</div>
-            <select class="form-select form-select-sm mb-1" onchange="window.fillProductData(this, ${count})">
-                <option value="">SELECCIONE...</option>
-                ${arts.map(art => `<option value="${art}">${art}</option>`).join('')}
-            </select>
-            <input type="text" id="mod-${count}" class="form-control form-control-sm mb-1" placeholder="PRODUCTO/MODELO" readonly style="font-size: 0.7rem">
-            <input type="text" id="des-${count}" class="form-control form-control-sm mb-1" placeholder="DESCRIPCIÓN" readonly style="font-size: 0.7rem">
-            <input type="text" id="mar-${count}" class="form-control form-control-sm" placeholder="MARCA" readonly style="font-size: 0.7rem">
-        </div>`;
-        container.appendChild(temp);
-    };
 
     window.fillProductData = (sel, idx) => {
         const p = Object.values(store.matrizcctv).find(m => m.articulos === sel.value);
         document.getElementById(`mod-${idx}`).value = p?.modelo || "";
         document.getElementById(`des-${idx}`).value = p?.descripcion || "";
-        document.getElementById(`mar-${idx}`).value = p?.marca || "";
     };
 
     window.updateCctvZonas = (emp) => {
         const zs = Object.values(store.zonas).filter(z => z.empresa === emp).map(z => z.nombre).sort();
-        document.getElementById("cctv-zona-select").innerHTML = '<option value="">ZONA</option>' + zs.map(z => `<option value="${z}">${z}</option>`).join('');
-        document.getElementById("cctv-sucursal-select").innerHTML = '<option value="">SUCURSAL</option>';
-        document.getElementById("diag-zona-display").value = "";
+        document.getElementById("pdf-zon").innerHTML = '<option value="">ZONA</option>' + zs.map(z => `<option value="${z}">${z}</option>`).join('');
     };
 
     window.updateCctvSucursales = (z) => {
         const ss = Object.values(store.sucursales).filter(s => s.zona === z).map(s => s.nombre).sort();
-        document.getElementById("cctv-sucursal-select").innerHTML = '<option value="">SUCURSAL</option>' + ss.map(s => `<option value="${s}">${s}</option>`).join('');
-        document.getElementById("diag-zona-display").value = z;
+        document.getElementById("pdf-suc").innerHTML = '<option value="">SUCURSAL</option>' + ss.map(s => `<option value="${s}">${s}</option>`).join('');
     };
 
+    // Modal y CRUD
     window.showModal = (path, id = "") => {
         const item = id ? store[path][id] : {};
         document.getElementById("fID").value = id;
@@ -417,12 +344,7 @@
         let data = {};
 
         if (currentPath.includes('matriz')) {
-            data = { 
-                articulos: document.getElementById("mArt").value.toUpperCase(), 
-                modelo: document.getElementById("mMod").value.toUpperCase(), 
-                descripcion: document.getElementById("mDes").value.toUpperCase(), 
-                marca: document.getElementById("mMar").value.toUpperCase() 
-            };
+            data = { articulos: document.getElementById("mArt").value.toUpperCase(), modelo: document.getElementById("mMod").value.toUpperCase(), descripcion: document.getElementById("mDes").value.toUpperCase(), marca: document.getElementById("mMar").value.toUpperCase() };
         } else {
             data.nombre = document.getElementById("fNom").value.toUpperCase();
         }
@@ -430,13 +352,6 @@
         if (['zonas', 'sucursales', 'usuarios'].includes(currentPath)) data.empresa = document.getElementById("fEmp").value;
         if (['sucursales', 'usuarios'].includes(currentPath)) data.zona = document.getElementById("fZona").value;
         
-        if (currentPath === 'usuarios') {
-            data.departamento = document.getElementById("uDep").value.toUpperCase();
-            data.puesto = document.getElementById("uPue").value.toUpperCase();
-            data.usuario = document.getElementById("uUsu").value;
-            data.pass = document.getElementById("uPass").value;
-        }
-
         try {
             if (isM) {
                 const lineas = document.getElementById("fMasivo").value.split('\n').filter(l => l.trim());
@@ -463,12 +378,10 @@
 
     window.toggleSidebar = () => {
         document.getElementById('sidebar').classList.toggle('active');
-        document.getElementById('main-content').classList.toggle('shifted');
     };
-
+    
     document.getElementById("checkMasivo").onchange = (e) => {
         document.getElementById(currentPath.includes('matriz') ? "secMatriz" : "secIndividual").classList.toggle('d-none', e.target.checked);
-        if (currentPath === 'usuarios') document.getElementById("secUsuarios").classList.toggle('d-none', e.target.checked);
         document.getElementById("secMasivo").classList.toggle('d-none', !e.target.checked);
     };
 </script>
