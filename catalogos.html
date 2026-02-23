@@ -229,7 +229,7 @@
         let html = `
             <div class="pdf-actions no-print">
                 <button class="btn-pdf" onclick="window.generatePDF()" title="Descargar PDF">
-                    <i class="bi bi-file-earmark-pdf-fill fs-5"></i>
+                    <i class="bi bi-file-earmark-pdf-fill fs-5"></i> Guardar PDF
                 </button>
                 <button class="btn-back" onclick="window.location.href='tecnologia.html'" title="Regresar">
                     <i class="bi bi-arrow-left-circle-fill fs-5"></i>
@@ -283,46 +283,36 @@
         document.getElementById("view").innerHTML = html;
     }
 
-    // FUNCIÓN DE PDF OPTIMIZADA
+    // FUNCIÓN DE PDF CON OPCIÓN DE NOMBRE DINÁMICO
     window.generatePDF = () => {
         const element = document.getElementById('cctv-form-capture');
-        
-        if (!element) {
-            Swal.fire("Error", "No se encontró el contenido para exportar. Asegúrate de estar en el Formato CCTV.", "error");
-            return;
-        }
+        if (!element) return;
 
-        const emp = document.getElementById("cctv-empresa-select")?.value || "SIN";
-        const zon = document.getElementById("cctv-zona-select")?.value || "ZON";
-        const suc = document.getElementById("cctv-sucursal-select")?.value || "SUC";
-        const fileName = `REQ_CCTV_${emp}_${zon}_${suc}`.toUpperCase().replace(/\s+/g, '_') + '.pdf';
+        // Captura valores para el nombre de archivo
+        const emp = document.getElementById("cctv-empresa-select")?.value || "SIN_EMPRESA";
+        const zon = document.getElementById("cctv-zona-select")?.value || "SIN_ZONA";
+        const suc = document.getElementById("cctv-sucursal-select")?.value || "SIN_SUCURSAL";
+        const nombreArchivo = `REQ_CCTV_${emp}_${zon}_${suc}`.toUpperCase().replace(/\s+/g, '_') + '.pdf';
 
         const opt = {
             margin:       [10, 10, 10, 10],
-            filename:     fileName,
+            filename:     nombreArchivo,
             image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { 
-                scale: 2, 
-                useCORS: true, 
-                letterRendering: true,
-                scrollY: 0 
-            },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+            html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
         Swal.fire({
             title: 'Generando PDF',
-            text: 'Preparando documento...',
+            text: 'Preparando archivo para guardar...',
             allowOutsideClick: false,
             didOpen: () => {
                 Swal.showLoading();
                 html2pdf().set(opt).from(element).save().then(() => {
                     Swal.close();
-                    Swal.fire({ icon: 'success', title: 'Descarga completa', timer: 1500, showConfirmButton: false });
+                    Swal.fire({ icon: 'success', title: 'Listo', text: 'El navegador solicitará dónde guardar el archivo.', timer: 2000 });
                 }).catch(err => {
-                    console.error("Error PDF:", err);
-                    Swal.fire("Error", "Ocurrió un fallo al renderizar el PDF.", "error");
+                    Swal.fire("Error", "No se pudo generar el PDF", "error");
                 });
             }
         });
