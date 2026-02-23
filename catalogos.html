@@ -46,7 +46,7 @@
         .cctv-green-header { background: var(--cctv-green); color: white; font-weight: bold; padding: 5px 15px; margin-top: 15px; }
         .cctv-label { background: #e9ecef; font-weight: bold; font-size: 0.75rem; border: 1px solid #dee2e6; padding: 4px 8px; }
         .cctv-input { border: 1px solid #dee2e6; padding: 4px 8px; font-size: 0.8rem; width: 100%; }
-        .item-box { border: 1px solid #dee2e6; padding: 10px; background: #fff; height: 100%; position: relative;}
+        .item-box { border: 1px solid #dee2e6; padding: 10px; background: #fff; height: 100%; position: relative; border-radius: 4px; }
         .signature-line { border-top: 1px solid #000; margin-top: 40px; font-size: 0.7rem; text-align: center; }
         .btn-toggle { display: none; position: fixed; bottom: 20px; right: 20px; z-index: 1001; width: 50px; height: 50px; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         @media (max-width: 768px) { .btn-toggle { display: block; } }
@@ -56,6 +56,9 @@
         .btn-print { background-color: #212529; color: white; border: none; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: 0.2s; cursor: pointer;}
         .btn-back { background-color: #dc3545; color: white; border: none; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: 0.2s; cursor: pointer;}
         .btn-print:hover, .btn-back:hover { opacity: 0.8; transform: scale(1.05); }
+
+        .btn-remove-item { border: none; background: transparent; color: #dc3545; padding: 0; line-height: 1; transition: 0.2s; }
+        .btn-remove-item:hover { transform: scale(1.2); }
 
         @media print {
             .no-print { display: none !important; }
@@ -273,7 +276,7 @@
                     </div>
                 </div>
                 <div class="${isCctv ? 'cctv-header' : 'tech-header'}">Requerimiento de equipo</div>
-                <div class="row g-2" id="items-container">
+                <div class="row g-2 row-cols-1 row-cols-md-2 row-cols-lg-3" id="items-container">
                     ${Array.from({length: 6}, (_, i) => generateItemHTML(i + 1, arts, storeKey)).join('')}
                 </div>
                 <div class="text-center mt-3 no-print">
@@ -301,28 +304,40 @@
     }
 
     function generateItemHTML(i, articulos, storeKey) {
-        return `<div class="col-md-4 item-row" id="row-${i}"><div class="item-box">
-            <button class="btn btn-sm text-danger border-0 p-0 no-print" style="position: absolute; right: 5px; top: 2px; font-size: 0.8rem;" onclick="this.closest('.item-row').remove()"><i class="bi bi-trash-fill"></i></button>
-            <div class="d-flex mb-2 align-items-center"><span class="small fw-bold me-2">Cant. art. ${i}:</span><input type="number" class="form-control form-control-sm" style="width: 70px"></div>
-            <div class="bg-dark text-white text-center small py-1 mb-2">Seleccionar artículo:</div>
-            <select class="form-select form-select-sm mb-1" onchange="window.fillProductData(this, ${i}, '${storeKey}')">
+        return `<div class="col item-row" id="row-${i}"><div class="item-box">
+            <div class="d-flex mb-2 align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <span class="small fw-bold me-2" style="font-size: 0.65rem">CANT:</span>
+                    <input type="number" class="form-control form-control-sm" style="width: 55px">
+                </div>
+                <button class="btn-remove-item no-print" onclick="window.removeItem('row-${i}')" title="Eliminar item">
+                    <i class="bi bi-trash fs-6"></i>
+                </button>
+            </div>
+            <div class="bg-dark text-white text-center small py-1 mb-2" style="font-size: 0.65rem">ARTÍCULO:</div>
+            <select class="form-select form-select-sm mb-1" onchange="window.fillProductData(this, '${i}', '${storeKey}')" style="font-size: 0.75rem">
                 <option value="">SELECCIONE...</option>
                 ${articulos.map(art => `<option value="${art}">${art}</option>`).join('')}
             </select>
-            <input type="text" id="mod-${i}" class="form-control form-control-sm mb-1" placeholder="MODELO" readonly style="font-size: 0.7rem">
-            <input type="text" id="bottom-des-${i}" class="form-control form-control-sm mb-1" placeholder="DESCRIPCIÓN" readonly style="font-size: 0.7rem">
-            <input type="text" id="mar-${i}" class="form-control form-control-sm" placeholder="MARCA" readonly style="font-size: 0.7rem">
+            <input type="text" id="mod-${i}" class="form-control form-control-sm mb-1" placeholder="MODELO" readonly style="font-size: 0.65rem">
+            <input type="text" id="bottom-des-${i}" class="form-control form-control-sm mb-1" placeholder="DESCRIPCIÓN" readonly style="font-size: 0.65rem">
+            <input type="text" id="mar-${i}" class="form-control form-control-sm" placeholder="MARCA" readonly style="font-size: 0.65rem">
         </div></div>`;
     }
 
+    window.removeItem = (id) => {
+        const el = document.getElementById(id);
+        if(el) el.remove();
+    };
+
     window.addNewItem = (storeKey) => {
         const container = document.getElementById('items-container');
-        const count = container.querySelectorAll('.item-row').length + 1;
+        const uniqueId = Date.now();
         const arts = Object.values(store[storeKey]).map(m => m.articulos).filter((v, i, a) => a.indexOf(v) === i).sort();
         const temp = document.createElement('div');
-        temp.className = "col-md-4 item-row";
-        temp.id = `row-${count}`;
-        temp.innerHTML = generateItemHTML(count, arts, storeKey);
+        temp.className = "col item-row";
+        temp.id = `row-${uniqueId}`;
+        temp.innerHTML = generateItemHTML(uniqueId, arts, storeKey);
         container.appendChild(temp);
     };
 
