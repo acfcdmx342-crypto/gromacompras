@@ -262,88 +262,85 @@
     }
 
     // --- FUNCIÓN EXPORTAR EXCEL ---
-    window.exportarExcel = async () => {
-        if (globalSolicitudes.length === 0) return Swal.fire("Aviso", "No hay datos para exportar", "warning");
+window.exportarExcel = async () => {
+    if (globalSolicitudes.length === 0) return Swal.fire("Aviso", "No hay datos para exportar", "warning");
 
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Reporte de Solicitudes');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Reporte de Solicitudes');
+    const ahora = new Date(); // <--- SOLUCIÓN: Definir "ahora"
 
-        let maxSeguimientos = 0;
-        const datosParaExcel = globalSolicitudes.map(sol => {
-            const seguimientos = globalSeguimientos
-                .filter(seg => seg.folio === sol.folio)
-                .sort((a, b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
-            
-            if (seguimientos.length > maxSeguimientos) maxSeguimientos = seguimientos.length;
-            return { ...sol, listaSegs: seguimientos };
+    let maxSeguimientos = 0;
+    const datosParaExcel = globalSolicitudes.map(sol => {
+        const seguimientos = globalSeguimientos
+            .filter(seg => seg.folio === sol.folio)
+            .sort((a, b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
+        
+        if (seguimientos.length > maxSeguimientos) maxSeguimientos = seguimientos.length;
+        return { ...sol, listaSegs: seguimientos };
+    });
+
+    // SOLUCIÓN: Comas añadidas correctamente al final de cada objeto
+    let columnas = [
+        { header: 'FOLIO', key: 'folio', width: 20 },
+        { header: 'EMPRESA', key: 'empresa', width: 15 },
+        { header: 'ZONA', key: 'zona', width: 15 },
+        { header: 'SUCURSAL', key: 'sucursal', width: 20 },
+        { header: 'SOPORTE', key: 'soporte', width: 25 },
+        { header: 'STATUS ACTUAL', key: 'status', width: 15 },
+        { header: 'FECHA CREACIÓN', key: 'fecha', width: 22 },
+        { header: 'FECHA ACTUAL', key: 'fecha_actual', width: 22 },
+        { header: 'TIEMPO SOLICITUD', key: 'tiempo_solicitud', width: 25 }
+    ];
+
+    for (let i = 1; i <= maxSeguimientos; i++) {
+        columnas.push({ header: `SEGUIMIENTO ${i}`, key: `seg_${i}`, width: 45 });
+    }
+
+    worksheet.columns = columnas;
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFF' } };
+    worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '0D6EFD' } };
+
+    datosParaExcel.forEach(sol => {
+        // Cálculo de tiempo
+        const fechaInicio = sol.fechaISO ? new Date(sol.fechaISO) : new Date();
+        const diferenciaMs = ahora - fechaInicio;
+        
+        const dias = Math.floor(diferenciaMs / (1000 * 60 * 60 * 24));
+        const horas = Math.floor((diferenciaMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutos = Math.floor((diferenciaMs % (1000 * 60 * 60)) / (1000 * 60));
+        const tiempoTranscurrido = `${dias}d ${horas}h ${minutos}m`;
+        
+        const statusFinal = sol.listaSegs.length > 0 ? sol.listaSegs[sol.listaSegs.length - 1].status : (sol.status || "PENDIENTE");
+
+        // SOLUCIÓN: Estructura de fila limpia
+        let fila = {
+            folio: sol.folio,
+            empresa: sol.empresa,
+            zona: sol.zona,
+            sucursal: sol.sucursal,
+            soporte: sol.soporte,
+            status: statusFinal,
+            fecha: fechaInicio.toLocaleString(),
+            fecha_actual: ahora.toLocaleDateString(),
+            tiempo_solicitud: tiempoTranscurrido
+        };
+
+        sol.listaSegs.forEach((s, index) => {
+            fila[`seg_${index + 1}`] = `[${s.status}] Art: ${s.descripcionArt || 'N/A'} - Obs: ${s.comentarios || 'S/O'}`;
         });
 
-        let columnas = [
-            { header: 'FOLIO', key: 'folio', width: 20 },
-            { header: 'EMPRESA', key: 'empresa', width: 15 },
-            { header: 'ZONA', key: 'zona', width: 15 },
-            { header: 'SUCURSAL', key: 'sucursal', width: 20 },
-            { header: 'SOPORTE', key: 'soporte', width: 25 },
-            { header: 'STATUS ACTUAL', key: 'status', width: 15 },
-            { header: 'FECHA CREACIÓN', key: 'fecha', width: 20 }
-            { header: 'FECHA FECHA ACTUAL', key: 'fecha_actual', width: 22 }
-            { header: 'FECHA TIEMPO SOLICITUD (D/H/M)', key: 'tiempo_solicitud', width: 25 }
-            
-        ];
+        worksheet.addRow(fila);
+    });
 
-        for (let i = 1; i <= maxSeguimientos; i++) {
-            columnas.push({ header: `SEGUIMIENTO ${i}`, key: `seg_${i}`, width: 45 });
-        }
-
-        worksheet.columns = columnas;
-        worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFF' } };
-        worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '0D6EFD' } };
-
-        datosParaExcel.forEach(sol => {
-                // Calculo de tiempo
-     const fechaInicio = sol.fechaISO ? new Date(sol.fechaISO) : new Date();
-    const diferenciaMs = ahora - fechaInicio; // Diferencia en milisegundos
-    
-    const dias = Math.floor(diferenciaMs / (1000 * 60 * 60 * 24));
-    const horas = Math.floor((diferenciaMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutos = Math.floor((diferenciaMs % (1000 * 60 * 60)) / (1000 * 60));
-    const tiempoTranscurrido = `${dias}d ${horas}h ${minutos}m`;
-            
-            const statusFinal = sol.listaSegs.length > 0 ? sol.listaSegs[sol.listaSegs.length - 1].status : sol.status;
-            let fila = {
-                folio: sol.folio,
-                empresa: sol.empresa,
-                zona: sol.zona,
-                sucursal: sol.sucursal,
-                soporte: sol.soporte,
-                status: statusFinal,
-                fecha: sol.fechaISO ? new Date(sol.fechaISO).toLocaleString() : 'N/A'
-// ... datos anteriores ...
-        fecha: fechaInicio.toLocaleString(),
-        // LLENADO DE NUEVOS CAMPOS:
-        fecha_actual: ahora.toLocaleDateString(), // Solo fecha
-        fecha_descarga: ahora.toLocaleString(),   // Fecha y hora
-        tiempo_solicitud: tiempoTranscurrido      // Resultado del cálculo
-    };
-                
-            };
-
-            sol.listaSegs.forEach((s, index) => {
-                fila[`seg_${index + 1}`] = `[${s.status}] Art: ${s.descripcionArt || 'N/A'} - Obs: ${s.comentarios || 'S/O'}`;
-            });
-
-            worksheet.addRow(fila);
-        });
-
-        const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Reporte_Tecnologia_${new Date().toISOString().slice(0,10)}.xlsx`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-    };
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Reporte_Tecnologia_${ahora.toISOString().slice(0,10)}.xlsx`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+};  
 
     window.editarRegistro = async (idKey) => {
         try {
@@ -671,6 +668,7 @@
 </script> 
 </body>
 </html>
+
 
 
 
