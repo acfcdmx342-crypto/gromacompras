@@ -42,8 +42,8 @@
         #preview-container { border: 2px dashed #ccc; border-radius: 10px; min-height: 100px; display: flex; align-items: center; justify-content: center; background: #fff; overflow: hidden; margin-top: 5px; }
         #preview-container iframe, #preview-container img { width: 100%; height: 200px; object-fit: contain; }
         
-        /* Estilos para los enlaces de catálogos */
-        .catalogo-link {
+        /* Nuevos estilos para los botones de catálogos */
+        .btn-catalogo {
             text-decoration: none;
             color: inherit;
             display: flex;
@@ -53,19 +53,19 @@
             transition: all 0.3s ease;
             padding: 10px;
             border-radius: 15px;
-            min-width: 150px;
+            min-width: 140px;
         }
-        .catalogo-icon-container {
-            font-size: 2.5rem;
+        .btn-catalogo i {
+            font-size: 3rem;
             color: #0d6efd;
             transition: all 0.3s ease;
         }
-        .catalogo-link:hover .catalogo-icon-container {
+        .btn-catalogo:hover i {
             color: #00d4ff;
             text-shadow: 0 0 15px rgba(0, 212, 255, 0.8);
             transform: scale(1.1);
         }
-        .catalogo-link:hover span {
+        .btn-catalogo:hover span {
             color: #0d6efd;
             font-weight: bold;
         }
@@ -84,7 +84,7 @@
                 <div class="text-muted small">Puesto: <span id="puestoActivo"></span></div>
             </div>
             <div class="aviso-devolucion d-none d-md-block">
-                <strong>⚠️ Aviso:</strong> Se les recuerda que para hacer una devolución de mercancía los empaques deben de estar lo más intactos posibles, sin Rayaduras o Enmendaduras.
+                <strong>⚠️ Aviso:</strong> Se les recuerda que para hacer una devolución de mercancía los empaques deben de estar lo más intactos posibles.
             </div>
         </div>
         <div class="d-flex align-items-center">
@@ -101,6 +101,7 @@
             </div>
         </div>
     </div>
+
     <div class="card shadow p-4 mb-4">
         <h5 class="fw-bold mb-3 border-bottom pb-2 text-secondary">Nueva Solicitud</h5>
         <form id="formTec" class="row g-3">
@@ -108,6 +109,7 @@
             <div class="col-md-3"><label class="small fw-bold">Zona</label><input id="zona" class="form-control text-uppercase" placeholder="EJ: PACHUCA"></div>
             <div class="col-md-3"><label class="small fw-bold">Soporte</label><input id="soporte" class="form-control text-uppercase" readonly></div>
             <div class="col-md-3"><label class="small fw-bold">Sucursal</label><input id="sucursal" class="form-control text-uppercase" placeholder="EJ: CENTRAL"></div>
+            
             <div class="col-md-6">
                 <label class="small fw-bold">Requisición (PDF/Imagen)</label>
                 <div class="input-group">
@@ -119,20 +121,15 @@
                 </div>
                 <div id="preview-container"><small class="text-muted">Vista previa</small></div>
             </div>
-            
+
             <div class="col-md-6 d-flex align-items-center justify-content-center gap-4">
-                <a id="linkCCTV" href="#" class="catalogo-link">
-                    <div class="catalogo-icon-container">
-                        <i class="fa-solid fa-video"></i>
-                    </div>
-                    <span class="small mt-2 text-center">Requisición de CCTV</span>
+                <a id="linkCCTV" href="#" class="btn-catalogo">
+                    <i class="fa-solid fa-video"></i>
+                    <span class="small mt-2">Requisición de CCTV</span>
                 </a>
-                
-                <a id="linkTec" href="#" class="catalogo-link">
-                    <div class="catalogo-icon-container">
-                        <i class="fa-solid fa-desktop"></i>
-                    </div>
-                    <span class="small mt-2 text-center">Formato Tecnología</span>
+                <a id="linkTec" href="#" class="btn-catalogo">
+                    <i class="fa-solid fa-desktop"></i>
+                    <span class="small mt-2">Formato Tecnología</span>
                 </a>
             </div>
 
@@ -141,6 +138,7 @@
             </div>
         </form>
     </div>
+
     <div class="card shadow p-4 border-0">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="fw-bold m-0 text-secondary">Solicitudes en Proceso</h5>
@@ -183,20 +181,25 @@
     import { database, ref, push, set, get, onValue, update, remove } from "./firebase.js";
     const sesion = JSON.parse(localStorage.getItem("usuarioLogueado") || "{}");
     if(!sesion.usuario) location.href = "index.html";
+    
     window.nombreSesion = sesion.nombre;
     window.usuarioSesion = sesion.usuario;
     window.puestoSesion = (sesion.puesto || "").toUpperCase();
+    
     const adminPuestos = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO SR", "SOPORTE TECNICO"];
     window.esAdmin = adminPuestos.includes(window.puestoSesion);
+    window.esSoporteJR = window.puestoSesion === "SOPORTE TECNICO JR";
     
     document.getElementById("usuarioActivo").textContent = window.nombreSesion;
     document.getElementById("puestoActivo").textContent = window.puestoSesion;
     document.getElementById("soporte").value = window.nombreSesion;
 
-    // Configuración de enlaces dinámicos
+    // Configuración de enlaces a catálogos
     const nombreLimpio = encodeURIComponent(window.nombreSesion);
     const puestoLimpio = encodeURIComponent(window.puestoSesion);
+    
     document.getElementById("linkCCTV").href = `catalogos.html?tipo=cctv&n=${nombreLimpio}&p=${puestoLimpio}`;
+    // El parámetro tipo=tecnologia asegura que cargue el formato sin barra lateral
     document.getElementById("linkTec").href = `catalogos.html?tipo=tecnologia&n=${nombreLimpio}&p=${puestoLimpio}`;
 
     if (window.esAdmin) {
@@ -261,7 +264,7 @@
                                 `<span class="action-btn text-info" onclick="modalSegLocal('${doc.key}', '${s.folio}')" title="Seguimiento Local">📋</span>` :
                                 `<span class="action-btn text-primary" onclick="window.location.href='seguimiento.html?folio=${s.folio}'" title="Seguimiento Compras">📋</span>`
                             }
-                            ${(window.esAdmin) && ((esLocal && (statusActual === "EN ZONA" || statusActual === "DEVOLUCION")) || (!esLocal && (statusActual === "ENVIADO A ZONA" || statusActual === "DEVOLUCION"))) ? `
+                            ${(window.esSoporteJR || window.esAdmin) && ((esLocal && (statusActual === "EN ZONA" || statusActual === "DEVOLUCION")) || (!esLocal && (statusActual === "ENVIADO A ZONA" || statusActual === "DEVOLUCION"))) ? `
                                 <span class="action-btn text-success" onclick="confirmarEntrega('${doc.key}', '${s.folio}')" title="Confirmar Entrega"><i class="fa-solid fa-circle-check"></i></span>
                                 <span class="action-btn text-warning" onclick="enviarDevolucion('${doc.key}', '${s.folio}')" title="Devolución"><i class="fa-solid fa-arrow-rotate-left"></i></span>
                             ` : ''}
@@ -295,7 +298,9 @@
             { header: 'FECHA CREACIÓN', key: 'fecha', width: 22 },
             { header: 'TIEMPO SOLICITUD', key: 'tiempo_solicitud', width: 25 }
         ];
-        for (let i = 1; i <= maxSeguimientos; i++) { columnas.push({ header: `SEGUIMIENTO ${i}`, key: `seg_${i}`, width: 45 }); }
+        for (let i = 1; i <= maxSeguimientos; i++) {
+            columnas.push({ header: `SEGUIMIENTO ${i}`, key: `seg_${i}`, width: 45 });
+        }
         worksheet.columns = columnas;
         worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFF' } };
         worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '0D6EFD' } };
