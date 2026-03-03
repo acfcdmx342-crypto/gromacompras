@@ -42,7 +42,6 @@
         #preview-container { border: 2px dashed #ccc; border-radius: 10px; min-height: 100px; display: flex; align-items: center; justify-content: center; background: #fff; overflow: hidden; margin-top: 5px; }
         #preview-container iframe, #preview-container img { width: 100%; height: 200px; object-fit: contain; }
         
-        /* Nuevos estilos para los botones de catálogos */
         .btn-catalogo {
             text-decoration: none;
             color: inherit;
@@ -194,12 +193,9 @@
     document.getElementById("puestoActivo").textContent = window.puestoSesion;
     document.getElementById("soporte").value = window.nombreSesion;
 
-    // Configuración de enlaces a catálogos
     const nombreLimpio = encodeURIComponent(window.nombreSesion);
     const puestoLimpio = encodeURIComponent(window.puestoSesion);
-    
     document.getElementById("linkCCTV").href = `catalogos.html?tipo=cctv&n=${nombreLimpio}&p=${puestoLimpio}`;
-    // El parámetro tipo=tecnologia asegura que cargue el formato sin barra lateral
     document.getElementById("linkTec").href = `catalogos.html?tipo=tecnologia&n=${nombreLimpio}&p=${puestoLimpio}`;
 
     if (window.esAdmin) {
@@ -209,7 +205,6 @@
 
     const solicitudesRef = ref(database, "tecnologia");
     const seguimientoRef = ref(database, "seguimiento");
-    const historialPermanenteRef = ref(database, "historial_permanente");
     
     let globalSeguimientos = [];
     let globalSolicitudes = [];
@@ -264,9 +259,8 @@
                                 `<span class="action-btn text-info" onclick="modalSegLocal('${doc.key}', '${s.folio}')" title="Seguimiento Local">📋</span>` :
                                 `<span class="action-btn text-primary" onclick="window.location.href='seguimiento.html?folio=${s.folio}'" title="Seguimiento Compras">📋</span>`
                             }
-                            ${(window.esSoporteJR || window.esAdmin) && ((esLocal && (statusActual === "EN ZONA" || statusActual === "DEVOLUCION")) || (!esLocal && (statusActual === "ENVIADO A ZONA" || statusActual === "DEVOLUCION"))) ? `
+                            ${(window.esSoporteJR || window.esAdmin) && (statusActual === "EN ZONA" || statusActual === "ENVIADO A ZONA" || statusActual === "DEVOLUCION") ? `
                                 <span class="action-btn text-success" onclick="confirmarEntrega('${doc.key}', '${s.folio}')" title="Confirmar Entrega"><i class="fa-solid fa-circle-check"></i></span>
-                                <span class="action-btn text-warning" onclick="enviarDevolucion('${doc.key}', '${s.folio}')" title="Devolución"><i class="fa-solid fa-arrow-rotate-left"></i></span>
                             ` : ''}
                         </div>
                     </td>
@@ -277,48 +271,59 @@
         document.getElementById("loader").style.display = "none";
     }
 
-    window.exportarExcel = async () => {
-        if (globalSolicitudes.length === 0) return Swal.fire("Aviso", "No hay datos para exportar", "warning");
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Reporte de Solicitudes');
-        const ahora = new Date();
-        let maxSeguimientos = 0;
-        const datosParaExcel = globalSolicitudes.map(sol => {
-            const seguimientos = globalSeguimientos.filter(seg => seg.folio === sol.folio).sort((a, b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
-            if (seguimientos.length > maxSeguimientos) maxSeguimientos = seguimientos.length;
-            return { ...sol, listaSegs: seguimientos };
+    // --- FUNCIONES RESTAURADAS PARA MODALES ---
+
+    window.modalSegLocal = async (id, fol) => {
+        const { value: formValues } = await Swal.fire({
+            title: 'Seguimiento Local: ' + fol,
+            html:
+                '<select id="swal-status" class="form-select mb-2"><option value="EN COTIZACION">EN COTIZACION</option><option value="EN ZONA">EN ZONA</option></select>' +
+                '<textarea id="swal-com" class="form-control" placeholder="Comentarios..."></textarea>',
+            focusConfirm: false,
+            showCancelButton: true,
+            preConfirm: () => [document.getElementById('swal-status').value, document.getElementById('swal-com').value]
         });
-        let columnas = [
-            { header: 'FOLIO', key: 'folio', width: 20 },
-            { header: 'EMPRESA', key: 'empresa', width: 15 },
-            { header: 'ZONA', key: 'zona', width: 15 },
-            { header: 'SUCURSAL', key: 'sucursal', width: 20 },
-            { header: 'SOPORTE', key: 'soporte', width: 25 },
-            { header: 'STATUS ACTUAL', key: 'status', width: 15 },
-            { header: 'FECHA CREACIÓN', key: 'fecha', width: 22 },
-            { header: 'TIEMPO SOLICITUD', key: 'tiempo_solicitud', width: 25 }
-        ];
-        for (let i = 1; i <= maxSeguimientos; i++) {
-            columnas.push({ header: `SEGUIMIENTO ${i}`, key: `seg_${i}`, width: 45 });
+        if (formValues) {
+            const [status, com] = formValues;
+            await push(seguimientoRef, { folio: fol, status, comentarios: com, fechaRegistro: new Date().toISOString() });
+            Swal.fire("Actualizado", "", "success");
         }
-        worksheet.columns = columnas;
-        worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFF' } };
-        worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '0D6EFD' } };
-        datosParaExcel.forEach(sol => {
-            const fechaInicio = sol.fechaISO ? new Date(sol.fechaISO) : new Date();
-            const dif = ahora - fechaInicio;
-            const tiempoTranscurrido = `${Math.floor(dif / 86400000)}d ${Math.floor((dif % 86400000) / 3600000)}h`;
-            let fila = { folio: sol.folio, empresa: sol.empresa, zona: sol.zona, sucursal: sol.sucursal, soporte: sol.soporte, status: sol.listaSegs.length > 0 ? sol.listaSegs[sol.listaSegs.length-1].status : "PENDIENTE", fecha: fechaInicio.toLocaleString(), tiempo_solicitud: tiempoTranscurrido };
-            sol.listaSegs.forEach((s, index) => { fila[`seg_${index + 1}`] = `[${s.status}] ${s.descripcionArt || ''} - ${s.comentarios || ''}`; });
-            worksheet.addRow(fila);
+    };
+
+    window.confirmarEntrega = (id, fol) => {
+        Swal.fire({
+            title: '¿Confirmar entrega?',
+            text: "La solicitud pasará a CONFIRMADO y se ocultará de esta lista.",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, confirmar'
+        }).then(async (res) => {
+            if (res.isConfirmed) {
+                await push(seguimientoRef, { folio: fol, status: "CONFIRMADO", comentarios: "Entrega confirmada por soporte", fechaRegistro: new Date().toISOString() });
+                Swal.fire("Entregado", "", "success");
+            }
         });
-        const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Reporte_Tecnologia_${ahora.toISOString().slice(0,10)}.xlsx`;
-        a.click();
+    };
+
+    window.editarRegistro = async (id) => {
+        const snap = await get(ref(database, `tecnologia/${id}`));
+        const d = snap.val();
+        const { value: fv } = await Swal.fire({
+            title: 'Editar Registro',
+            html: `<input id="e-emp" class="form-control mb-2" value="${d.empresa}"><input id="e-zon" class="form-control mb-2" value="${d.zona}"><input id="e-suc" class="form-control mb-2" value="${d.sucursal}">`,
+            preConfirm: () => ({ empresa: document.getElementById('e-emp').value.toUpperCase(), zona: document.getElementById('e-zon').value.toUpperCase(), sucursal: document.getElementById('e-suc').value.toUpperCase() })
+        });
+        if (fv) {
+            await update(ref(database, `tecnologia/${id}`), fv);
+            Swal.fire("Editado", "", "success");
+        }
+    };
+
+    window.verHistorial = (fol) => {
+        const h = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
+        if(h.length === 0) return Swal.fire("Aviso", "Sin historial", "info");
+        let rows = h.map(i => `<tr><td>${new Date(i.fechaRegistro).toLocaleString()}</td><td><span class="badge bg-info">${i.status}</span></td><td>${i.comentarios || '-'}</td></tr>`).join('');
+        Swal.fire({ title: 'Historial ' + fol, html: `<div class="table-responsive"><table class="table table-sm small"><thead><tr><th>Fecha</th><th>Status</th><th>Detalle</th></tr></thead><tbody>${rows}</tbody></table></div>`, width: '800px' });
     };
 
     window.guardarSolicitud = async () => {
@@ -327,7 +332,7 @@
         const suc = document.getElementById("sucursal").value;
         const arc = document.getElementById("archivo").files[0];
         const local = document.getElementById("checkLocal").checked;
-        if(!emp || !zon || !suc || !arc) return Swal.fire("Error", "Faltan campos por completar", "error");
+        if(!emp || !zon || !suc || !arc) return Swal.fire("Error", "Faltan campos", "error");
         document.getElementById("loader").style.display = "flex";
         const snap = await get(solicitudesRef);
         let contador = snap.exists() ? Object.keys(snap.val()).length + 1 : 1;
@@ -351,13 +356,6 @@
     window.verPDF = (base64, folio) => {
         const w = window.open();
         w.document.write(`<iframe src="${base64}" title="${folio}" style="width:100%; height:100%; border:none;"></iframe>`);
-    };
-
-    window.verHistorial = (fol) => {
-        const h = globalSeguimientos.filter(x => x.folio === fol).sort((a,b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
-        if(h.length === 0) return Swal.fire("Aviso", "Sin historial", "info");
-        let rows = h.map(i => `<tr><td>${new Date(i.fechaRegistro).toLocaleString()}</td><td><span class="badge bg-info">${i.status}</span></td><td>${i.comentarios || '-'}</td></tr>`).join('');
-        Swal.fire({ title: 'Historial ' + fol, html: `<div class="table-responsive"><table class="table table-sm small"><thead><tr><th>Fecha</th><th>Status</th><th>Detalle</th></tr></thead><tbody>${rows}</tbody></table></div>`, width: '800px' });
     };
 
     window.previewArchivo = (input) => {
