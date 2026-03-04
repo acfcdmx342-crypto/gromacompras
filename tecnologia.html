@@ -217,7 +217,7 @@
     const nombreLimpio = encodeURIComponent(window.nombreSesion);
     const puestoLimpio = encodeURIComponent(window.puestoSesion);
     linkCCTV.href = `catalogos.html?tipo=cctv&n=${nombreLimpio}&p=${puestoLimpio}`;
-
+document.getElementById("linkTec").href = `catalogos.html?tipo=tecnologia&n=${nombreLimpio}&p=${puestoLimpio}`;
     if (window.esAdmin) {
         document.getElementById("liBase").innerHTML = '<a class="dropdown-item" href="base.html">🏠 Página Base</a>';
         document.getElementById("contenedorExportar").innerHTML = `<button class="btn btn-outline-success btn-sm fw-bold px-3" onclick="exportarExcel()">📊 Reporte</button>`;
@@ -700,4 +700,5 @@ window.exportarExcel = async () => {
 </script> 
 </body>
 </html>
+
 
