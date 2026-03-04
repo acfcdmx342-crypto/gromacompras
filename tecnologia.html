@@ -66,34 +66,7 @@
             color: #0d6efd;
             font-weight: bold;
         }
-       /* Estilos para que los botones se vean iguales y alineados */
-.tec-link {
-    text-decoration: none;
-    color: inherit;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    padding: 10px;
-    border-radius: 15px;
-    min-width: 150px;
-}
-.tec-link i {
-    font-size: 3rem;
-    color: #0d6efd;
-    transition: all 0.3s ease;
-}
-.tec-link:hover i {
-    color: #00d4ff;
-    text-shadow: 0 0 15px rgba(0, 212, 255, 0.8);
-    transform: scale(1.1);
-}
-.tec-link:hover span {
-    color: #0d6efd;
-    font-weight: bold;
-}
-    </style>
+</style>
 </head>
 <body class="p-4">
 <div id="loader">
@@ -143,16 +116,14 @@
                 </div>
                 <div id="preview-container"><small class="text-muted">Vista previa</small></div>
             </div>
-            <div class="col-md-6 d-flex align-items-center justify-content-center gap-4">
-    <a id="linkCCTV" href="#" class="btn-catalogo">
-        <i class="fa-solid fa-video"></i>
-        <span class="small mt-2 text-center">Requisición de CCTV</span>
-    </a>
-    <a id="linkTec" href="#" class="btn-catalogo">
-        <i class="fa-solid fa-desktop"></i>
-        <span class="small mt-2 text-center">Formato Tecnología</span>
-    </a>
-</div>
+            <div class="col-md-6 d-flex align-items-center justify-content-center">
+                   <a id="linkCCTV" href="#" class="cctv-link">
+                    <div class="cctv-icon-container">
+                        <i class="fa-solid fa-video"></i>
+                    </div>
+                    <span class="small mt-2">Requisición de CCTV</span>
+                </a>
+                </div>
             <div class="col-12 mt-4 text-center">
                 <button type="button" class="btn btn-primary btn-rounded px-5 shadow" onclick="guardarSolicitud()">💾 Guardar Solicitud</button>
             </div>
@@ -176,7 +147,6 @@
         </div>
     </div>
 </div>
-
 <script>
     const btnMode = document.getElementById('btnDarkMode');
     const aplicarTema = (tema) => {
@@ -195,7 +165,6 @@
         aplicarTema(nt);
     };
 </script>
-
 <script type="module">
     import { database, ref, push, set, get, onValue, update, remove } from "./firebase.js";
     const sesion = JSON.parse(localStorage.getItem("usuarioLogueado") || "{}");
@@ -206,32 +175,22 @@
     const adminPuestos = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO SR", "SOPORTE TECNICO"];
     window.esAdmin = adminPuestos.includes(window.puestoSesion);
     window.esSoporteJR = window.puestoSesion === "SOPORTE TECNICO JR";
-    
     document.getElementById("usuarioActivo").textContent = window.nombreSesion;
     document.getElementById("puestoActivo").textContent = window.puestoSesion;
     document.getElementById("soporte").value = window.nombreSesion;
-
     const linkCCTV = document.getElementById("linkCCTV");
     const nombreLimpio = encodeURIComponent(window.nombreSesion);
     const puestoLimpio = encodeURIComponent(window.puestoSesion);
-    
-    document.getElementById("linkCCTV").href = `catalogos.html?tipo=cctv&n=${nombreLimpio}&p=${puestoLimpio}`;
-
-// ESTA ES LA LÍNEA NUEVA:
-document.getElementById("linkTec").href = `catalogos.html?tipo=tecnologia&n=${nombreLimpio}&p=${puestoLimpio}`;
-    
-    if (window.esAdmin) {
+    linkCCTV.href = `catalogos.html?tipo=cctv&n=${nombreLimpio}&p=${puestoLimpio}`;
+   if (window.esAdmin) {
         document.getElementById("liBase").innerHTML = '<a class="dropdown-item" href="base.html">🏠 Página Base</a>';
         document.getElementById("contenedorExportar").innerHTML = `<button class="btn btn-outline-success btn-sm fw-bold px-3" onclick="exportarExcel()">📊 Reporte</button>`;
     }
-
     const solicitudesRef = ref(database, "tecnologia");
     const seguimientoRef = ref(database, "seguimiento");
     const historialPermanenteRef = ref(database, "historial_permanente");
-    
     let globalSeguimientos = [];
     let globalSolicitudes = [];
-
     onValue(seguimientoRef, snap => {
         globalSeguimientos = [];
         snap.forEach(c => { globalSeguimientos.push({ ...c.val(), id: c.key }); });
@@ -244,7 +203,6 @@ document.getElementById("linkTec").href = `catalogos.html?tipo=tecnologia&n=${no
             renderTable(sSnap);
         });
     });
-
     function renderTable(snap) {
         const tbody = document.getElementById("tablaTecBody");
         tbody.innerHTML = ""; 
@@ -255,13 +213,11 @@ document.getElementById("linkTec").href = `catalogos.html?tipo=tecnologia&n=${no
             const statusActual = segsFolio.length > 0 ? segsFolio[0].status : (s.status || "PENDIENTE");
             if (statusActual === "CONFIRMADO") return;
             const esLocal = s.solicitudLocal === true || s.isLocal === true;
-            
             let badgeClass = "st-compras"; 
             if (statusActual === "EN ZONA" || statusActual === "ENVIADO A ZONA") badgeClass = "st-zona";
             else if (statusActual === "EN COTIZACION") badgeClass = "st-local-cotizacion";
             else if (statusActual === "DEVOLUCION") badgeClass = "st-devolucion";
             else if (statusActual === "PENDIENTE") badgeClass = "st-pendiente";
-
             if (window.esAdmin || s.usuario === window.usuarioSesion) {
                 const tr = document.createElement("tr");
                 if(esLocal) tr.classList.add("fila-local");
@@ -298,17 +254,14 @@ document.getElementById("linkTec").href = `catalogos.html?tipo=tecnologia&n=${no
     // --- FUNCIÓN EXPORTAR EXCEL ---
 window.exportarExcel = async () => {
     if (globalSolicitudes.length === 0) return Swal.fire("Aviso", "No hay datos para exportar", "warning");
-
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Reporte de Solicitudes');
     const ahora = new Date(); // <--- SOLUCIÓN: Definir "ahora"
-
     let maxSeguimientos = 0;
     const datosParaExcel = globalSolicitudes.map(sol => {
         const seguimientos = globalSeguimientos
             .filter(seg => seg.folio === sol.folio)
             .sort((a, b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
-        
         if (seguimientos.length > maxSeguimientos) maxSeguimientos = seguimientos.length;
         return { ...sol, listaSegs: seguimientos };
     });
@@ -702,11 +655,3 @@ window.exportarExcel = async () => {
 </script> 
 </body>
 </html>
-
-
-
-
-
-
-
-
