@@ -218,6 +218,8 @@
             else if (statusActual === "EN COTIZACION") badgeClass = "st-local-cotizacion";
             else if (statusActual === "DEVOLUCION") badgeClass = "st-devolucion";
             else if (statusActual === "PENDIENTE") badgeClass = "st-pendiente";
+            else if (statusActual === "NO AUTORIZADO") badgeClass = "st-no autorizado";
+            
             if (window.esAdmin || s.usuario === window.usuarioSesion) {
                 const tr = document.createElement("tr");
                 if(esLocal) tr.classList.add("fila-local");
@@ -238,7 +240,7 @@
                                 `<span class="action-btn text-info" onclick="modalSegLocal('${doc.key}', '${s.folio}')" title="Seguimiento Local">📋</span>` :
                                 `<span class="action-btn text-primary" onclick="window.location.href='seguimiento.html?folio=${s.folio}'" title="Seguimiento Compras">📋</span>`
                             }
-                            ${(window.esSoporteJR || window.esAdmin) && ((esLocal && (statusActual === "EN ZONA" || statusActual === "DEVOLUCION")) || (!esLocal && (statusActual === "ENVIADO A ZONA" || statusActual === "DEVOLUCION"))) ? `
+                            ${(window.esSoporteJR || window.esAdmin) && ((esLocal && (statusActual === "EN ZONA" || statusActual === "DEVOLUCION")) || (!esLocal && (statusActual === "ENVIADO A ZONA" || statusActual === "DEVOLUCION"|| statusActual === "NO AUTORIZADO"))) ? `
                                 <span class="action-btn text-success" onclick="confirmarEntrega('${doc.key}', '${s.folio}')" title="Confirmar Entrega"><i class="fa-solid fa-circle-check"></i></span>
                                 <span class="action-btn text-warning" onclick="enviarDevolucion('${doc.key}', '${s.folio}')" title="Devolución"><i class="fa-solid fa-arrow-rotate-left"></i></span>
                             ` : ''}
@@ -545,6 +547,7 @@ window.exportarExcel = async () => {
                     <select id="swal-status" class="form-select mb-3">
                         <option value="EN COTIZACION">EN COTIZACION</option>
                         <option value="EN ZONA">EN ZONA</option>
+                        <option value="NO AUTORIZADO">NO AUTORIZADO</option>
                     </select>
                     <label class="fw-bold mb-1">Artículo / Equipo</label>
                     <input id="swal-art" class="form-control mb-3 text-uppercase" value="${articuloExistente}" ${!esPrimerSeguimiento ? 'readonly' : ''}>
@@ -655,3 +658,4 @@ window.exportarExcel = async () => {
 </script> 
 </body>
 </html>
+
