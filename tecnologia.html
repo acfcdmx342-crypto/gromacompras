@@ -214,12 +214,11 @@
             if (statusActual === "CONFIRMADO") return;
             const esLocal = s.solicitudLocal === true || s.isLocal === true;
             let badgeClass = "st-compras"; 
-            if (statusActual === "EN ZONA" || statusActual === "ENVIADO A ZONA"|| statusActual === "NO AUTORIZADO") badgeClass = "st-zona";
+            if (statusActual === "EN ZONA" || statusActual === "ENVIADO A ZONA";
             else if (statusActual === "EN COTIZACION") badgeClass = "st-local-cotizacion";
             else if (statusActual === "DEVOLUCION") badgeClass = "st-devolucion";
             else if (statusActual === "PENDIENTE") badgeClass = "st-pendiente";
-            else if (statusActual === "NO AUTORIZADO") badgeClass = "st-no autorizado";
-            
+                        
             if (window.esAdmin || s.usuario === window.usuarioSesion) {
                 const tr = document.createElement("tr");
                 if(esLocal) tr.classList.add("fila-local");
@@ -547,7 +546,6 @@ window.exportarExcel = async () => {
                     <select id="swal-status" class="form-select mb-3">
                         <option value="EN COTIZACION">EN COTIZACION</option>
                         <option value="EN ZONA">EN ZONA</option>
-                        <option value="NO AUTORIZADO">NO AUTORIZADO</option>
                     </select>
                     <label class="fw-bold mb-1">Artículo / Equipo</label>
                     <input id="swal-art" class="form-control mb-3 text-uppercase" value="${articuloExistente}" ${!esPrimerSeguimiento ? 'readonly' : ''}>
@@ -658,8 +656,3 @@ window.exportarExcel = async () => {
 </script> 
 </body>
 </html>
-
-
-
-
-
