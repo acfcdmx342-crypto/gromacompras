@@ -26,7 +26,6 @@
         .status-sistemas { background: #198754 !important; color: white !important; border-radius: 20px; }
         .status-devolucion { background: lawngreen !important; color: #000 !important; border-radius: 20px; }
         .status-confirmado { background: #6f42c1 !important; color: white !important; border-radius: 20px; }
-        .status-noautorizado { background: #8b0000 !important; color: white !important; border-radius: 20px; }
         .registro-eliminado { background-color: #ffe5e5 !important; color: #b00000 !important; }
         input[type="text"], input[type="date"], textarea, .form-select { border-radius: 10px; border: 1px solid #dee2e6; padding: 10px; text-transform: uppercase; }
         .field-locked { background-color: #e9ecef !important; cursor: not-allowed; pointer-events: none; border: 1px solid #cbd5e0 !important; }
@@ -231,8 +230,7 @@
             <option value="ENVIADO A COMPRAS">ENVIADO A COMPRAS COTIZACIÓN</option>
             <option value="PENDIENTE POR AUTORIZAR">PENDIENTE POR AUTORIZAR</option>
             <option value="ENVIADO A COMPRAS">ENVIADO A COMPRA AUTORIZACIÓN</option>
-            <option value="NO AUTORIZADO">NO AUTORIZADO</option>
-        `;
+            `;
     } else {
         selectStatus.innerHTML = `
             <option>ENVIADO A COMPRAS</option>
@@ -241,8 +239,7 @@
             <option>EN SISTEMAS</option>
             <option>DEVOLUCIÓN</option>
             <option>CONFIRMADO</option>
-            <option>NO AUTORIZADO</option>
-        `;
+           `;
     }
 
     const perfilesSistemas = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO", "SOPORTE TECNICO JR", "BECARIOS SISTEMAS"];
@@ -260,8 +257,7 @@
             case 'EN SISTEMAS': return 'status-sistemas';
             case 'DEVOLUCIÓN': return 'status-devolucion';
             case 'CONFIRMADO': return 'status-confirmado';
-            case 'NO AUTORIZADO': return 'status-noautorizado';    
-            default: return 'bg-secondary text-white';
+           default: return 'bg-secondary text-white';
         }
     };
     const toBase64 = file => new Promise((resolve, reject) => {
@@ -304,7 +300,7 @@
         selectFolio.innerHTML = '<option value="">Seleccione un folio</option>';
         snap.forEach(child => {
             const d = child.val();
-            if (d.eliminado || d.status === "CONFIRMADO" || d.status === "NO AUTORIZADO") return;
+            if (d.eliminado || d.status === "CONFIRMADO") return;
             const option = document.createElement("option");
             option.value = d.folio; option.textContent = d.folio;
             if (folioDesdeURL && d.folio === folioDesdeURL) option.selected=true;
@@ -509,6 +505,7 @@ document.onkeydown = e => {
 </script>
 </body>
 </html>
+
 
 
 
