@@ -26,6 +26,7 @@
         .status-sistemas { background: #198754 !important; color: white !important; border-radius: 20px; }
         .status-devolucion { background: lawngreen !important; color: #000 !important; border-radius: 20px; }
         .status-confirmado { background: #6f42c1 !important; color: white !important; border-radius: 20px; }
+        .status-noautorizado { background: #8b0000 !important; color: white !important; border-radius: 20px; }
         .registro-eliminado { background-color: #ffe5e5 !important; color: #b00000 !important; }
         input[type="text"], input[type="date"], textarea, .form-select { border-radius: 10px; border: 1px solid #dee2e6; padding: 10px; text-transform: uppercase; }
         .field-locked { background-color: #e9ecef !important; cursor: not-allowed; pointer-events: none; border: 1px solid #cbd5e0 !important; }
@@ -257,6 +258,7 @@
             case 'EN SISTEMAS': return 'status-sistemas';
             case 'DEVOLUCIÓN': return 'status-devolucion';
             case 'CONFIRMADO': return 'status-confirmado';
+            case 'NO AUTORIZADO': return 'status-noautorizado';    
             default: return 'bg-secondary text-white';
         }
     };
@@ -300,7 +302,7 @@
         selectFolio.innerHTML = '<option value="">Seleccione un folio</option>';
         snap.forEach(child => {
             const d = child.val();
-            if (d.eliminado || d.status === "CONFIRMADO") return;
+            if (d.eliminado || d.status === "CONFIRMADO" || d.status === "NO AUTORIZADO") return;
             const option = document.createElement("option");
             option.value = d.folio; option.textContent = d.folio;
             if (folioDesdeURL && d.folio === folioDesdeURL) option.selected=true;
@@ -505,6 +507,7 @@ document.onkeydown = e => {
 </script>
 </body>
 </html>
+
 
 
 
