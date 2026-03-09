@@ -132,7 +132,7 @@
             </div>
             <div class="col-md-8">
                 <label class="form-label fw-bold small">DESCRIPCIÓN DEL ARTÍCULO</label>
-                <input id="descripcion" type="text" class="form-control">
+                <input id="descripcionArt" type="text" class="form-control">
             </div>
             <div class="section-header"><i class="fa-solid fa-cart-shopping me-2"></i>Seguimiento Compras</div>
             <div class="col-md-3"><label class="form-label fw-bold small">FECHA COTIZACIÓN</label><input id="fechaCot" type="date" class="form-control"></div>
@@ -276,7 +276,7 @@
     window.cargarParaContinuar = (dataString) => {
         const data = JSON.parse(decodeURIComponent(dataString));
         if(data.eliminado) return;
-        const campos = ["fechaCompras", "descripcion", "fechaCot", "folioCot", "autoriza", "fechaAuto", "fechaEntrega", "recibe", "folioFactura", "fechaEnvio", "envia", "adonde", "status", "comentarios"];
+        const campos = ["fechaCompras", "descripcionArt", "fechaCot", "folioCot", "autoriza", "fechaAuto", "fechaEntrega", "recibe", "folioFactura", "fechaEnvio", "envia", "adonde", "status", "comentarios"];
         selectFolio.value = data.folio;
         campos.forEach(id => {
             const el = document.getElementById(id);
@@ -414,7 +414,7 @@
             const dataGuardar = {
                 folio: selectFolio.value,
                 fechaCompras: document.getElementById("fechaCompras").value,
-                descripcionArt: document.getElementById("descripcion").value.toUpperCase(),
+                descripcionArt: document.getElementById("descripcionArt").value.toUpperCase(),
                 fechaCot: document.getElementById("fechaCot").value,
                 folioCot: document.getElementById("folioCot").value.toUpperCase(),
                 archivoCot: fCot ? await toBase64(fCot) : null,
@@ -505,6 +505,7 @@ document.onkeydown = e => {
 </script>
 </body>
 </html>
+
 
 
 
