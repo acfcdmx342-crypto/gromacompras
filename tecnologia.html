@@ -219,7 +219,6 @@
             else if (statusActual === "EN COTIZACION") badgeClass = "st-local-cotizacion";
             else if (statusActual === "DEVOLUCION") badgeClass = "st-devolucion";
             else if (statusActual === "PENDIENTE") badgeClass = "st-pendiente";
-            else if (statusActual === "NO AUTORIZADO") badgeClass = "st-no-autorizado";
             if (window.esAdmin || s.usuario === window.usuarioSesion) {
                 const tr = document.createElement("tr");
                 if(esLocal) tr.classList.add("fila-local");
@@ -249,6 +248,30 @@
                             ` : ''}
                         </div>
                     </td>
+<td>
+    <div class="d-flex justify-content-center gap-2">
+        <span class="action-btn" onclick="verHistorial('${s.folio}')" title="Historial">📜</span>
+        <span class="action-btn text-primary" onclick="editarRegistro('${doc.key}')" title="Editar">✏️</span>
+        
+        ${statusActual === "NO AUTORIZADO" ? `
+            <span class="action-btn text-danger" onclick="rechazarSolicitud('${doc.key}', '${s.folio}')" title="Enviar al Historial (Rechazado)">
+                <i class="fa-solid fa-trash-can"></i>
+            </span>
+        ` : `
+            ${esLocal ? 
+                `<span class="action-btn text-info" onclick="modalSegLocal('${doc.key}', '${s.folio}')" title="Seguimiento Local">📋</span>` :
+                `<span class="action-btn text-primary" onclick="window.location.href='seguimiento.html?folio=${s.folio}'" title="Seguimiento Compras">📋</span>`
+            }
+            ${(window.esSoporteJR || window.esAdmin) && (
+                (esLocal && (statusActual === "EN ZONA" || statusActual === "DEVOLUCION")) || 
+                (!esLocal && (statusActual === "ENVIADO A ZONA" || statusActual === "DEVOLUCION"))
+            ) ? `
+                <span class="action-btn text-success" onclick="confirmarEntrega('${doc.key}', '${s.folio}')" title="Confirmar Entrega"><i class="fa-solid fa-circle-check"></i></span>
+                <span class="action-btn text-warning" onclick="enviarDevolucion('${doc.key}', '${s.folio}')" title="Devolución"><i class="fa-solid fa-arrow-rotate-left"></i></span>
+            ` : ''}
+        `}
+    </div>
+</td>                    
                 `;
                 tbody.appendChild(tr);
             }
@@ -648,7 +671,51 @@ window.exportarExcel = async () => {
         };
         reader.readAsDataURL(input.files[0]);
     };
+window.rechazarSolicitud = async (idKey, folio) => {
+    const { value: motivo } = await Swal.fire({
+        title: 'Finalizar Solicitud No Autorizada',
+        text: `¿Deseas enviar el folio ${folio} al historial de rechazos?`,
+        input: 'textarea',
+        inputPlaceholder: 'Escribe el motivo del rechazo o comentario final...',
+        inputAttributes: { 'class': 'text-uppercase' },
+        showCancelButton: true,
+        confirmButtonText: '🗑️ Enviar al Historial',
+        confirmButtonColor: '#dc3545',
+        preConfirm: (value) => {
+            if (!value) return Swal.showValidationMessage('Debes indicar un motivo');
+            return value.toUpperCase();
+        }
+    });
 
+    if (motivo) {
+        document.getElementById("loader").style.display = "flex";
+        try {
+            const solRef = ref(database, `tecnologia/${idKey}`);
+            const snap = await get(solRef);
+            const datosSolicitud = snap.val();
+
+            const datosHistorial = {
+                ...datosSolicitud,
+                status: "RECHAZADO / NO AUTORIZADO",
+                fechaCierre: new Date().toISOString(),
+                comentarios: motivo,
+                usuarioFinalizo: window.nombreSesion
+            };
+
+            // 1. Guardar en historial permanente
+            await push(historialPermanenteRef, datosHistorial);
+            // 2. Eliminar de la tabla de procesos (solicitudes activas)
+            await remove(solRef);
+
+            document.getElementById("loader").style.display = "none";
+            Swal.fire("Finalizado", "El registro ha sido movido al historial", "success");
+        } catch (error) {
+            console.error(error);
+            document.getElementById("loader").style.display = "none";
+            Swal.fire("Error", "No se pudo procesar la acción", "error");
+        }
+    }
+};
     window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -661,5 +728,6 @@ window.exportarExcel = async () => {
 </script> 
 </body>
 </html>
+
 
 
