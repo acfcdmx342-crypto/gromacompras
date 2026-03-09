@@ -219,6 +219,7 @@
             else if (statusActual === "EN COTIZACION") badgeClass = "st-local-cotizacion";
             else if (statusActual === "DEVOLUCION") badgeClass = "st-devolucion";
             else if (statusActual === "PENDIENTE") badgeClass = "st-pendiente";
+            else if (statusActual === "NO AUTORIZADO") badgeClass = "st-no-autorizado";
             if (window.esAdmin || s.usuario === window.usuarioSesion) {
                 const tr = document.createElement("tr");
                 if(esLocal) tr.classList.add("fila-local");
@@ -711,8 +712,3 @@ window.rechazarSolicitud = async (idKey, folio) => {
 </script> 
 </body>
 </html>
-
-
-
-
-
