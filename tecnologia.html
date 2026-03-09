@@ -231,30 +231,7 @@
                     <td><button class="btn btn-sm btn-success" onclick="verPDF('${s.archivoData}', '${s.folio}')">👁️</button></td>
                     <td><span class="badge ${badgeClass} p-2 w-100">${statusActual}</span></td>
                     <td><small>${Math.floor((new Date() - new Date(s.fechaISO || s.fechaEnvio))/3600000)}h</small></td>
-                    <td>
-      <div class="d-flex justify-content-center gap-2">
-        <span class="action-btn" onclick="verHistorial('${s.folio}')" title="Historial">📜</span>
-        <span class="action-btn text-primary" onclick="editarRegistro('${doc.key}')" title="Editar">✏️</span>
-        ${statusActual === "NO AUTORIZADO" ? `
-            <span class="action-btn text-danger" onclick="rechazarSolicitud('${doc.key}', '${s.folio}')" title="Enviar al Historial (Rechazado)">
-                <i class="fa-solid fa-trash-can"></i>
-            </span>
-        ` : `
-            ${esLocal ? 
-                `<span class="action-btn text-info" onclick="modalSegLocal('${doc.key}', '${s.folio}')" title="Seguimiento Local">📋</span>` :
-                `<span class="action-btn text-primary" onclick="window.location.href='seguimiento.html?folio=${s.folio}'" title="Seguimiento Compras">📋</span>`
-            }
-            ${(window.esSoporteJR || window.esAdmin) && (
-                (esLocal && (statusActual === "EN ZONA" || statusActual === "DEVOLUCION")) || 
-                (!esLocal && (statusActual === "ENVIADO A ZONA" || statusActual === "DEVOLUCION"))
-            ) ? `
-                <span class="action-btn text-success" onclick="confirmarEntrega('${doc.key}', '${s.folio}')" title="Confirmar Entrega"><i class="fa-solid fa-circle-check"></i></span>
-                <span class="action-btn text-warning" onclick="enviarDevolucion('${doc.key}', '${s.folio}')" title="Devolución"><i class="fa-solid fa-arrow-rotate-left"></i></span>
-            ` : ''}
-        `}
-    </div>
-</td>    
-<td>
+    <td>
     <div class="d-flex justify-content-center gap-2">
         <span class="action-btn" onclick="verHistorial('${s.folio}')" title="Historial">📜</span>
         <span class="action-btn text-primary" onclick="editarRegistro('${doc.key}')" title="Editar">✏️</span>
@@ -734,6 +711,7 @@ window.rechazarSolicitud = async (idKey, folio) => {
 </script> 
 </body>
 </html>
+
 
 
 
