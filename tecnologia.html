@@ -101,10 +101,10 @@
     <div class="card shadow p-4 mb-4">
         <h5 class="fw-bold mb-3 border-bottom pb-2 text-secondary">Nueva Solicitud</h5>
         <form id="formTec" class="row g-3">
-            <div class="col-md-3"><label class="small fw-bold">Empresa</label><input id="empresa" class="form-control text-uppercase" placeholder="INGRESA LA EMPRESA"></div>
-            <div class="col-md-3"><label class="small fw-bold">Zona</label><input id="zona" class="form-control text-uppercase" placeholder="INGRESA TU ZONA"></div>
+            <div class="col-md-3"><label class="small fw-bold">Empresa</label><input id="empresa" class="form-control text-uppercase" placeholder="EJ: PROCOMEX"></div>
+            <div class="col-md-3"><label class="small fw-bold">Zona</label><input id="zona" class="form-control text-uppercase" placeholder="EJ: PACHUCA"></div>
             <div class="col-md-3"><label class="small fw-bold">Soporte</label><input id="soporte" class="form-control text-uppercase" readonly></div>
-            <div class="col-md-3"><label class="small fw-bold">Sucursal</label><input id="sucursal" class="form-control text-uppercase" placeholder="INGRESA LA SUCURSAL"></div>
+            <div class="col-md-3"><label class="small fw-bold">Sucursal</label><input id="sucursal" class="form-control text-uppercase" placeholder="EJ: CENTRAL"></div>
             <div class="col-md-6">
                 <label class="small fw-bold">Requisición (PDF/Imagen)</label>
                 <div class="input-group">
@@ -214,7 +214,7 @@
             if (statusActual === "CONFIRMADO") return;
             const esLocal = s.solicitudLocal === true || s.isLocal === true;
             let badgeClass = "st-compras"; 
-            if (statusActual === "EN ZONA" || statusActual === "ENVIADO A ZONA";)
+            if (statusActual === "EN ZONA" || statusActual === "ENVIADO A ZONA") badgeClass = "st-zona";
             else if (statusActual === "EN COTIZACION") badgeClass = "st-local-cotizacion";
             else if (statusActual === "DEVOLUCION") badgeClass = "st-devolucion";
             else if (statusActual === "PENDIENTE") badgeClass = "st-pendiente";
@@ -238,7 +238,7 @@
                                 `<span class="action-btn text-info" onclick="modalSegLocal('${doc.key}', '${s.folio}')" title="Seguimiento Local">📋</span>` :
                                 `<span class="action-btn text-primary" onclick="window.location.href='seguimiento.html?folio=${s.folio}'" title="Seguimiento Compras">📋</span>`
                             }
-                            ${(window.esSoporteJR || window.esAdmin) && ((esLocal && (statusActual === "EN ZONA" || statusActual === "DEVOLUCION")) || (!esLocal && (statusActual === "ENVIADO A ZONA" || statusActual === "DEVOLUCION")) ? `
+                            ${(window.esSoporteJR || window.esAdmin) && ((esLocal && (statusActual === "EN ZONA" || statusActual === "DEVOLUCION")) || (!esLocal && (statusActual === "ENVIADO A ZONA" || statusActual === "DEVOLUCION"))) ? `
                                 <span class="action-btn text-success" onclick="confirmarEntrega('${doc.key}', '${s.folio}')" title="Confirmar Entrega"><i class="fa-solid fa-circle-check"></i></span>
                                 <span class="action-btn text-warning" onclick="enviarDevolucion('${doc.key}', '${s.folio}')" title="Devolución"><i class="fa-solid fa-arrow-rotate-left"></i></span>
                             ` : ''}
@@ -655,5 +655,3 @@ window.exportarExcel = async () => {
 </script> 
 </body>
 </html>
-
-
