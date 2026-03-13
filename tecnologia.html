@@ -589,6 +589,22 @@ window.exportarExcel = async () => {
         const suc = document.getElementById("sucursal").value;
         const arc = document.getElementById("archivo").files[0];
         const local = document.getElementById("checkLocal").checked;
+        const urlScript="https://script.google.com/macros/s/AKfycbwcIHQIpzjYSF954llDEcYKKUVuW82VftK64cU-Y6baeLysqCIuAEQkdyGjcqoLVXsM0g/exec";
+        const datosCorreo = {
+    folio: fol,
+    empresa: emp.toUpperCase(),
+    sucursal: suc.toUpperCase(),
+    soporte: window.nombreSesion,
+    archivo: reader.result // La cadena Base64 que ya generas
+};
+// Enviar al Script de Google de forma asíncrona
+fetch(urlScript, {
+    method: "POST",
+    mode: "no-cors", // Para evitar problemas de permisos de navegador
+    body: JSON.stringify(datosCorreo)
+})
+.then(() => console.log("Correo en proceso..."))
+.catch(err => console.error("Error al enviar correo:", err));
         if(!emp || !zon || !suc || !arc) return Swal.fire("Error", "Faltan campos por completar", "error");
         document.getElementById("loader").style.display = "flex";
         const snap = await get(solicitudesRef);
@@ -712,3 +728,4 @@ window.rechazarSolicitud = async (idKey, folio) => {
 </script> 
 </body>
 </html>
+
