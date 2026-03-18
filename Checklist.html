@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Checklist Evaluación de Sucursales</title>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+    <style>
+        :root {
+            --primary: #003366;
+            --accent: #27ae60;
+            --danger: #e74c3c;
+            --light: #f8f9fa;
+            --dark: #2c3e50;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #eaeff2; margin: 0; color: var(--dark); }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
+        
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); padding-bottom: 15px; margin-bottom: 20px; }
+        .logo-box { width: 150px; height: 60px; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #999; }
+        
+        .filters { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 25px; }
+        select, textarea, input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; box-sizing: border-box; }
+
+        .categoria-header { background: var(--primary); color: white; padding: 10px 15px; border-radius: 5px; margin: 25px 0 10px 0; }
+        
+        .rubro-row { 
+            display: flex; flex-direction: column; padding: 15px; border-bottom: 1px solid #eee; 
+            background: #fff; transition: background 0.3s;
+        }
+        .rubro-row:nth-child(even) { background: #fafafa; }
+        .rubro-info { flex: 2; font-weight: 500; margin-bottom: 10px; }
+
+        .rubro-controles { 
+            display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: center; 
+        }
+
+        .btn-foto { background: #eee; border: 1px solid #ccc; padding: 8px; border-radius: 5px; cursor: pointer; text-align: center; }
+        .check-box { width: 30px; height: 30px; cursor: pointer; accent-color: var(--accent); }
+
+        .stats-panel { 
+            position: sticky; bottom: 0; background: var(--primary); color: white; 
+            padding: 15px; display: flex; justify-content: space-between; align-items: center;
+            border-radius: 10px 10px 0 0; z-index: 100;
+        }
+
+        .pendientes-list { background: #fff1f1; border-left: 5px solid var(--danger); padding: 15px; margin-top: 20px; }
+        .pendientes-list ul { margin: 5px 0; padding-left: 20px; color: var(--danger); }
+
+        .signature-section { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 30px; }
+        .sig-wrapper { text-align: center; }
+        canvas { border: 1px solid #000; background: #fff; width: 100%; height: 150px; border-radius: 5px; }
+
+        .btn-save { background: var(--accent); color: white; padding: 15px 30px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%; font-size: 18px; margin-top: 20px; }
+
+        @media (max-width: 600px) {
+            .filters { grid-template-columns: 1fr; }
+            .rubro-controles { grid-template-columns: 1fr; }
+            .signature-section { grid-template-columns: 1fr; }
+        }
+
+        @print {
+            .btn-save, .btn-foto, input[type="file"], .stats-panel { display: none !important; }
+            .container { box-shadow: none; }
+            body { background: white; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="evaluacion">
+    <header>
+        <div class="logo-box">LOGO EMPRESA</div>
+        <div>
+            <div id="fecha-actual"></div>
+            <strong>ID Visita: <span id="visita-id">---</span></strong>
+        </div>
+    </header>
+
+    <section class="filters">
+        <select id="selEmpresa"><option value="">Empresa</option></select>
+        <select id="selZona" disabled><option value="">Zona</option></select>
+        <select id="selSucursal" disabled><option value="">Sucursal</option></select>
+    </section>
+
+    <div id="seccion-rubros">
+        </div>
+
+    <section class="additional">
+        <h3>Comentarios Adicionales</h3>
+        <textarea id="txtComentarios" placeholder="Describa hallazgos adicionales detectados..."></textarea>
+    </section>
+
+    <section class="pendientes-list" id="box-pendientes" style="display:none;">
+        <h4>⚠️ Rubros No Cubiertos:</h4>
+        <ul id="lista-pendientes"></ul>
+    </section>
+
+    <section class="signature-section">
+        <div class="sig-wrapper">
+            <canvas id="pad-encargado"></canvas>
+            <p>Firma Encargado de Sucursal</p>
+            <button onclick="signatureEncargado.clear()">Limpiar</button>
+        </div>
+        <div class="sig-wrapper">
+            <canvas id="pad-sistemas"></canvas>
+            <p>Firma de Sistemas</p>
+            <button onclick="signatureSistemas.clear()">Limpiar</button>
+        </div>
+    </section>
+
+    <button class="btn-save" onclick="guardarYDescargar()">GUARDAR Y GENERAR PDF</button>
+</div>
+
+<div class="stats-panel">
+    <div>Progreso: <span id="label-porcentaje">0%</span></div>
+    <div id="label-sucursal-st">---</div>
+</div>
+
+<script>
+    // --- DATOS DEL CATÁLOGO ---
+    const catalogo = [
+        { empresa: "COMEX", zona: "Norte", nombre: "Sucursal Centro" },
+        { empresa: "COMEX", zona: "Norte", nombre: "Sucursal Norte 1" },
+        { empresa: "COMEX", zona: "Sur", nombre: "Sucursal Sur 1" },
+        { empresa: "OTRO GRUPO", zona: "Este", nombre: "Sucursal Este 1" }
+    ];
+
+    const rubrosData = {
+        "1- Sistema Punto de Venta y Conexiones": [
+            "Personal Capacitado para levantar soportes", "TPV Limpia", "Impresora Limpia y Funcional", 
+            "Terminales Bancarias Funcionando", "No Break Funcionando", "Cables Organizados", 
+            "XStore Correctos", "Comex TV Configurada", "Línea Telmex Funcionando", 
+            "MC - Whatsapp Empresas", "Modem Perosnalizado", "Instalación Eléctrica Correcta", 
+            "Ip Funcionando", "Paginas del grupo añadidas"
+        ],
+        "2- Sistema Color Center (PC)": [
+            "CPU Limpio", "Teclado y Mouse Limpios", "No Break Funcionando", "Cables Organizados / Ocultos",
+            "Impresora Dymo En Buen Estado", "Archivo Host Activo", "Sin Archivos ni Software No Autorizados",
+            "puertos USB Bloqueados", "Base de Datos Actualizada", "Windows Update Actualizado",
+            "Respaldos De formula pro", "Monitor en buen estado"
+        ],
+        "3- Dosificadora": [
+            "Esponja Humectada", "Base de esponja limpia y en buen estado", "Centro de Boquillas Limpio",
+            "Válvulas Check en Buen estado", "Tapas y Estrellas de contenedor limpias", "Dosificadora Libre de Colorante y Polvo",
+            "Cables Organizados", "Equipo libre de polvo", "Tarjetas Sap Libre de colorantes",
+            "Motores de Agitación Lubricados", "Cables organizados / ocultos", "UPS en buenas condiciones"
+        ],
+        "4- Revolvedora": [
+            "Cortina En Buen Estado", "Cama de engranes en buen estado", "Maneral en Buen Estado",
+            "Baleros en buen estado", "UPS en buen estado", "Bandas en buen estado",
+            "Equipo libre de polvo", "Poleas Lubricadas", "Cables ocultos / organizados"
+        ],
+        "5- Sistemas de Seguridad CCTV": [
+            "DVR Oculto y libre de polvo", "Cámaras con visualización correcta", "Grabaciones en DVR",
+            "Cableado Oculto", "UPS Funcionando", "Audio Funcionando"
+        ]
+    };
+
+    // --- LÓGICA DE FILTROS ---
+    const selEmpresa = document.getElementById('selEmpresa');
+    const selZona = document.getElementById('selZona');
+    const selSucursal = document.getElementById('selSucursal');
+
+    function initFiltros() {
+        const empresas = [...new Set(catalogo.map(c => c.empresa))];
+        empresas.forEach(emp => selEmpresa.add(new Option(emp, emp)));
+    }
+
+    selEmpresa.onchange = () => {
+        selZona.innerHTML = '<option value="">Zona</option>';
+        selSucursal.innerHTML = '<option value="">Sucursal</option>';
+        const zonas = [...new Set(catalogo.filter(c => c.empresa === selEmpresa.value).map(c => c.zona))];
+        zonas.forEach(z => selZona.add(new Option(z, z)));
+        selZona.disabled = false;
+        renderRubros(); // Reinicia evaluación
+    };
+
+    selZona.onchange = () => {
+        selSucursal.innerHTML = '<option value="">Sucursal</option>';
+        const sucs = catalogo.filter(c => c.empresa === selEmpresa.value && c.zona === selZona.value);
+        sucs.forEach(s => selSucursal.add(new Option(s.nombre, s.nombre)));
+        selSucursal.disabled = false;
+    };
+
+    selSucursal.onchange = () => {
+        document.getElementById('label-sucursal-st').innerText = selSucursal.value;
+    };
+
+    // --- RENDERIZADO DE RUBROS ---
+    function renderRubros() {
+        const container = document.getElementById('seccion-rubros');
+        container.innerHTML = '';
+        
+        for (const [categoria, items] of Object.entries(rubrosData)) {
+            const catDiv = document.createElement('div');
+            catDiv.innerHTML = `<div class="categoria-header"><h3>${categoria}</h3></div>`;
+            
+            items.forEach((item, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'rubro-row';
+                itemDiv.innerHTML = `
+                    <div class="rubro-info">${item}</div>
+                    <div class="rubro-controles">
+                        <select class="responsable">
+                            <option value="Tienda">Tienda</option>
+                            <option value="Soporte">Soporte Técnico</option>
+                            <option value="Supervisor">Supervisor</option>
+                        </select>
+                        <input type="file" accept="image/*" capture="camera" class="btn-foto">
+                        <input type="checkbox" class="check-box" onchange="actualizarScore()">
+                    </div>
+                `;
+                catDiv.appendChild(itemDiv);
+            });
+            container.appendChild(catDiv);
+        }
+        actualizarScore();
+    }
+
+    // --- CÁLCULOS Y LOGICA ---
+    function actualizarScore() {
+        const checks = document.querySelectorAll('.check-box');
+        const rows = document.querySelectorAll('.rubro-row');
+        const listPendientes = document.getElementById('lista-pendientes');
+        const boxPendientes = document.getElementById('box-pendientes');
+        
+        let cumplidos = 0;
+        listPendientes.innerHTML = '';
+
+        checks.forEach((ck, i) => {
+            if(ck.checked) {
+                cumplidos++;
+            } else {
+                const textoRubro = rows[i].querySelector('.rubro-info').innerText;
+                const responsable = rows[i].querySelector('.responsable').value;
+                const li = document.createElement('li');
+                li.innerText = `${textoRubro} (Resp: ${responsable})`;
+                listPendientes.appendChild(li);
+            }
+        });
+
+        const total = checks.length;
+        const porcentaje = total > 0 ? Math.round((cumplidos / total) * 100) : 0;
+        
+        document.getElementById('label-porcentaje').innerText = porcentaje + '%';
+        boxPendientes.style.display = porcentaje === 100 ? 'none' : 'block';
+    }
+
+    function guardarYDescargar() {
+        if(!selSucursal.value) return alert("Seleccione una sucursal");
+        
+        alert("Guardando en historial y generando documento...");
+        window.print(); // Dispara el guardado PDF del navegador
+    }
+
+    // --- INICIALIZACIÓN ---
+    document.getElementById('fecha-actual').innerText = new Date().toLocaleString();
+    document.getElementById('visita-id').innerText = Math.floor(Math.random() * 10000);
+    
+    // Iniciar firmas
+    const signatureEncargado = new SignaturePad(document.getElementById('pad-encargado'));
+    const signatureSistemas = new SignaturePad(document.getElementById('pad-sistemas'));
+
+    initFiltros();
+    renderRubros();
+</script>
+
+</body>
+</html>
