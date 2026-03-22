@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Evaluación de Sucursales</title>
+    <title>Evaluación de Sucursales - Sistema de Gestión</title>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
     <style>
         :root {
@@ -76,15 +76,21 @@
         </div>
         <div class="form-group">
             <label>Empresa</label>
-            <select id="selEmpresa" onchange="cargarZonas()"><option value="">Seleccione...</option></select>
+            <select id="selEmpresa" onchange="cargarZonas()">
+                <option value="">Cargando empresas...</option>
+            </select>
         </div>
         <div class="form-group">
             <label>Zona</label>
-            <select id="selZona" onchange="cargarSucursales()" disabled><option value="">Seleccione...</option></select>
+            <select id="selZona" onchange="cargarSucursales()" disabled>
+                <option value="">Seleccione Zona...</option>
+            </select>
         </div>
         <div class="form-group">
             <label>Sucursal</label>
-            <select id="selSucursal" disabled><option value="">Seleccione...</option></select>
+            <select id="selSucursal" disabled>
+                <option value="">Seleccione Sucursal...</option>
+            </select>
         </div>
         <button class="btn btn-next" onclick="validarSiguiente(1, 2)">Siguiente</button>
     </section>
@@ -93,10 +99,7 @@
 
     <section id="sec-final" class="section">
         <header><h2>Resumen de Evaluación</h2></header>
-        
         <div class="score-circle" id="final-score">0%</div>
-        <p style="text-align:center">Efectividad Total</p>
-
         <div class="form-group">
             <label>Fecha Tentativa Solución</label>
             <input type="date" id="fecha_solucion">
@@ -105,85 +108,108 @@
             <label>Folio de Soporte</label>
             <input type="text" id="folio_soporte" placeholder="Ej. TK-9999">
         </div>
-
         <h3>Rubros No Cubiertos:</h3>
         <div id="lista-no-cubiertos"></div>
-
-        <div class="form-group" style="margin-top:20px;">
+        <div class="form-group">
             <label>Observaciones del Encargado</label>
             <textarea id="obs_encargado" rows="3"></textarea>
         </div>
-
         <div class="form-group">
-            <label>Firma Encargado de Sucursal</label>
+            <label>Firma Encargado</label>
             <div class="sig-container"><canvas id="pad-encargado"></canvas></div>
-            <button class="btn-clear" onclick="sigEncargado.clear()">Limpiar Firma</button>
+            <button class="btn-clear" onclick="sigEncargado.clear()">Limpiar</button>
         </div>
-
         <div class="form-group">
-            <label>Firma de Sistemas</label>
+            <label>Firma Sistemas</label>
             <div class="sig-container"><canvas id="pad-sistemas"></canvas></div>
-            <button class="btn-clear" onclick="sigSistemas.clear()">Limpiar Firma</button>
+            <button class="btn-clear" onclick="sigSistemas.clear()">Limpiar</button>
         </div>
-
         <button class="btn btn-save" onclick="finalizarSistema()">GUARDAR E HISTORIAL (PDF)</button>
     </section>
 </div>
 
 <script>
-    // --- DATOS DEL CATÁLOGO ---
-    const catalogo = [
-        { empresa: "COMEX", zona: "CENTRO", nombre: "SUCURSAL HIDALGO 1" },
-        { empresa: "COMEX", zona: "CENTRO", nombre: "SUCURSAL PACHUCA" },
-        { empresa: "COMEX", zona: "NORTE", nombre: "SUCURSAL MONTERREY" },
-        { empresa: "OTRO", zona: "SUR", nombre: "SUCURSAL CANCÚN" }
-    ];
-
-    const rubrosPorSeccion = [
-        {
-            titulo: "1- Sistema Punto de Venta y Conexiones",
-            items: ["Personal Capacitado para levantar soportes", "TPV Limpia", "Impresora Limpia y Funcional", "Terminales Bancarias Funcionando", "No Break Funcionando", "Cables Organizados", "XStore Correctos", "Comex TV Configurada", "Línea Telmex Funcionando", "MC - Whatsapp Empresas", "Modem Perosnalizado", "Instalación Eléctrica Correcta", "Ip Funcionando", "Paginas del grupo añadidas"]
-        },
-        {
-            titulo: "2- Sistema Color Center (PC)",
-            items: ["CPU Limpio", "Teclado y Mouse Limpios", "No Break Funcionando", "Cables Organizados / Ocultos", "Impresora Dymo En Buen Estado", "Archivo Host Activo", "Sin Archivos ni Software No Autorizados", "puertos USB Bloqueados", "Base de Datos Actualizada", "Windows Update Actualizado", "Respaldos De formula pro", "Monitor en buen estado"]
-        },
-        {
-            titulo: "3- Dosificadora",
-            items: ["Esponja Humectada", "Base de esponja limpia y en buen estado", "Centro de Boquillas Limpio", "Válvulas Check en Buen estado", "Tapas y Estrellas de contenedor limpias", "Dosificadora Libre de Colorante y Polvo", "Cables Organizados", "Equipo libre de polvo", "Tarjetas Sap Libre de colorantes", "Motores de Agitación Lubricados", "cables organizados / ocultos", "UPS en buenas condiciones"]
-        },
-        {
-            titulo: "4- Revolvedora",
-            items: ["Cortina En Buen Estado", "Cama de engranes en buen estado", "Maneral en Buen Estado", "Baleros en buen estado", "UPS en buen estado", "Bandas en buen estado", "equipo libre de polvo", "poleas Lubricadas", "cables ocultos / organizados"]
-        },
-        {
-            titulo: "5- Sistemas de Seguridad CCTV",
-            items: ["DVR Oculto y libre de polvo", "Cámaras con visualización correcta", "grabaciones en DVR", "Cableado Oculto", "UPS Funcionando", "Audio Funcionando"]
-        }
-    ];
-
-    // --- VARIABLES DE ESTADO ---
+    let catalogoReal = [];
     let evaluaciones = {};
     let sigEncargado, sigSistemas;
 
-    // --- INICIALIZACIÓN ---
-    window.onload = () => {
-        document.getElementById('fecha_inicio').value = new Date().toLocaleString();
-        
-        // Cargar empresas únicas
-        const empresas = [...new Set(catalogo.map(c => c.empresa))];
-        empresas.forEach(e => {
-            const opt = new Option(e, e);
-            document.getElementById('selEmpresa').add(opt);
-        });
+    const rubrosPorSeccion = [
+        { titulo: "1- Sistema Punto de Venta y Conexiones", items: ["Personal Capacitado para levantar soportes", "TPV Limpia", "Impresora Limpia y Funcional", "Terminales Bancarias Funcionando", "No Break Funcionando", "Cables Organizados", "XStore Correctos", "Comex TV Configurada", "Línea Telmex Funcionando", "MC - Whatsapp Empresas", "Modem Perosnalizado", "Instalación Eléctrica Correcta", "Ip Funcionando", "Paginas del grupo añadidas"] },
+        { titulo: "2- Sistema Color Center (PC)", items: ["CPU Limpio", "Teclado y Mouse Limpios", "No Break Funcionando", "Cables Organizados / Ocultos", "Impresora Dymo En Buen Estado", "Archivo Host Activo", "Sin Archivos ni Software No Autorizados", "puertos USB Bloqueados", "Base de Datos Actualizada", "Windows Update Actualizado", "Respaldos De formula pro", "Monitor en buen estado"] },
+        { titulo: "3- Dosificadora", items: ["Esponja Humectada", "Base de esponja limpia y en buen estado", "Centro de Boquillas Limpio", "Válvulas Check en Buen estado", "Tapas y Estrellas de contenedor limpias", "Dosificadora Libre de Colorante y Polvo", "Cables Organizados", "Equipo libre de polvo", "Tarjetas Sap Libre de colorantes", "Motores de Agitación Lubricados", "cables organizados / ocultos", "UPS en buenas condiciones"] },
+        { titulo: "4- Revolvedora", items: ["Cortina En Buen Estado", "Cama de engranes en buen estado", "Maneral en Buen Estado", "Baleros en buen estado", "UPS en buen estado", "Bandas en buen estado", "equipo libre de polvo", "poleas Lubricadas", "cables ocultos / organizados"] },
+        { titulo: "5- Sistemas de Seguridad CCTV", items: ["DVR Oculto y libre de polvo", "Cámaras con visualización correcta", "grabaciones en DVR", "Cableado Oculto", "UPS Funcionando", "Audio Funcionando"] }
+    ];
 
+    window.onload = async () => {
+        document.getElementById('fecha_inicio').value = new Date().toLocaleString();
+        await obtenerCatalogos();
         generarSeccionesRubros();
-        
-        // Iniciar pads de firma
         sigEncargado = new SignaturePad(document.getElementById('pad-encargado'));
         sigSistemas = new SignaturePad(document.getElementById('pad-sistemas'));
     };
 
+    // --- EXTRACCIÓN DE DATOS DESDE CATALOGOS.HTML ---
+    async function obtenerCatalogos() {
+        try {
+            // URL de tu módulo de sucursales
+            const url = 'https://acfdmx342-crypto.github.io/gromacompras/catalogos.html';
+            const response = await fetch(url);
+            const htmlText = await response.text();
+            
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, 'text/html');
+            
+            // Buscamos la tabla de sucursales
+            const filas = doc.querySelectorAll('table tr');
+            
+            filas.forEach((fila, index) => {
+                if (index === 0) return; // Saltar encabezado
+                const cels = fila.querySelectorAll('td');
+                if (cels.length >= 3) {
+                    catalogoReal.push({
+                        empresa: cels[0].innerText.trim(),
+                        zona: cels[1].innerText.trim(),
+                        nombre: cels[2].innerText.trim()
+                    });
+                }
+            });
+
+            const selE = document.getElementById('selEmpresa');
+            selE.innerHTML = '<option value="">Seleccione Empresa...</option>';
+            const empresasUnicas = [...new Set(catalogoReal.map(c => c.empresa))];
+            empresasUnicas.forEach(e => selE.add(new Option(e, e)));
+
+        } catch (error) {
+            console.error("Error cargando catálogos:", error);
+            alert("Error al conectar con el módulo de sucursales. Verifique conexión.");
+        }
+    }
+
+    function cargarZonas() {
+        const emp = document.getElementById('selEmpresa').value;
+        const selZ = document.getElementById('selZona');
+        selZ.innerHTML = '<option value="">Seleccione Zona...</option>';
+        selZ.disabled = !emp;
+        if(emp) {
+            const zonasUnicas = [...new Set(catalogoReal.filter(c => c.empresa === emp).map(c => c.zona))];
+            zonasUnicas.forEach(z => selZ.add(new Option(z, z)));
+        }
+    }
+
+    function cargarSucursales() {
+        const emp = document.getElementById('selEmpresa').value;
+        const zona = document.getElementById('selZona').value;
+        const selS = document.getElementById('selSucursal');
+        selS.innerHTML = '<option value="">Seleccione Sucursal...</option>';
+        selS.disabled = !zona;
+        if(zona) {
+            const sucs = catalogoReal.filter(c => c.empresa === emp && c.zona === zona);
+            sucs.forEach(s => selS.add(new Option(s.nombre, s.nombre)));
+        }
+    }
+
+    // --- LÓGICA DE RUBROS Y NAVEGACIÓN ---
     function generarSeccionesRubros() {
         const container = document.getElementById('dynamic-sections');
         rubrosPorSeccion.forEach((sec, idx) => {
@@ -191,13 +217,11 @@
             const section = document.createElement('section');
             section.id = `sec${secNum}`;
             section.className = 'section';
-            
             let html = `<header><h2>${sec.titulo}</h2></header>`;
             
             sec.items.forEach((item, itemIdx) => {
                 const id = `r_${secNum}_${itemIdx}`;
                 evaluaciones[id] = { titulo: item, cumple: null, responsable: 'tienda' };
-                
                 html += `
                 <div class="rubro-card">
                     <div class="rubro-title">${item}</div>
@@ -209,61 +233,17 @@
                                 <div class="status-btn" onclick="setEstado('${id}', false, this)">No Cumple</div>
                             </div>
                         </div>
-                        <div>
-                            <label>Responsable</label>
-                            <select onchange="evaluaciones['${id}'].responsable = this.value">
-                                <option value="tienda">Tienda</option>
-                                <option value="soporte técnico">Soporte Técnico</option>
-                                <option value="Supervisor">Supervisor</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label>Evidencia</label>
-                            <input type="file" accept="image/*" capture="camera">
-                        </div>
+                        <div><label>Resp.</label><select onchange="evaluaciones['${id}'].responsable = this.value"><option value="tienda">Tienda</option><option value="soporte técnico">Soporte</option><option value="Supervisor">Sup.</option></select></div>
+                        <div><label>Foto</label><input type="file" accept="image/*" capture="camera"></div>
                     </div>
                 </div>`;
             });
-
-            html += `
-                <div class="form-group">
-                    <label>Comentario adicional de sección</label>
-                    <textarea id="coment_sec${secNum}" placeholder="Encontrado adicional..."></textarea>
-                </div>
-                <button class="btn btn-next" onclick="validarSiguiente(${secNum}, ${secNum + 1})">
-                    ${secNum === 6 ? 'Finalizar y Ver Resumen' : 'Siguiente'}
-                </button>`;
-            
+            html += `<button class="btn btn-next" onclick="validarSiguiente(${secNum}, ${secNum + 1})">${secNum === 6 ? 'Ver Resumen' : 'Siguiente'}</button>`;
             section.innerHTML = html;
             container.appendChild(section);
         });
     }
 
-    // --- LÓGICA DE FILTROS ---
-    function cargarZonas() {
-        const emp = document.getElementById('selEmpresa').value;
-        const selZ = document.getElementById('selZona');
-        selZ.innerHTML = '<option value="">Seleccione...</option>';
-        selZ.disabled = !emp;
-        if(emp) {
-            const zonas = [...new Set(catalogo.filter(c => c.empresa === emp).map(c => c.zona))];
-            zonas.forEach(z => selZ.add(new Option(z, z)));
-        }
-    }
-
-    function cargarSucursales() {
-        const emp = document.getElementById('selEmpresa').value;
-        const zona = document.getElementById('selZona').value;
-        const selS = document.getElementById('selSucursal');
-        selS.innerHTML = '<option value="">Seleccione...</option>';
-        selS.disabled = !zona;
-        if(zona) {
-            const sucs = catalogo.filter(c => c.empresa === emp && c.zona === zona);
-            sucs.forEach(s => selS.add(new Option(s.nombre, s.nombre)));
-        }
-    }
-
-    // --- FLUJO DE NAVEGACIÓN ---
     function setEstado(id, valor, btn) {
         evaluaciones[id].cumple = valor;
         const parent = btn.parentElement;
@@ -272,17 +252,10 @@
     }
 
     function validarSiguiente(actual, siguiente) {
-        if(actual === 1) {
-            if(!document.getElementById('selSucursal').value) {
-                alert("Debe seleccionar Empresa, Zona y Sucursal");
-                return;
-            }
-        }
-        
+        if(actual === 1 && !document.getElementById('selSucursal').value) return alert("Seleccione sucursal");
         if(confirm("¿Desea rectificar los datos antes de continuar?")) {
-            if(siguiente > 6) {
-                mostrarResumen();
-            } else {
+            if(siguiente > 6) mostrarResumen();
+            else {
                 document.getElementById(`sec${actual}`).classList.remove('active');
                 document.getElementById(`sec${siguiente}`).classList.add('active');
                 window.scrollTo(0,0);
@@ -290,48 +263,29 @@
         }
     }
 
-    // --- CÁLCULOS FINALES ---
     function mostrarResumen() {
         const lista = document.getElementById('lista-no-cubiertos');
         lista.innerHTML = '';
-        let total = 0;
-        let cumplen = 0;
-
+        let total = 0, cumplen = 0;
         for (let key in evaluaciones) {
             total++;
             if(evaluaciones[key].cumple === true) cumplen++;
             else {
                 const div = document.createElement('div');
                 div.className = 'resumen-item';
-                div.innerHTML = `<strong>${evaluaciones[key].titulo}</strong><br>Responsable: ${evaluaciones[key].responsable}`;
+                div.innerHTML = `<strong>${evaluaciones[key].titulo}</strong> (Resp: ${evaluaciones[key].responsable})`;
                 lista.appendChild(div);
             }
         }
-
-        const pct = Math.round((cumplen / total) * 100);
-        document.getElementById('final-score').innerText = pct + '%';
-        
+        document.getElementById('final-score').innerText = Math.round((cumplen / total) * 100) + '%';
         document.getElementById('sec6').classList.remove('active');
         document.getElementById('sec-final').classList.add('active');
     }
 
     function finalizarSistema() {
-        if(!document.getElementById('fecha_solucion').value || !document.getElementById('folio_soporte').value) {
-            alert("Favor de llenar la fecha tentativa y el folio de soporte.");
-            return;
-        }
-        
-        if(sigEncargado.isEmpty() || sigSistemas.isEmpty()) {
-            alert("Ambas firmas son obligatorias.");
-            return;
-        }
-
-        // Simulación de guardado
-        console.log("Datos guardados en HistorialVisitas", evaluaciones);
-        alert("Evaluación Guardada en HistorialVisitas.");
+        if(sigEncargado.isEmpty() || sigSistemas.isEmpty()) return alert("Firmas obligatorias.");
         window.print();
     }
 </script>
-
 </body>
 </html>
