@@ -17,7 +17,6 @@
         body { font-family: 'Segoe UI', sans-serif; background: var(--secondary); margin: 0; color: var(--text); }
         .container { max-width: 800px; margin: 0 auto; background: white; min-height: 100vh; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
         
-        /* Layout */
         .section { display: none; padding: 20px; animation: fadeIn 0.5s; }
         .section.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -25,12 +24,10 @@
         header { text-align: center; border-bottom: 2px solid var(--primary); padding: 15px; margin-bottom: 20px; }
         .logo-placeholder { width: 120px; height: 60px; border: 2px dashed #ccc; margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 12px; }
 
-        /* Form Elements */
         .form-group { margin-bottom: 15px; }
         label { display: block; font-weight: bold; margin-bottom: 5px; }
         select, input, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
 
-        /* Rubros Card */
         .rubro-card { background: #fff; border: 1px solid #eee; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .rubro-title { font-weight: bold; margin-bottom: 10px; color: var(--primary); }
         .rubro-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -38,27 +35,41 @@
         
         .status-badge { display: flex; gap: 10px; margin-top: 10px; }
         .status-btn { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; cursor: pointer; text-align: center; background: #f9f9f9; }
-        .status-btn.selected-cumple { background: var(--accent); color: white; border-color: var(--accent); }
-        .status-btn.selected-nocumple { background: var(--danger); color: white; border-color: var(--danger); }
+        .status-btn.selected-cumple { background: var(--accent) !important; color: white !important; border-color: var(--accent); }
+        .status-btn.selected-nocumple { background: var(--danger) !important; color: white !important; border-color: var(--danger); }
 
-        /* Signature Pads */
         .sig-container { border: 1px solid #000; background: #fff; margin-top: 10px; border-radius: 4px; }
         canvas { width: 100%; height: 150px; touch-action: none; }
 
-        /* Buttons */
         .btn { padding: 15px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; margin-top: 10px; }
         .btn-next { background: var(--primary); color: white; }
         .btn-save { background: var(--accent); color: white; }
         .btn-clear { background: #eee; color: #333; font-size: 12px; padding: 5px; width: auto; }
 
-        /* Result Styles */
-        .resumen-item { padding: 10px; border-left: 4px solid var(--danger); background: #fff0f0; margin-bottom: 5px; font-size: 14px; }
-        .score-circle { font-size: 40px; font-weight: bold; text-align: center; color: var(--accent); margin: 20px 0; }
+        .resumen-item { padding: 8px; border-left: 4px solid var(--danger); background: #fff0f0; margin-bottom: 5px; font-size: 13px; }
+        .score-circle { font-size: 32px; font-weight: bold; text-align: center; color: var(--accent); margin: 15px 0; }
 
+        /* AJUSTES ESPECÍFICOS PARA PDF / IMPRESIÓN */
         @media print {
-            .btn, .btn-clear, .status-btn, input[type="file"], .logo-placeholder { display: none !important; }
-            .section { display: block !important; opacity: 1 !important; }
-            .container { box-shadow: none; width: 100%; }
+            body { background: white; font-size: 12px; }
+            .container { box-shadow: none; width: 100%; max-width: 100%; margin: 0; }
+            .section { display: block !important; opacity: 1 !important; padding: 10px; page-break-inside: avoid; }
+            #sec1, .btn, .btn-clear, input[type="file"], .logo-placeholder { display: none !important; }
+            
+            /* Ocultar botones NO seleccionados */
+            .status-btn:not(.selected-cumple):not(.selected-nocumple) { display: none !important; }
+            .status-btn { border: none !important; padding: 2px !important; font-size: 11px; text-align: left; }
+            
+            .rubro-card { border: none; border-bottom: 1px solid #eee; margin-bottom: 5px; padding: 5px; page-break-inside: avoid; }
+            .rubro-title { font-size: 12px; margin-bottom: 2px; }
+            .rubro-controls { display: block; }
+            .rubro-controls div { display: inline-block; margin-right: 15px; font-size: 10px; }
+            
+            h2, h3 { font-size: 16px; margin: 10px 0; }
+            select { border: none; appearance: none; -webkit-appearance: none; font-size: 11px; padding: 0; }
+            input { border: none; font-size: 11px; padding: 0; }
+            .sig-container { height: 80px; }
+            canvas { height: 80px; }
         }
     </style>
 </head>
@@ -98,7 +109,7 @@
     <div id="dynamic-sections"></div>
 
     <section id="sec-final" class="section">
-        <header><h2>Resumen de Evaluación</h2></header>
+        <header><h2>Resumen Final</h2></header>
         <div class="score-circle" id="final-score">0%</div>
         <div class="form-group">
             <label>Fecha Tentativa Solución</label>
@@ -111,8 +122,8 @@
         <h3>Rubros No Cubiertos:</h3>
         <div id="lista-no-cubiertos"></div>
         <div class="form-group">
-            <label>Observaciones del Encargado</label>
-            <textarea id="obs_encargado" rows="3"></textarea>
+            <label>Observaciones</label>
+            <textarea id="obs_encargado" rows="2"></textarea>
         </div>
         <div class="form-group">
             <label>Firma Encargado</label>
@@ -124,7 +135,7 @@
             <div class="sig-container"><canvas id="pad-sistemas"></canvas></div>
             <button class="btn-clear" onclick="sigSistemas.clear()">Limpiar</button>
         </div>
-        <button class="btn btn-save" onclick="finalizarSistema()">GUARDAR E HISTORIAL (PDF)</button>
+        <button class="btn btn-save" onclick="finalizarSistema()">GENERAR REPORTE (PDF)</button>
     </section>
 </div>
 
@@ -134,11 +145,11 @@
     let sigEncargado, sigSistemas;
 
     const rubrosPorSeccion = [
-        { titulo: "1- Sistema Punto de Venta y Conexiones", items: ["Personal Capacitado para levantar soportes", "TPV Limpia", "Impresora Limpia y Funcional", "Terminales Bancarias Funcionando", "No Break Funcionando", "Cables Organizados", "XStore Correctos", "Comex TV Configurada", "Línea Telmex Funcionando", "MC - Whatsapp Empresas", "Modem Perosnalizado", "Instalación Eléctrica Correcta", "Ip Funcionando", "Paginas del grupo añadidas"] },
-        { titulo: "2- Sistema Color Center (PC)", items: ["CPU Limpio", "Teclado y Mouse Limpios", "No Break Funcionando", "Cables Organizados / Ocultos", "Impresora Dymo En Buen Estado", "Archivo Host Activo", "Sin Archivos ni Software No Autorizados", "puertos USB Bloqueados", "Base de Datos Actualizada", "Windows Update Actualizado", "Respaldos De formula pro", "Monitor en buen estado"] },
-        { titulo: "3- Dosificadora", items: ["Esponja Humectada", "Base de esponja limpia y en buen estado", "Centro de Boquillas Limpio", "Válvulas Check en Buen estado", "Tapas y Estrellas de contenedor limpias", "Dosificadora Libre de Colorante y Polvo", "Cables Organizados", "Equipo libre de polvo", "Tarjetas Sap Libre de colorantes", "Motores de Agitación Lubricados", "cables organizados / ocultos", "UPS en buenas condiciones"] },
-        { titulo: "4- Revolvedora", items: ["Cortina En Buen Estado", "Cama de engranes en buen estado", "Maneral en Buen Estado", "Baleros en buen estado", "UPS en buen estado", "Bandas en buen estado", "equipo libre de polvo", "poleas Lubricadas", "cables ocultos / organizados"] },
-        { titulo: "5- Sistemas de Seguridad CCTV", items: ["DVR Oculto y libre de polvo", "Cámaras con visualización correcta", "grabaciones en DVR", "Cableado Oculto", "UPS Funcionando", "Audio Funcionando"] }
+        { titulo: "1- Sistema Punto de Venta", items: ["Personal Capacitado", "TPV Limpia", "Impresora Funcional", "Terminales Bancarias", "No Break", "Cables Organizados", "XStore", "Comex TV", "Línea Telmex", "MC - Whatsapp", "Modem", "Instalación Eléctrica", "Ip Funcionando", "Paginas Añadidas"] },
+        { titulo: "2- Color Center (PC)", items: ["CPU Limpio", "Teclado/Mouse", "No Break", "Cables Ocultos", "Impresora Dymo", "Archivo Host", "Software Autorizado", "USB Bloqueados", "Base de Datos", "Windows Update", "Respaldos Formula Pro", "Monitor"] },
+        { titulo: "3- Dosificadora", items: ["Esponja Humectada", "Base Esponja", "Centro Boquillas", "Válvulas Check", "Tapas/Estrellas", "Libre Colorante/Polvo", "Cables", "Tarjetas Sap", "Motores Agitación", "UPS"] },
+        { titulo: "4- Revolvedora", items: ["Cortina", "Engranes", "Maneral", "Baleros", "UPS", "Bandas", "Poleas Lubricadas", "Cables"] },
+        { titulo: "5- Seguridad CCTV", items: ["DVR Oculto", "Cámaras Visualización", "Grabaciones", "Cableado Oculto", "UPS", "Audio"] }
     ];
 
     window.onload = async () => {
@@ -149,38 +160,27 @@
         sigSistemas = new SignaturePad(document.getElementById('pad-sistemas'));
     };
 
-    // --- EXTRACCIÓN DE DATOS DESDE FIREBASE (CORREGIDO) ---
     async function obtenerCatalogos() {
         try {
             const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
             const { getDatabase, ref, get } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js");
-
             const config = { databaseURL: "https://mydbu-fbc33-default-rtdb.firebaseio.com/" };
             const app = initializeApp(config);
             const db = getDatabase(app);
-
             const snapshot = await get(ref(db, 'sucursales'));
             
             if (snapshot.exists()) {
-                const data = snapshot.val();
-                catalogoReal = Object.values(data).map(item => ({
+                catalogoReal = Object.values(snapshot.val()).map(item => ({
                     empresa: (item.empresa || "").toUpperCase(),
                     zona: (item.zona || "").toUpperCase(),
                     nombre: (item.nombre || "").toUpperCase()
                 }));
-
                 const selE = document.getElementById('selEmpresa');
                 selE.innerHTML = '<option value="">Seleccione Empresa...</option>';
                 const empresasUnicas = [...new Set(catalogoReal.map(c => c.empresa))].sort();
                 empresasUnicas.forEach(e => { if(e) selE.add(new Option(e, e)); });
-            } else {
-                document.getElementById('selEmpresa').innerHTML = '<option value="">Sin datos en BD</option>';
             }
-
-        } catch (error) {
-            console.error("Error cargando catálogos:", error);
-            alert("Error al conectar con la base de datos.");
-        }
+        } catch (e) { console.error(e); }
     }
 
     function cargarZonas() {
@@ -189,8 +189,8 @@
         selZ.innerHTML = '<option value="">Seleccione Zona...</option>';
         selZ.disabled = !emp;
         if(emp) {
-            const zonasUnicas = [...new Set(catalogoReal.filter(c => c.empresa === emp).map(c => c.zona))].sort();
-            zonasUnicas.forEach(z => selZ.add(new Option(z, z)));
+            const zonas = [...new Set(catalogoReal.filter(c => c.empresa === emp).map(c => c.zona))].sort();
+            zonas.forEach(z => selZ.add(new Option(z, z)));
         }
     }
 
@@ -206,7 +206,6 @@
         }
     }
 
-    // --- LÓGICA DE RUBROS Y NAVEGACIÓN ---
     function generarSeccionesRubros() {
         const container = document.getElementById('dynamic-sections');
         rubrosPorSeccion.forEach((sec, idx) => {
@@ -215,7 +214,6 @@
             section.id = `sec${secNum}`;
             section.className = 'section';
             let html = `<header><h2>${sec.titulo}</h2></header>`;
-            
             sec.items.forEach((item, itemIdx) => {
                 const id = `r_${secNum}_${itemIdx}`;
                 evaluaciones[id] = { titulo: item, cumple: null, responsable: 'tienda' };
@@ -224,18 +222,16 @@
                     <div class="rubro-title">${item}</div>
                     <div class="rubro-controls">
                         <div class="full-width">
-                            <label>Estado</label>
                             <div class="status-badge">
-                                <div class="status-btn" onclick="setEstado('${id}', true, this)">Cumple</div>
-                                <div class="status-btn" onclick="setEstado('${id}', false, this)">No Cumple</div>
+                                <div class="status-btn" id="btn_c_${id}" onclick="setEstado('${id}', true, this)">Cumple</div>
+                                <div class="status-btn" id="btn_n_${id}" onclick="setEstado('${id}', false, this)">No Cumple</div>
                             </div>
                         </div>
-                        <div><label>Resp.</label><select onchange="evaluaciones['${id}'].responsable = this.value"><option value="tienda">Tienda</option><option value="soporte técnico">Soporte</option><option value="Supervisor">Sup.</option></select></div>
-                        <div><label>Foto</label><input type="file" accept="image/*" capture="camera"></div>
+                        <div><label>Resp.</label><select onchange="evaluaciones['${id}'].responsable = this.value"><option value="Tienda">Tienda</option><option value="Soporte">Soporte</option><option value="Supervisor">Sup.</option></select></div>
                     </div>
                 </div>`;
             });
-            html += `<button class="btn btn-next" onclick="validarSiguiente(${secNum}, ${secNum + 1})">${secNum === 6 ? 'Ver Resumen' : 'Siguiente'}</button>`;
+            html += `<button class="btn btn-next" onclick="validarSiguiente(${secNum}, ${secNum + 1})">${idx === 4 ? 'Ver Resumen' : 'Siguiente'}</button>`;
             section.innerHTML = html;
             container.appendChild(section);
         });
@@ -250,21 +246,11 @@
 
     function validarSiguiente(actual, siguiente) {
         if(actual === 1 && !document.getElementById('selSucursal').value) return alert("Seleccione sucursal");
-        
-        // Validación para asegurar que todos los rubros de la sección actual tengan respuesta
-        if (actual >= 2) {
-            const rubrosActuales = Object.keys(evaluaciones).filter(k => k.startsWith(`r_${actual}_`));
-            const sinResponder = rubrosActuales.some(k => evaluaciones[k].cumple === null);
-            if (sinResponder) return alert("Por favor, responda todos los rubros antes de continuar.");
-        }
-
-        if(confirm("¿Desea continuar a la siguiente sección?")) {
-            if(siguiente > 6) mostrarResumen();
-            else {
-                document.getElementById(`sec${actual}`).classList.remove('active');
-                document.getElementById(`sec${siguiente}`).classList.add('active');
-                window.scrollTo(0,0);
-            }
+        if(siguiente > 6) mostrarResumen();
+        else {
+            document.getElementById(`sec${actual}`).classList.remove('active');
+            document.getElementById(`sec${siguiente}`).classList.add('active');
+            window.scrollTo(0,0);
         }
     }
 
@@ -283,7 +269,7 @@
             }
         }
         document.getElementById('final-score').innerText = Math.round((cumplen / total) * 100) + '%';
-        document.getElementById('sec6').classList.remove('active');
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.getElementById('sec-final').classList.add('active');
     }
 
