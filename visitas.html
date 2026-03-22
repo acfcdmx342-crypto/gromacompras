@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Visitas - IT</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #003366; margin-bottom: 20px; padding-bottom: 10px; }
+        h1 { color: #003366; margin: 0; }
+        .btn-back { background: #003366; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #f8f9fa; color: #003366; }
+        .badge { padding: 5px 10px; border-radius: 15px; font-size: 12px; font-weight: bold; }
+        .badge-high { background: #d4edda; color: #155724; }
+        .badge-low { background: #f8d7da; color: #721c24; }
+        .no-data { text-align: center; padding: 40px; color: #999; }
+        .btn-delete { background: #ff4757; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Historial de Visitas IT</h1>
+        <a href="index.html" class="btn-back">Nueva Evaluación</a>
+    </header>
+
+    <table id="tablaVisitas">
+        <thead>
+            <tr>
+                <th>Fecha/Hora</th>
+                <th>Empresa</th>
+                <th>Sucursal</th>
+                <th>Folio</th>
+                <th>Cumplimiento</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody id="listaCuerpo">
+            </tbody>
+    </table>
+    <div id="mensajeVacio" class="no-data" style="display: none;">No hay visitas registradas aún.</div>
+    
+    <div style="margin-top: 30px; text-align: right;">
+        <button onclick="borrarTodo()" class="btn-delete" style="padding: 10px 20px; font-size: 14px;">Borrar todo el historial</button>
+    </div>
+</div>
+
+<script>
+    function cargarVisitas() {
+        const cuerpo = document.getElementById('listaCuerpo');
+        const mensaje = document.getElementById('mensajeVacio');
+        const historial = JSON.parse(localStorage.getItem('visitasIT')) || [];
+
+        cuerpo.innerHTML = "";
+
+        if (historial.length === 0) {
+            mensaje.style.display = "block";
+            return;
+        }
+
+        mensaje.style.display = "none";
+
+        // Mostrar de la más reciente a la más antigua
+        historial.reverse().forEach((visita, index) => {
+            const row = cuerpo.insertRow();
+            const scoreInt = parseInt(visita.cumplimiento);
+            const badgeClass = scoreInt >= 80 ? 'badge-high' : 'badge-low';
+
+            row.innerHTML = `
+                <td>${visita.fecha}</td>
+                <td>${visita.empresa}</td>
+                <td>${visita.sucursal}</td>
+                <td><strong>${visita.folio}</strong></td>
+                <td><span class="badge ${badgeClass}">${visita.cumplimiento}</span></td>
+                <td><button class="btn-delete" onclick="borrarUna(${index})">Eliminar</button></td>
+            `;
+        });
+    }
+
+    function borrarUna(index) {
+        if(confirm("¿Eliminar este registro?")) {
+            let historial = JSON.parse(localStorage.getItem('visitasIT')) || [];
+            historial.reverse(); // Invertir para que coincida con la visualización
+            historial.splice(index, 1);
+            historial.reverse(); // Volver al orden original
+            localStorage.setItem('visitasIT', JSON.stringify(historial));
+            cargarVisitas();
+        }
+    }
+
+    function borrarTodo() {
+        if(confirm("¿Estás seguro de borrar TODO el historial? Esta acción no se puede deshacer.")) {
+            localStorage.removeItem('visitasIT');
+            cargarVisitas();
+        }
+    }
+
+    // Cargar al iniciar
+    window.onload = cargarVisitas;
+</script>
+
+</body>
+</html>
