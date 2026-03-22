@@ -22,7 +22,10 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         header { text-align: center; border-bottom: 3px solid var(--primary); padding-bottom: 15px; margin-bottom: 25px; }
-        .logo-placeholder { width: 140px; height: 50px; border: 1px dashed #ccc; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #999; }
+        
+        /* Nuevo estilo para el Logo */
+        .logo-container { width: 200px; margin: 0 auto 15px; display: block; }
+        .logo-container img { width: 100%; height: auto; display: block; }
 
         .form-group { margin-bottom: 18px; }
         label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; color: var(--primary); }
@@ -52,12 +55,14 @@
             body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .container { box-shadow: none !important; width: 100% !important; padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
             .section { display: block !important; opacity: 1 !important; padding: 10px 0 !important; border: none !important; }
-            #sec1, .btn, .btn-clear, .logo-placeholder, input[type="file"] { display: none !important; }
+            #sec1, .btn, .btn-clear, input[type="file"] { display: none !important; }
             .status-btn:not(.selected-cumple):not(.selected-nocumple) { display: none !important; }
             .status-btn { border: 2px solid black !important; color: black !important; background: transparent !important; display: inline-block !important; }
             .rubro-card { border: none !important; border-bottom: 1px solid #eee !important; page-break-inside: avoid !important; }
             .img-preview { display: block !important; max-width: 200px !important; }
             .sig-container { border: 1px solid #000 !important; height: 100px !important; }
+            .logo-container { display: block !important; }
+            .logo-container img { width: 180px !important; }
         }
     </style>
 </head>
@@ -66,7 +71,9 @@
 <div class="container">
     <section id="sec1" class="section active">
         <header>
-            <div class="logo-placeholder">LOGOTIPO EMPRESA</div>
+            <div class="logo-container">
+                <img src="https://i.ytimg.com/vi/GQ2mlLhIck8/mqdefault.jpg" alt="Logo Empresa">
+            </div>
             <h2>Evaluación Inicial de Sucursal</h2>
         </header>
         <div class="form-group">
@@ -97,7 +104,12 @@
     <div id="dynamic-sections"></div>
 
     <section id="sec-final" class="section">
-        <header><h2>Cierre y Firmas</h2></header>
+        <header>
+            <div class="logo-container">
+                <img src="https://i.ytimg.com/vi/GQ2mlLhIck8/mqdefault.jpg" alt="Logo Empresa">
+            </div>
+            <h2>Cierre y Firmas</h2>
+        </header>
         <div class="score-display" style="text-align: center; margin-bottom: 20px;">
             <label>Cumplimiento General</label>
             <div class="score-circle" id="final-score" style="font-size: 48px; font-weight: 800; color: var(--accent);">0%</div>
@@ -137,7 +149,6 @@
     let evaluaciones = {};
     let sigEncargado, sigSistemas;
 
-    // Catálogo original para Comex
     const rubrosComex = [
         { titulo: "1- Sistema Punto de Venta", items: ["Personal Capacitado", "TPV Limpia", "Impresora Funcional", "Terminales Bancarias", "No Break", "Cables Organizados", "XStore", "Comex TV", "Línea Telmex", "WhatsApp Empresas", "Módem Configurado", "Instalación Eléctrica Correcta", "IP Funcionando", "Marcadores de Navegador"] },
         { titulo: "2- Color Center (PC)", items: ["CPU Libre de Polvo", "Periféricos Limpios", "Protección de Voltaje", "Organización de Cables", "Impresora de Etiquetas", "Archivo Host OK", "Software Licenciado", "USB Restringidos", "Base de Datos OK", "Actualizaciones Windows", "Respaldos Locales", "Monitor Funcional"] },
@@ -146,14 +157,13 @@
         { titulo: "5- Seguridad (CCTV)", items: ["Grabación Continua", "Cámaras Alineadas", "DVR en Resguardo", "UPS de Respaldo", "Audio Operativo"] }
     ];
 
-    // NUEVO Catálogo para Ferreprecios
     const rubrosFerreprecios = [
         { 
             titulo: "1- Sistema Punto de Venta y Conexiones de internet / Comunicación", 
             items: [
                 "Personal Capacitado para levantar soportes", 
                 "Equipos Limpios", 
-                { titulo: "Equipos con nomenclatura", type: "nomenclatura" }, // Caso especial
+                { titulo: "Equipos con nomenclatura", type: "nomenclatura" },
                 "equipos con Antivirus",
                 "Impresora laser \"facturas\" Limpia y Funcional",
                 "Impresora de ticket limpia y Funcional",
@@ -208,7 +218,7 @@
 
     function cambioEmpresa() {
         cargarZonas();
-        generarSecciones(); // Regenerar rubros cuando cambia la empresa
+        generarSecciones();
     }
 
     function cargarZonas() {
@@ -229,8 +239,8 @@
 
     function generarSecciones() {
         const container = document.getElementById('dynamic-sections');
-        container.innerHTML = ""; // Limpiar secciones anteriores
-        evaluaciones = {}; // Reiniciar datos
+        container.innerHTML = ""; 
+        evaluaciones = {}; 
         
         const empresaSel = document.getElementById('selEmpresa').value;
         const rubrosUsar = (empresaSel === "FERREPRECIOS") ? rubrosFerreprecios : rubrosComex;
@@ -240,7 +250,15 @@
             const s = document.createElement('section');
             s.id = `sec${num}`;
             s.className = 'section';
-            let html = `<header><h2>${sec.titulo}</h2></header>`;
+            
+            // Header con Logo dinámico
+            let html = `
+                <header>
+                    <div class="logo-container">
+                        <img src="https://i.ytimg.com/vi/GQ2mlLhIck8/mqdefault.jpg" alt="Logo Empresa">
+                    </div>
+                    <h2>${sec.titulo}</h2>
+                </header>`;
             
             sec.items.forEach((item, i) => {
                 const itemTitle = typeof item === 'string' ? item : item.titulo;
@@ -257,7 +275,6 @@
                         </div>
                     </div>`;
 
-                // Lógica especial para Nomenclatura en Ferreprecios
                 if (item.type === "nomenclatura") {
                     html += `
                     <div class="form-group" style="margin-top:10px;">
@@ -302,7 +319,6 @@
     function validarSiguiente(actual, sig) {
         if(actual === 1 && !document.getElementById('selSucursal').value) return alert("Seleccione sucursal");
         
-        // Mensaje de rectificación solicitado para secciones intermedias
         const empresaSel = document.getElementById('selEmpresa').value;
         const limite = (empresaSel === "FERREPRECIOS") ? 4 : 6;
 
