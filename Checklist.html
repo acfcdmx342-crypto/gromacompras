@@ -149,41 +149,37 @@
         sigSistemas = new SignaturePad(document.getElementById('pad-sistemas'));
     };
 
-    // --- EXTRACCIÓN DE DATOS DESDE CATALOGOS.HTML ---
+    // --- EXTRACCIÓN DE DATOS DESDE FIREBASE (CORREGIDO) ---
     async function obtenerCatalogos() {
         try {
-            // URL de tu módulo de sucursales
-            const url = 'catalogos.html';
-            const response = await fetch(url);
-            // Verificamos si la respuesta fue exitosa antes de procesar
-        if (!response.ok) throw new Error("No se pudo cargar el archivo");
-            const htmlText = await response.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(htmlText, 'text/html');
-            
-            // Buscamos la tabla de sucursales
-            const filas = doc.querySelectorAll('table tr');
-            
-            filas.forEach((fila, index) => {
-                if (index === 0) return; // Saltar encabezado
-                const cels = fila.querySelectorAll('td');
-                if (cels.length >= 3) {
-                    catalogoReal.push({
-                        empresa: cels[0].innerText.trim(),
-                        zona: cels[1].innerText.trim(),
-                        nombre: cels[2].innerText.trim()
-                    });
-                }
-            });
+            const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
+            const { getDatabase, ref, get } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js");
 
-            const selE = document.getElementById('selEmpresa');
-            selE.innerHTML = '<option value="">Seleccione Empresa...</option>';
-            const empresasUnicas = [...new Set(catalogoReal.map(c => c.empresa))];
-            empresasUnicas.forEach(e => selE.add(new Option(e, e)));
+            const config = { databaseURL: "https://mydbu-fbc33-default-rtdb.firebaseio.com/" };
+            const app = initializeApp(config);
+            const db = getDatabase(app);
+
+            const snapshot = await get(ref(db, 'sucursales'));
+            
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                catalogoReal = Object.values(data).map(item => ({
+                    empresa: (item.empresa || "").toUpperCase(),
+                    zona: (item.zona || "").toUpperCase(),
+                    nombre: (item.nombre || "").toUpperCase()
+                }));
+
+                const selE = document.getElementById('selEmpresa');
+                selE.innerHTML = '<option value="">Seleccione Empresa...</option>';
+                const empresasUnicas = [...new Set(catalogoReal.map(c => c.empresa))].sort();
+                empresasUnicas.forEach(e => { if(e) selE.add(new Option(e, e)); });
+            } else {
+                document.getElementById('selEmpresa').innerHTML = '<option value="">Sin datos en BD</option>';
+            }
 
         } catch (error) {
             console.error("Error cargando catálogos:", error);
-            alert("Error al conectar con el módulo de sucursales. Verifique conexión.");
+            alert("Error al conectar con la base de datos.");
         }
     }
 
@@ -193,7 +189,7 @@
         selZ.innerHTML = '<option value="">Seleccione Zona...</option>';
         selZ.disabled = !emp;
         if(emp) {
-            const zonasUnicas = [...new Set(catalogoReal.filter(c => c.empresa === emp).map(c => c.zona))];
+            const zonasUnicas = [...new Set(catalogoReal.filter(c => c.empresa === emp).map(c => c.zona))].sort();
             zonasUnicas.forEach(z => selZ.add(new Option(z, z)));
         }
     }
@@ -205,7 +201,7 @@
         selS.innerHTML = '<option value="">Seleccione Sucursal...</option>';
         selS.disabled = !zona;
         if(zona) {
-            const sucs = catalogoReal.filter(c => c.empresa === emp && c.zona === zona);
+            const sucs = catalogoReal.filter(c => c.empresa === emp && c.zona === zona).sort((a,b) => a.nombre.localeCompare(b.nombre));
             sucs.forEach(s => selS.add(new Option(s.nombre, s.nombre)));
         }
     }
@@ -254,7 +250,15 @@
 
     function validarSiguiente(actual, siguiente) {
         if(actual === 1 && !document.getElementById('selSucursal').value) return alert("Seleccione sucursal");
-        if(confirm("¿Desea rectificar los datos antes de continuar?")) {
+        
+        // Validación para asegurar que todos los rubros de la sección actual tengan respuesta
+        if (actual >= 2) {
+            const rubrosActuales = Object.keys(evaluaciones).filter(k => k.startsWith(`r_${actual}_`));
+            const sinResponder = rubrosActuales.some(k => evaluaciones[k].cumple === null);
+            if (sinResponder) return alert("Por favor, responda todos los rubros antes de continuar.");
+        }
+
+        if(confirm("¿Desea continuar a la siguiente sección?")) {
             if(siguiente > 6) mostrarResumen();
             else {
                 document.getElementById(`sec${actual}`).classList.remove('active');
