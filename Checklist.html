@@ -155,8 +155,9 @@
             // URL de tu módulo de sucursales
             const url = 'catalogos.html';
             const response = await fetch(url);
+            // Verificamos si la respuesta fue exitosa antes de procesar
+        if (!response.ok) throw new Error("No se pudo cargar el archivo");
             const htmlText = await response.text();
-            
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlText, 'text/html');
             
