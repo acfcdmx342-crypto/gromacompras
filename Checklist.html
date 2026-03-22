@@ -23,7 +23,6 @@
 
         header { text-align: center; border-bottom: 3px solid var(--primary); padding-bottom: 15px; margin-bottom: 25px; }
         
-        /* Nuevo estilo para el Logo */
         .logo-container { width: 200px; margin: 0 auto 15px; display: block; }
         .logo-container img { width: 100%; height: auto; display: block; }
 
@@ -62,7 +61,6 @@
             .img-preview { display: block !important; max-width: 200px !important; }
             .sig-container { border: 1px solid #000 !important; height: 100px !important; }
             .logo-container { display: block !important; }
-            .logo-container img { width: 180px !important; }
         }
     </style>
 </head>
@@ -140,7 +138,7 @@
                 <button class="btn-clear" onclick="sigSistemas.clear()">Borrar Firma</button>
             </div>
         </div>
-        <button class="btn btn-save" onclick="finalizarReporte()">FINALIZAR Y GENERAR REPORTE PDF</button>
+        <button class="btn btn-save" onclick="finalizarReporte()">FINALIZAR Y GUARDAR VISITA</button>
     </section>
 </div>
 
@@ -251,7 +249,6 @@
             s.id = `sec${num}`;
             s.className = 'section';
             
-            // Header con Logo dinámico
             let html = `
                 <header>
                     <div class="logo-container">
@@ -350,9 +347,21 @@
         if(!folio || !fecha) return alert("Folio y Fecha son obligatorios.");
         if(sigEncargado.isEmpty() || sigSistemas.isEmpty()) return alert("Ambas firmas son obligatorias.");
 
-        if(confirm("¿Confirmas que toda la información es correcta?")) {
-            window.print();
-        }
+        // Guardar datos en LocalStorage para visitas.html
+        const nuevaVisita = {
+            fecha: document.getElementById('fecha_inicio').value,
+            empresa: document.getElementById('selEmpresa').value,
+            sucursal: document.getElementById('selSucursal').value,
+            folio: folio,
+            cumplimiento: document.getElementById('final-score').innerText
+        };
+
+        let historial = JSON.parse(localStorage.getItem('visitasIT')) || [];
+        historial.push(nuevaVisita);
+        localStorage.setItem('visitasIT', JSON.stringify(historial));
+
+        alert("Evaluación guardada con éxito. Redirigiendo a historial...");
+        window.location.href = "visitas.html";
     }
 </script>
 </body>
