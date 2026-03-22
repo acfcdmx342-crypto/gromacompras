@@ -53,12 +53,18 @@
         .score-display { text-align: center; margin: 20px 0; }
         .score-circle { font-size: 48px; font-weight: 800; color: var(--accent); }
 
+        /* CORRECCIÓN APLICADA AQUÍ */
         @media print {
-            body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .container { box-shadow: none; width: 100%; padding: 0; margin: 0; }
-            .section { display: block !important; padding: 10px 0; border: none; page-break-inside: auto; }
+            body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .container { box-shadow: none !important; width: 100% !important; padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
+            
+            /* Forzar que todas las secciones dinámicas se vean en el PDF */
+            .section { display: block !important; opacity: 1 !important; padding: 10px 0 !important; border: none !important; page-break-inside: auto !important; }
+            
+            /* Ocultar elementos de navegación y carga */
             #sec1, .btn, .btn-clear, .logo-placeholder, input[type="file"] { display: none !important; }
             
+            /* Lógica de botones de estado para el PDF */
             .status-btn:not(.selected-cumple):not(.selected-nocumple) { display: none !important; }
             .status-btn { 
                 border: 2px solid black !important; 
@@ -67,16 +73,17 @@
                 text-transform: uppercase;
                 background: transparent !important;
                 padding: 4px 8px !important;
+                display: inline-block !important;
             }
             
-            header { border-bottom: 2px solid #333; margin-bottom: 15px; }
-            .rubro-card { border: none; border-bottom: 1px solid #eee; padding: 10px 0; margin-bottom: 5px; }
-            .rubro-title { font-size: 13px; color: black; }
-            .img-preview { display: block !important; max-width: 200px; }
+            header { border-bottom: 2px solid #333 !important; margin-bottom: 15px !important; }
+            .rubro-card { border: none !important; border-bottom: 1px solid #eee !important; padding: 10px 0 !important; margin-bottom: 5px !important; page-break-inside: avoid !important; }
+            .rubro-title { font-size: 13px !important; color: black !important; }
+            .img-preview { display: block !important; max-width: 200px !important; }
             
-            label { font-size: 11px; color: #000; font-weight: bold; }
-            input, select, textarea { border: none !important; font-size: 12px; padding: 0; color: black !important; }
-            .sig-container { border: 1px solid #000; height: 100px; }
+            label { font-size: 11px !important; color: #000 !important; font-weight: bold !important; }
+            input, select, textarea { border: none !important; font-size: 12px !important; padding: 0 !important; color: black !important; background: transparent !important; }
+            .sig-container { border: 1px solid #000 !important; height: 100px !important; }
         }
     </style>
 </head>
