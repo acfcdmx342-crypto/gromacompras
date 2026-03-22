@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Evaluación de Sucursales - Reporte IT</title>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
     <style>
         :root {
             --primary: #003366;
@@ -47,26 +49,19 @@
 
         .btn { padding: 14px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; margin-top: 10px; transition: opacity 0.3s; }
         .btn-next { background: var(--primary); color: white; }
-        .btn-save { background: #2ecc71; color: white; margin-top: 25px; }
+        .btn-pdf { background: #34495e; color: white; } /* Botón para PDF */
+        .btn-save { background: #2ecc71; color: white; } /* Botón para guardar */
         .btn-clear { background: #f1f2f6; color: #57606f; font-size: 11px; padding: 4px 10px; width: auto; border: 1px solid #ced4da; margin-top: 5px; }
 
         @media print {
-            body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .container { box-shadow: none !important; width: 100% !important; padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
-            .section { display: block !important; opacity: 1 !important; padding: 10px 0 !important; border: none !important; }
-            #sec1, .btn, .btn-clear, input[type="file"] { display: none !important; }
-            .status-btn:not(.selected-cumple):not(.selected-nocumple) { display: none !important; }
-            .status-btn { border: 2px solid black !important; color: black !important; background: transparent !important; display: inline-block !important; }
-            .rubro-card { border: none !important; border-bottom: 1px solid #eee !important; page-break-inside: avoid !important; }
-            .img-preview { display: block !important; max-width: 200px !important; }
-            .sig-container { border: 1px solid #000 !important; height: 100px !important; }
-            .logo-container { display: block !important; }
+            .section { display: block !important; margin-bottom: 20px; }
+            .btn, .btn-clear, input[type="file"] { display: none !important; }
         }
     </style>
 </head>
 <body>
 
-<div class="container">
+<div class="container" id="reporte-total">
     <section id="sec1" class="section active">
         <header>
             <div class="logo-container">
@@ -138,7 +133,9 @@
                 <button class="btn-clear" onclick="sigSistemas.clear()">Borrar Firma</button>
             </div>
         </div>
-        <button class="btn btn-save" onclick="finalizarReporte()">FINALIZAR Y GUARDAR VISITA</button>
+        
+        <button class="btn btn-pdf" onclick="generarPDF()">1. GENERAR REPORTE (PDF)</button>
+        <button class="btn btn-save" onclick="finalizarYRedirigir()">2. GUARDAR EN HISTORIAL Y SALIR</button>
     </section>
 </div>
 
@@ -315,7 +312,6 @@
 
     function validarSiguiente(actual, sig) {
         if(actual === 1 && !document.getElementById('selSucursal').value) return alert("Seleccione sucursal");
-        
         const empresaSel = document.getElementById('selEmpresa').value;
         const limite = (empresaSel === "FERREPRECIOS") ? 4 : 6;
 
@@ -340,14 +336,42 @@
         document.getElementById('sec-final').classList.add('active');
     }
 
-    function finalizarReporte() {
+    // NUEVA FUNCIÓN: Genera el PDF sin redirigir
+    function generarPDF() {
+        if(sigEncargado.isEmpty() || sigSistemas.isEmpty()) return alert("Debe firmar antes de generar el PDF.");
+        
+        const elemento = document.getElementById('reporte-total');
+        const sucursal = document.getElementById('selSucursal').value || "Sucursal";
+        const folio = document.getElementById('folio_soporte').value || "Sinfolio";
+
+        const opciones = {
+            margin: 10,
+            filename: `Evaluacion_${sucursal}_${folio}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        // Muestra todas las secciones temporalmente para que el PDF las capture
+        document.querySelectorAll('.section').forEach(s => s.style.display = 'block');
+
+        html2pdf().set(opciones).from(elemento).save().then(() => {
+            // Regresa a la vista normal de la sección final
+            document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+            document.getElementById('sec-final').style.display = 'block';
+            alert("PDF generado con éxito. Ya puede guardarlo.");
+        });
+    }
+
+    // MODIFICADA: Guarda datos y redirige
+    function finalizarYRedirigir() {
         const folio = document.getElementById('folio_soporte').value.trim();
         const fecha = document.getElementById('fecha_solucion').value;
 
         if(!folio || !fecha) return alert("Folio y Fecha son obligatorios.");
         if(sigEncargado.isEmpty() || sigSistemas.isEmpty()) return alert("Ambas firmas son obligatorias.");
 
-        // Guardar datos en LocalStorage para visitas.html
+        // Guardar datos en LocalStorage
         const nuevaVisita = {
             fecha: document.getElementById('fecha_inicio').value,
             empresa: document.getElementById('selEmpresa').value,
@@ -360,7 +384,7 @@
         historial.push(nuevaVisita);
         localStorage.setItem('visitasIT', JSON.stringify(historial));
 
-        alert("Evaluación guardada con éxito. Redirigiendo a historial...");
+        alert("Información guardada en el historial. Redirigiendo...");
         window.location.href = "visitas.html";
     }
 </script>
