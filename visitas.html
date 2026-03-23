@@ -11,12 +11,13 @@
             --accent: #27ae60;
             --danger: #e74c3c;
             --border: #d1d8e0;
+            --warning: #f39c12;
         }
 
         body { font-family: 'Segoe UI', sans-serif; background: var(--secondary); padding: 20px; color: #333; }
         
         .card { 
-            max-width: 1200px; 
+            max-width: 1300px; 
             margin: 0 auto; 
             background: white; 
             padding: 25px; 
@@ -51,20 +52,22 @@
         th, td { padding: 10px; border: 1px solid var(--border); text-align: left; }
         th { background: #f8f9fa; color: var(--primary); }
         
-        .actions-cell { display: flex; gap: 8px; }
+        .actions-cell { display: flex; gap: 5px; flex-wrap: wrap; }
 
         .btn-action { 
             border: none; 
-            padding: 6px 10px; 
+            padding: 6px 8px; 
             cursor: pointer; 
             border-radius: 4px;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: bold;
             color: white;
             transition: opacity 0.2s;
+            text-transform: uppercase;
         }
 
         .btn-view { background: var(--primary); }
+        .btn-note { background: var(--warning); }
         .btn-delete { background: var(--danger); }
         .btn-action:hover { opacity: 0.8; }
 
@@ -82,8 +85,8 @@
         .fail-item b { color: #2c3e50; display: block; }
         .badge-resp { font-size: 10px; background: #ddd; padding: 2px 6px; border-radius: 10px; }
         
-        /* Estilo para celdas de texto largo */
-        .obs-text { max-width: 200px; white-space: normal; word-wrap: break-word; font-style: italic; color: #666; }
+        .obs-text { max-width: 250px; white-space: normal; word-wrap: break-word; font-style: italic; color: #555; line-height: 1.4; }
+        .nota-adicional { color: var(--primary); font-weight: bold; display: block; margin-top: 4px; border-top: 1px dashed #ccc; padding-top: 2px; }
     </style>
 </head>
 <body>
@@ -105,7 +108,7 @@
                 <th>%</th>
                 <th>Fecha Tentativa</th>
                 <th>Observaciones</th>
-                <th style="width: 140px;">Acciones</th>
+                <th style="width: 180px;">Acciones</th>
             </tr>
         </thead>
         <tbody></tbody>
@@ -129,7 +132,10 @@
 
         [...historial].reverse().forEach((visita) => {
             const tr = document.createElement('tr');
-            // Nota: Usamos visita.zona y visita.fechaSolucion porque así los nombramos en Checklist.html
+            
+            // Procesamos las observaciones para que las notas adicionales se vean distintas
+            let obsHtml = visita.observaciones || 'Sin observaciones';
+            
             tr.innerHTML = `
                 <td>${visita.fecha || 'N/A'}</td>
                 <td>${visita.empresa || '-'}</td>
@@ -138,9 +144,10 @@
                 <td><small>${visita.folio || '-'}</small></td>
                 <td style="font-weight:bold;">${visita.cumplimiento || '0%'}</td>
                 <td>${visita.fechaSolucion || '-'}</td>
-                <td class="obs-text">${visita.observaciones || 'Sin observaciones'}</td>
+                <td class="obs-text">${obsHtml}</td>
                 <td class="actions-cell">
                     <button class="btn-action btn-view" onclick="verPendientes(${visita.id})">VER</button>
+                    <button class="btn-action btn-note" onclick="agregarNota(${visita.id})">NOTA</button>
                     <button class="btn-action btn-delete" onclick="eliminarRegistro(${visita.id})">BORRAR</button>
                 </td>
             `;
@@ -149,6 +156,26 @@
 
         if(historial.length === 0) {
             tbody.innerHTML = "<tr><td colspan='9' style='text-align:center;'>Sin registros en el historial.</td></tr>";
+        }
+    }
+
+    function agregarNota(id) {
+        let historial = JSON.parse(localStorage.getItem('visitasIT')) || [];
+        const index = historial.findIndex(v => v.id === id);
+        
+        if (index !== -1) {
+            const nuevaNota = prompt("Escribe la nota adicional que deseas agregar:");
+            
+            if (nuevaNota && nuevaNota.trim() !== "") {
+                const fechaHoy = new Date().toLocaleDateString();
+                // Agregamos la nota con un formato que la distinga
+                const notaFormateada = `\n[Nota ${fechaHoy}: ${nuevaNota.trim()}]`;
+                
+                historial[index].observaciones = (historial[index].observaciones || "") + notaFormateada;
+                
+                localStorage.setItem('visitasIT', JSON.stringify(historial));
+                cargarHistorial(); // Refrescar tabla
+            }
         }
     }
 
