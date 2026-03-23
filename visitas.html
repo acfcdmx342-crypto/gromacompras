@@ -16,7 +16,7 @@
         body { font-family: 'Segoe UI', sans-serif; background: var(--secondary); padding: 20px; color: #333; }
         
         .card { 
-            max-width: 950px; 
+            max-width: 1200px; 
             margin: 0 auto; 
             background: white; 
             padding: 25px; 
@@ -47,8 +47,8 @@
         }
         .btn-nav:hover { background: #002244; }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
-        th, td { padding: 12px; border: 1px solid var(--border); text-align: left; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        th, td { padding: 10px; border: 1px solid var(--border); text-align: left; }
         th { background: #f8f9fa; color: var(--primary); }
         
         .actions-cell { display: flex; gap: 8px; }
@@ -81,6 +81,9 @@
         }
         .fail-item b { color: #2c3e50; display: block; }
         .badge-resp { font-size: 10px; background: #ddd; padding: 2px 6px; border-radius: 10px; }
+        
+        /* Estilo para celdas de texto largo */
+        .obs-text { max-width: 200px; white-space: normal; word-wrap: break-word; font-style: italic; color: #666; }
     </style>
 </head>
 <body>
@@ -95,10 +98,14 @@
         <thead>
             <tr>
                 <th>Fecha</th>
+                <th>Empresa</th>
+                <th>Zona</th>
                 <th>Sucursal</th>
                 <th>Folio</th>
                 <th>%</th>
-                <th style="width: 150px;">Acciones</th>
+                <th>Fecha Tentativa</th>
+                <th>Observaciones</th>
+                <th style="width: 140px;">Acciones</th>
             </tr>
         </thead>
         <tbody></tbody>
@@ -120,24 +127,27 @@
         const tbody = document.querySelector('#tablaVisitas tbody');
         tbody.innerHTML = "";
 
-        // Mostramos los registros (el más reciente arriba)
         [...historial].reverse().forEach((visita) => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${visita.fecha || 'N/A'}</td>
+                <td>${visita.empresa || '-'}</td>
+                <td>${visita.zona || '-'}</td>
                 <td>${visita.sucursal}</td>
                 <td><small>${visita.folio}</small></td>
                 <td style="font-weight:bold;">${visita.cumplimiento}</td>
+                <td>${visita.fechaSolucion || '-'}</td>
+                <td class="obs-text">${visita.observaciones || 'Sin observaciones'}</td>
                 <td class="actions-cell">
                     <button class="btn-action btn-view" onclick="verPendientes(${visita.id})">VER</button>
-                    <button class="btn-action btn-delete" onclick="eliminarRegistro(${visita.id})">ELIMINAR</button>
+                    <button class="btn-action btn-delete" onclick="eliminarRegistro(${visita.id})">BORRAR</button>
                 </td>
             `;
             tbody.appendChild(tr);
         });
 
         if(historial.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Sin registros.</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='9' style='text-align:center;'>Sin registros en el historial.</td></tr>";
         }
     }
 
@@ -164,7 +174,7 @@
             }
         }
 
-        if (!hayPendientes) lista.innerHTML = "<p style='text-align:center'>✅ Sin pendientes.</p>";
+        if (!hayPendientes) lista.innerHTML = "<p style='text-align:center'>✅ Sin pendientes en esta evaluación.</p>";
         document.getElementById('modalPendientes').style.display = "block";
     }
 
@@ -173,7 +183,7 @@
             let historial = JSON.parse(localStorage.getItem('visitasIT')) || [];
             historial = historial.filter(v => v.id !== id);
             localStorage.setItem('visitasIT', JSON.stringify(historial));
-            cargarHistorial(); // Refrescar tabla
+            cargarHistorial(); 
         }
     }
 
