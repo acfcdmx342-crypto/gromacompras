@@ -362,20 +362,27 @@
 
     function finalizarYRedirigir() {
         const folio = document.getElementById('folio_soporte').value.trim();
-        const fecha = document.getElementById('fecha_solucion').value;
+        const fechaSol = document.getElementById('fecha_solucion').value;
+        const zonaSel = document.getElementById('selZona').value;
+        const empresaSel = document.getElementById('selEmpresa').value;
+        const sucursalSel = document.getElementById('selSucursal').value;
+        const observacionesEnc = document.getElementById('obs_encargado').value;
 
-        if(!folio || !fecha) return alert("Folio y Fecha son obligatorios.");
+        if(!folio || !fechaSol) return alert("Folio y Fecha Tentativa son obligatorios.");
         if(sigEncargado.isEmpty() || sigSistemas.isEmpty()) return alert("Ambas firmas son obligatorias.");
 
-        // Guardar datos en LocalStorage con ID único y detalle completo
+        // Guardar datos en LocalStorage con ID único e incluyendo campos de zona, fecha tentativa y obs
         const nuevaVisita = {
-            id: Date.now(), // ID para vincular los detalles
+            id: Date.now(), 
             fecha: document.getElementById('fecha_inicio').value,
-            empresa: document.getElementById('selEmpresa').value,
-            sucursal: document.getElementById('selSucursal').value,
+            empresa: empresaSel,
+            zona: zonaSel,
+            sucursal: sucursalSel,
             folio: folio,
             cumplimiento: document.getElementById('final-score').innerText,
-            detalleEvaluacion: evaluaciones // Se guarda el objeto completo
+            fechaSolucion: fechaSol,
+            observaciones: observacionesEnc,
+            detalleEvaluacion: evaluaciones 
         };
 
         let historial = JSON.parse(localStorage.getItem('visitasIT')) || [];
