@@ -91,7 +91,7 @@
 <div class="card">
     <div class="header-flex">
         <h2>Historial de Visitas IT</h2>
-        <a href="checklist.html" class="btn-nav">+ Nueva Evaluación</a>
+        <a href="Checklist.html" class="btn-nav">+ Nueva Evaluación</a>
     </div>
 
     <table id="tablaVisitas">
@@ -132,11 +132,11 @@
             tr.innerHTML = `
                 <td>${visita.fecha || 'N/A'}</td>
                 <td>${visita.empresa || '-'}</td>
-                <td>${visita.zona || '-'}</td>
+                <td>${visita.selZona || '-'}</td>
                 <td>${visita.sucursal}</td>
                 <td><small>${visita.folio}</small></td>
                 <td style="font-weight:bold;">${visita.cumplimiento}</td>
-                <td>${visita.fechaSolucion || '-'}</td>
+                <td>${visita.fecha_solucion || '-'}</td>
                 <td class="obs-text">${visita.observaciones || 'Sin observaciones'}</td>
                 <td class="actions-cell">
                     <button class="btn-action btn-view" onclick="verPendientes(${visita.id})">VER</button>
