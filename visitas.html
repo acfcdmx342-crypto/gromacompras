@@ -2,105 +2,106 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historial de Visitas - IT</title>
+    <title>Historial de Visitas IT</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #003366; margin-bottom: 20px; padding-bottom: 10px; }
-        h1 { color: #003366; margin: 0; }
-        .btn-back { background: #003366; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; }
+        body { font-family: sans-serif; background: #f4f7f6; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background: #f8f9fa; color: #003366; }
-        .badge { padding: 5px 10px; border-radius: 15px; font-size: 12px; font-weight: bold; }
-        .badge-high { background: #d4edda; color: #155724; }
-        .badge-low { background: #f8d7da; color: #721c24; }
-        .no-data { text-align: center; padding: 40px; color: #999; }
-        .btn-delete { background: #ff4757; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background: #003366; color: white; }
+        .btn-ver { background: #e74c3c; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px; }
+        
+        /* Estilos del Modal */
+        .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: white; margin: 10% auto; padding: 20px; width: 50%; border-radius: 8px; }
+        .close { float: right; cursor: pointer; font-size: 24px; font-weight: bold; }
+        .fail-item { color: #c0392b; padding: 8px; border-bottom: 1px solid #eee; }
+        .fail-item b { color: #333; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <h1>Historial de Visitas IT</h1>
-        <a href="Checklist.html" class="btn-back">Nueva Evaluación</a>
-    </header>
-
+<div class="card">
+    <h2>Historial de Visitas de Mantenimiento</h2>
     <table id="tablaVisitas">
         <thead>
             <tr>
-                <th>Fecha/Hora</th>
-                <th>Empresa</th>
+                <th>Fecha</th>
                 <th>Sucursal</th>
                 <th>Folio</th>
-                <th>Cumplimiento</th>
-                <th>Acción</th>
+                <th>% Cumplimiento</th>
+                <th>Pendientes IT</th>
             </tr>
         </thead>
-        <tbody id="listaCuerpo">
-            </tbody>
+        <tbody></tbody>
     </table>
-    <div id="mensajeVacio" class="no-data" style="display: none;">No hay visitas registradas aún.</div>
-    
-    <div style="margin-top: 30px; text-align: right;">
-        <button onclick="borrarTodo()" class="btn-delete" style="padding: 10px 20px; font-size: 14px;">Borrar todo el historial</button>
+</div>
+
+<div id="modalPendientes" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="cerrarModal()">&times;</span>
+        <h3 id="modalTitulo">Pendientes de la Sucursal</h3>
+        <div id="listaPendientes"></div>
     </div>
 </div>
 
 <script>
-    function cargarVisitas() {
-        const cuerpo = document.getElementById('listaCuerpo');
-        const mensaje = document.getElementById('mensajeVacio');
+    function cargarHistorial() {
         const historial = JSON.parse(localStorage.getItem('visitasIT')) || [];
+        const tbody = document.querySelector('#tablaVisitas tbody');
+        tbody.innerHTML = "";
 
-        cuerpo.innerHTML = "";
-
-        if (historial.length === 0) {
-            mensaje.style.display = "block";
-            return;
-        }
-
-        mensaje.style.display = "none";
-
-        // Mostrar de la más reciente a la más antigua
-        historial.reverse().forEach((visita, index) => {
-            const row = cuerpo.insertRow();
-            const scoreInt = parseInt(visita.cumplimiento);
-            const badgeClass = scoreInt >= 80 ? 'badge-high' : 'badge-low';
-
-            row.innerHTML = `
+        historial.forEach(visita => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
                 <td>${visita.fecha}</td>
-                <td>${visita.empresa}</td>
                 <td>${visita.sucursal}</td>
-                <td><strong>${visita.folio}</strong></td>
-                <td><span class="badge ${badgeClass}">${visita.cumplimiento}</span></td>
-                <td><button class="btn-delete" onclick="borrarUna(${index})">Eliminar</button></td>
+                <td>${visita.folio}</td>
+                <td><b>${visita.cumplimiento}</b></td>
+                <td>
+                    <button class="btn-ver" onclick="verPendientes(${visita.id})">Ver Fallos</button>
+                </td>
             `;
+            tbody.appendChild(tr);
         });
     }
 
-    function borrarUna(index) {
-        if(confirm("¿Eliminar este registro?")) {
-            let historial = JSON.parse(localStorage.getItem('visitasIT')) || [];
-            historial.reverse(); // Invertir para que coincida con la visualización
-            historial.splice(index, 1);
-            historial.reverse(); // Volver al orden original
-            localStorage.setItem('visitasIT', JSON.stringify(historial));
-            cargarVisitas();
+    function verPendientes(id) {
+        const historial = JSON.parse(localStorage.getItem('visitasIT')) || [];
+        const visita = historial.find(v => v.id === id);
+        const lista = document.getElementById('listaPendientes');
+        const modal = document.getElementById('modalPendientes');
+        
+        document.getElementById('modalTitulo').innerText = `Pendientes: ${visita.sucursal} (Folio: ${visita.folio})`;
+        lista.innerHTML = "";
+
+        // Filtramos solo los que tienen cumple === false
+        let hayPendientes = false;
+        for (let key in visita.detalleEvaluacion) {
+            const item = visita.detalleEvaluacion[key];
+            if (item.cumple === false) {
+                hayPendientes = true;
+                const div = document.createElement('div');
+                div.className = "fail-item";
+                div.innerHTML = `• <b>${item.titulo}</b> - Responsable: ${item.responsable}`;
+                lista.appendChild(div);
+            }
         }
+
+        if (!hayPendientes) lista.innerHTML = "<p>✅ ¡Esta sucursal cumplió con todo!</p>";
+
+        modal.style.display = "block";
     }
 
-    function borrarTodo() {
-        if(confirm("¿Estás seguro de borrar TODO el historial? Esta acción no se puede deshacer.")) {
-            localStorage.removeItem('visitasIT');
-            cargarVisitas();
-        }
+    function cerrarModal() {
+        document.getElementById('modalPendientes').style.display = "none";
     }
 
-    // Cargar al iniciar
-    window.onload = cargarVisitas;
+    window.onclick = (event) => {
+        if (event.target == document.getElementById('modalPendientes')) cerrarModal();
+    }
+
+    window.onload = cargarHistorial;
 </script>
 
 </body>
