@@ -129,14 +129,15 @@
 
         [...historial].reverse().forEach((visita) => {
             const tr = document.createElement('tr');
+            // Nota: Usamos visita.zona y visita.fechaSolucion porque así los nombramos en Checklist.html
             tr.innerHTML = `
                 <td>${visita.fecha || 'N/A'}</td>
                 <td>${visita.empresa || '-'}</td>
-                <td>${visita.selZona || '-'}</td>
-                <td>${visita.sucursal}</td>
-                <td><small>${visita.folio}</small></td>
-                <td style="font-weight:bold;">${visita.cumplimiento}</td>
-                <td>${visita.fecha_solucion || '-'}</td>
+                <td>${visita.zona || '-'}</td>
+                <td>${visita.sucursal || '-'}</td>
+                <td><small>${visita.folio || '-'}</small></td>
+                <td style="font-weight:bold;">${visita.cumplimiento || '0%'}</td>
+                <td>${visita.fechaSolucion || '-'}</td>
                 <td class="obs-text">${visita.observaciones || 'Sin observaciones'}</td>
                 <td class="actions-cell">
                     <button class="btn-action btn-view" onclick="verPendientes(${visita.id})">VER</button>
