@@ -49,8 +49,8 @@
 
         .btn { padding: 14px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; margin-top: 10px; transition: opacity 0.3s; }
         .btn-next { background: var(--primary); color: white; }
-        .btn-pdf { background: #34495e; color: white; } /* Botón para PDF */
-        .btn-save { background: #2ecc71; color: white; } /* Botón para guardar */
+        .btn-pdf { background: #34495e; color: white; }
+        .btn-save { background: #2ecc71; color: white; }
         .btn-clear { background: #f1f2f6; color: #57606f; font-size: 11px; padding: 4px 10px; width: auto; border: 1px solid #ced4da; margin-top: 5px; }
 
         @media print {
@@ -336,7 +336,6 @@
         document.getElementById('sec-final').classList.add('active');
     }
 
-    // NUEVA FUNCIÓN: Genera el PDF sin redirigir
     function generarPDF() {
         if(sigEncargado.isEmpty() || sigSistemas.isEmpty()) return alert("Debe firmar antes de generar el PDF.");
         
@@ -352,18 +351,15 @@
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
-        // Muestra todas las secciones temporalmente para que el PDF las capture
         document.querySelectorAll('.section').forEach(s => s.style.display = 'block');
 
         html2pdf().set(opciones).from(elemento).save().then(() => {
-            // Regresa a la vista normal de la sección final
             document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
             document.getElementById('sec-final').style.display = 'block';
             alert("PDF generado con éxito. Ya puede guardarlo.");
         });
     }
 
-    // MODIFICADA: Guarda datos y redirige
     function finalizarYRedirigir() {
         const folio = document.getElementById('folio_soporte').value.trim();
         const fecha = document.getElementById('fecha_solucion').value;
@@ -371,13 +367,15 @@
         if(!folio || !fecha) return alert("Folio y Fecha son obligatorios.");
         if(sigEncargado.isEmpty() || sigSistemas.isEmpty()) return alert("Ambas firmas son obligatorias.");
 
-        // Guardar datos en LocalStorage
+        // Guardar datos en LocalStorage con ID único y detalle completo
         const nuevaVisita = {
+            id: Date.now(), // ID para vincular los detalles
             fecha: document.getElementById('fecha_inicio').value,
             empresa: document.getElementById('selEmpresa').value,
             sucursal: document.getElementById('selSucursal').value,
             folio: folio,
-            cumplimiento: document.getElementById('final-score').innerText
+            cumplimiento: document.getElementById('final-score').innerText,
+            detalleEvaluacion: evaluaciones // Se guarda el objeto completo
         };
 
         let historial = JSON.parse(localStorage.getItem('visitasIT')) || [];
