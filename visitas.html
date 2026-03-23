@@ -16,7 +16,7 @@
         body { font-family: 'Segoe UI', sans-serif; background: var(--secondary); padding: 20px; color: #333; }
         
         .card { 
-            max-width: 900px; 
+            max-width: 950px; 
             margin: 0 auto; 
             background: white; 
             padding: 25px; 
@@ -35,7 +35,6 @@
 
         h2 { margin: 0; color: var(--primary); }
 
-        /* Botón Regresar / Nueva Evaluación */
         .btn-nav {
             background: var(--primary);
             color: white;
@@ -48,43 +47,40 @@
         }
         .btn-nav:hover { background: #002244; }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
         th, td { padding: 12px; border: 1px solid var(--border); text-align: left; }
-        th { background: #f8f9fa; color: var(--primary); font-size: 14px; }
+        th { background: #f8f9fa; color: var(--primary); }
         
-        .btn-ver { 
-            background: var(--danger); 
-            color: white; 
+        .actions-cell { display: flex; gap: 8px; }
+
+        .btn-action { 
             border: none; 
-            padding: 6px 12px; 
+            padding: 6px 10px; 
             cursor: pointer; 
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: bold;
+            color: white;
+            transition: opacity 0.2s;
         }
-        .btn-ver:hover { opacity: 0.8; }
+
+        .btn-view { background: var(--primary); }
+        .btn-delete { background: var(--danger); }
+        .btn-action:hover { opacity: 0.8; }
 
         /* Modal */
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); }
         .modal-content { background: white; margin: 5% auto; padding: 25px; width: 50%; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
         .close { float: right; cursor: pointer; font-size: 28px; font-weight: bold; color: #999; }
-        .close:hover { color: #333; }
 
         .fail-item { 
             padding: 12px; 
             border-left: 4px solid var(--danger); 
             background: #fff5f5; 
             margin-bottom: 8px; 
-            border-bottom: 1px solid #eee;
         }
-        .fail-item b { color: #2c3e50; display: block; margin-bottom: 3px; }
-        .badge-resp { 
-            font-size: 10px; 
-            background: #e0e0e0; 
-            padding: 2px 6px; 
-            border-radius: 10px; 
-            text-transform: uppercase;
-        }
+        .fail-item b { color: #2c3e50; display: block; }
+        .badge-resp { font-size: 10px; background: #ddd; padding: 2px 6px; border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -101,19 +97,18 @@
                 <th>Fecha</th>
                 <th>Sucursal</th>
                 <th>Folio</th>
-                <th>Cumplimiento</th>
-                <th>Acciones</th>
+                <th>%</th>
+                <th style="width: 150px;">Acciones</th>
             </tr>
         </thead>
-        <tbody>
-            </tbody>
+        <tbody></tbody>
     </table>
 </div>
 
 <div id="modalPendientes" class="modal">
     <div class="modal-content">
         <span class="close" onclick="cerrarModal()">&times;</span>
-        <h3 id="modalTitulo" style="color: var(--primary);">Pendientes Identificados</h3>
+        <h3 id="modalTitulo">Detalles de la Visita</h3>
         <hr>
         <div id="listaPendientes" style="max-height: 400px; overflow-y: auto; margin-top: 15px;"></div>
     </div>
@@ -125,40 +120,37 @@
         const tbody = document.querySelector('#tablaVisitas tbody');
         tbody.innerHTML = "";
 
-        // Ordenar por fecha (más reciente primero)
-        historial.reverse().forEach(visita => {
+        // Mostramos los registros (el más reciente arriba)
+        [...historial].reverse().forEach((visita) => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${visita.fecha || 'N/A'}</td>
                 <td>${visita.sucursal}</td>
                 <td><small>${visita.folio}</small></td>
-                <td style="font-weight:bold; color: var(--accent)">${visita.cumplimiento}</td>
-                <td>
-                    <button class="btn-ver" onclick="verPendientes(${visita.id})">Ver Fallos</button>
+                <td style="font-weight:bold;">${visita.cumplimiento}</td>
+                <td class="actions-cell">
+                    <button class="btn-action btn-view" onclick="verPendientes(${visita.id})">VER</button>
+                    <button class="btn-action btn-delete" onclick="eliminarRegistro(${visita.id})">ELIMINAR</button>
                 </td>
             `;
             tbody.appendChild(tr);
         });
 
         if(historial.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>No hay registros en el historial.</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Sin registros.</td></tr>";
         }
     }
 
     function verPendientes(id) {
         const historial = JSON.parse(localStorage.getItem('visitasIT')) || [];
         const visita = historial.find(v => v.id === id);
-        const lista = document.getElementById('listaPendientes');
-        const modal = document.getElementById('modalPendientes');
-        
         if(!visita) return;
 
-        document.getElementById('modalTitulo').innerText = `${visita.sucursal} - Folio: ${visita.folio}`;
+        const lista = document.getElementById('listaPendientes');
+        document.getElementById('modalTitulo').innerText = `${visita.sucursal} (Folio: ${visita.folio})`;
         lista.innerHTML = "";
 
         let hayPendientes = false;
-        
-        // Recorremos el detalle guardado
         if(visita.detalleEvaluacion) {
             for (let key in visita.detalleEvaluacion) {
                 const item = visita.detalleEvaluacion[key];
@@ -166,30 +158,31 @@
                     hayPendientes = true;
                     const div = document.createElement('div');
                     div.className = "fail-item";
-                    div.innerHTML = `
-                        <b>${item.titulo}</b>
-                        <span class="badge-resp">Resp: ${item.responsable}</span>
-                    `;
+                    div.innerHTML = `<b>${item.titulo}</b><span class="badge-resp">Resp: ${item.responsable}</span>`;
                     lista.appendChild(div);
                 }
             }
         }
 
-        if (!hayPendientes) {
-            lista.innerHTML = "<div style='text-align:center; padding:20px;'>✅ Todo se encontraba en orden en esta visita.</div>";
-        }
+        if (!hayPendientes) lista.innerHTML = "<p style='text-align:center'>✅ Sin pendientes.</p>";
+        document.getElementById('modalPendientes').style.display = "block";
+    }
 
-        modal.style.display = "block";
+    function eliminarRegistro(id) {
+        if(confirm("¿Estás seguro de eliminar este registro del historial? Esta acción no se puede deshacer.")) {
+            let historial = JSON.parse(localStorage.getItem('visitasIT')) || [];
+            historial = historial.filter(v => v.id !== id);
+            localStorage.setItem('visitasIT', JSON.stringify(historial));
+            cargarHistorial(); // Refrescar tabla
+        }
     }
 
     function cerrarModal() {
         document.getElementById('modalPendientes').style.display = "none";
     }
 
-    // Cerrar modal al hacer clic fuera de él
     window.onclick = (event) => {
-        const modal = document.getElementById('modalPendientes');
-        if (event.target == modal) cerrarModal();
+        if (event.target == document.getElementById('modalPendientes')) cerrarModal();
     }
 
     window.onload = cargarHistorial;
