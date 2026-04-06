@@ -30,16 +30,17 @@
             align-items: center; flex-direction: column; 
         }
 
+        /* Clase para celda gris oscuro */
+        .cell-dark-grey { background-color: #495057 !important; color: #495057 !important; }
+
         /* --- CORRECCIÓN MODO OSCURO --- */
         body.dark-mode { background: #121416 !important; color: #ffffff; }
         body.dark-mode .card { background: #1d1f21 !important; color: #ffffff; border: 1px solid #333; }
         body.dark-mode .table { color: #ffffff !important; border-color: #444 !important; }
         
-        /* Cabecera de tabla en modo oscuro */
         body.dark-mode .table thead { background-color: #000 !important; }
         body.dark-mode .table thead th { color: #0d6efd !important; border-bottom: 2px solid #333; }
         
-        /* Filas dinámicas en modo oscuro */
         body.dark-mode .st-eliminado { background-color: #44272a !important; color: #ffbabb !important; }
         body.dark-mode .st-confirmado { background-color: #1e3028 !important; color: #a3cfbb !important; }
         body.dark-mode .st-pendiente { background-color: #332b00 !important; color: #ffe69c !important; }
@@ -51,6 +52,15 @@
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; transition: 0.3s;
         }
+
+.motivo-texto {
+    max-width: 220px;
+    display: inline-block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+}
     </style>
     <script>
         if(localStorage.getItem('themeSeguimiento') === 'dark') {
@@ -91,6 +101,8 @@
                         <th>Folio</th>
                         <th>Empresa</th>
                         <th>Sucursal</th>
+                        <th>Tipo</th>
+                        <th>Costo</th>
                         <th>Status Final</th>
                         <th>Motivo/Comentario</th>
                         <th>Evidencia</th> 
@@ -100,16 +112,14 @@
                         <th>Tiempo</th> 
                     </tr>
                 </thead>
-                <tbody id="historialBody"></tbody>
+              <tbody id="historialBody"></tbody>
             </table>
         </div>
     </div>
 </div>
-
 <script>
     const btnMode = document.getElementById('btnDarkMode');
     const iconMode = btnMode.querySelector('i');
-
     function aplicarTema(isDark) {
         if(isDark) {
             document.body.classList.add('dark-mode');
@@ -185,40 +195,58 @@ async function cargarHistorial() {
         datosParaExportar = [];
         
         if (!snapPerm.exists()) {
-            body.innerHTML = "<tr><td colspan='10'>No hay registros</td></tr>";
+            body.innerHTML = "<tr><td colspan='12'>No hay registros</td></tr>";
+            window.ocultarCargando();
             return;
         }
 
-       snapPerm.forEach(c => {
+        snapPerm.forEach(c => {
             const s = c.val();
+            
+            // --- LÓGICA DE TIPO Y COSTO (UNIFICADA) ---
+            const tipoReal = (s.tipo || (s.colorCenter ? "COLOR CENTER" : (s.solicitudLocal ? "LOCAL" : "COMPRAS"))).toUpperCase();
+            const esColorCenter = tipoReal === "COLOR CENTER";
+            let valorCosto = "---";
+            let claseCosto = "text-muted";
+           if(esColorCenter && s.costo){
+    valorCosto = `$${parseFloat(s.costo).toLocaleString('es-MX', {minimumFractionDigits: 2})}`;
+    claseCosto = "fw-bold text-success";
+} else if(esColorCenter){
+    valorCosto = "PENDIENTE";
+    claseCosto = "text-warning fw-bold";
+} else {
+    claseCosto = "cell-dark-grey";
+}
             const soporteAsignado = (s.soporte || "").toUpperCase();
             const usuarioCreador = (s.usuario || "").toUpperCase();
             
             if (!puedeVerTodo) {
                 if (soporteAsignado !== nombreSesion && usuarioCreador !== nombreSesion) return; 
             }
+const segsRaw = s.seguimientos || [];
+const segs = Array.isArray(segsRaw) 
+    ? segsRaw 
+    : Object.values(segsRaw);
 
-            const segsRaw = s.seguimientos || [];
-            const segs = Array.isArray(segsRaw) ? segsRaw : Object.values(segsRaw);
+// 🔥 ORDENAR POR FECHA (para ver todo correctamente)
+segs.sort((a, b) => new Date(a.fechaRegistro) - new Date(b.fechaRegistro));
+            
             const estaEliminado = s.status === "ELIMINADO" || s.eliminado === true;
-            
-            const segConf = segs.find(x => x.status === "CONFIRMADO");
-            
-            let claseFila = estaEliminado ? "st-eliminado" : (s.status === "PENDIENTE" ? "st-pendiente" : "st-confirmado");
+            const ultimoSeg = segs.length > 0 ? segs[segs.length - 1] : null;
+           let claseFila = estaEliminado ? "st-eliminado" : (s.status === "PENDIENTE" ? "st-pendiente" : "st-confirmado");
             let badgeClass = estaEliminado ? 'badge-del' : (s.status === "PENDIENTE" ? 'badge-warn' : 'badge-ok');
             let iconBadge = estaEliminado ? 'fa-trash-can' : (s.status === "PENDIENTE" ? 'fa-clock' : 'fa-check-double');
             
             let motivo = estaEliminado 
                 ? `❌ ELIMINADO: ${s.motivoEliminacion || "SIN MOTIVO"}` 
-                : (segConf?.comentarios || s.comentarios || "ENTREGA REALIZADA");
+                : (ultimoSeg?.comentarios || s.comentarios || "ENTREGA REALIZADA");
 
-            let fotoAMostrar = segConf?.evidenciaImagen || s.evidenciaImagen || segConf?.fotoEvidencia || s.evidenciaFoto;
+            let fotoAMostrar = ultimoSeg?.evidenciaImagen || s.evidenciaImagen;
 
             let fechaCierreRaw = estaEliminado 
                 ? (s.fechaDepuracion || "---") 
-                : (segConf?.fechaRegistro || s.fechaCierre || "---");
+                : (ultimoSeg?.fechaRegistro || s.fechaCierre || "---");
             
-            // --- INICIO DE CAMBIO SUGERIDO PARA FECHAS ---
             let fInicio = s.fechaISO ? new Date(s.fechaISO) : limpiarFecha(s.fechaEnvio);
             let fFin = limpiarFecha(fechaCierreRaw);
             let tiempoEntrega = "N/A";
@@ -229,7 +257,6 @@ async function cargarHistorial() {
                 tiempoEntrega = dias > 0 ? `${dias}d ${horas}h` : horas > 0 ? `${horas}h ${mins}m` : `${mins}m`;
             }
 
-            // Formateo de Fecha Registro para la tabla
             let fechaRegistroAMostrar = "---";
             if (s.fechaISO) {
                 fechaRegistroAMostrar = new Date(s.fechaISO).toLocaleString('es-MX', {
@@ -239,17 +266,15 @@ async function cargarHistorial() {
                 fechaRegistroAMostrar = s.fechaEnvio || s.fechaRegistro;
             }
 
-            // Formateo de Fecha Cierre para la tabla
             let fechaCierreBonita = "---";
             if (fechaCierreRaw !== "---") {
                 fechaCierreBonita = fechaCierreRaw.includes('T') 
                     ? new Date(fechaCierreRaw).toLocaleDateString('es-MX') 
                     : fechaCierreRaw.split(' ')[0];
             }
-            // --- FIN DE CAMBIO SUGERIDO ---
 
             datosParaExportar.push({ 
-                folio: s.folio, empresa: s.empresa, sucursal: s.sucursal, status: s.status || 'FINALIZADO', motivo, tiempo: tiempoEntrega 
+                folio: s.folio, empresa: s.empresa, sucursal: s.sucursal, tipo: tipoReal, costo: s.costo || 0, status: s.status || 'FINALIZADO', motivo, tiempo: tiempoEntrega 
             });
 
             body.innerHTML += `
@@ -257,8 +282,23 @@ async function cargarHistorial() {
                     <td class="fw-bold">${s.folio}</td>
                     <td>${s.empresa || '---'}</td>
                     <td>${s.sucursal || '---'}</td>
+                    <td class="small fw-bold">${tipoReal}</td>
+                    <td class="${claseCosto}">${valorCosto}</td>
                     <td><span class="badge ${badgeClass}"><i class="fa-solid ${iconBadge} me-1"></i>${s.status || 'FINALIZADO'}</span></td>
-                    <td class="small text-start">${motivo}</td>
+<!-- cambio de motivo -->
+      <td class="small text-start">
+    <span class="motivo-texto">${motivo}</span>
+    
+    ${segs.length > 0 ? `
+   <i class="fa-solid fa-ellipsis ms-2 text-primary"
+   style="cursor:pointer;"
+   title="Ver historial"
+   data-segs="${encodeURIComponent(JSON.stringify(segs))}"
+   data-folio="${s.folio}"
+   onclick="window.verHistorialDesdeElemento(this)">
+</i>
+    ` : ''}
+</td>                             
                     <td>${fotoAMostrar ? `<img src="${fotoAMostrar}" width="40" height="40" class="img-preview shadow-sm" onclick="window.verFoto('${fotoAMostrar}', '${s.folio}')">` : '---'}</td>
                     <td>
                         <button onclick="window.verPDF('${s.archivoData}')" class="btn btn-sm btn-secondary ${!s.archivoData ? 'disabled' : ''}">
@@ -279,12 +319,19 @@ async function cargarHistorial() {
 
 window.verPDF = d => { if(d && d !== '#') { const w = window.open(); w.document.write(`<iframe src="${d}" style="width:100%;height:100%; border:none;"></iframe>`); } };
 window.verFoto = (url, folio) => Swal.fire({ title: `Evidencia - ${folio}`, imageUrl: url, width: '600px', confirmButtonText: 'Cerrar' });
-
+window.verMotivoCompleto = (texto) => {
+    Swal.fire({
+        title: 'Motivo / Comentario',
+        html: `<div style="text-align:left; max-height:300px; overflow:auto;">${texto}</div>`,
+        width: '600px',
+        confirmButtonText: 'Cerrar'
+    });
+};
 window.descargarExcel = () => {
     if (window.esSoporteJR) return;
-    let csvContent = "\uFEFFLine,Folio,Empresa,Sucursal,Status,Motivo,Tiempo\n";
+    let csvContent = "\uFEFFLine,Folio,Empresa,Sucursal,Tipo,Costo,Status,Motivo,Tiempo\n";
     datosParaExportar.forEach((d, i) => {
-        csvContent += `${i+1},"${d.folio}","${d.empresa}","${d.sucursal}","${d.status}","${d.motivo.replace(/"/g, '""')}","${d.tiempo}"\n`;
+        csvContent += `${i+1},"${d.folio}","${d.empresa}","${d.sucursal}","${d.tipo}","${d.costo}","${d.status}","${d.motivo.replace(/"/g, '""')}","${d.tiempo}"\n`;
     });
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
@@ -292,10 +339,66 @@ window.descargarExcel = () => {
     link.download = `Historial_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
 };
- 
-document.addEventListener('contextmenu', e => e.preventDefault());
-document.onkeydown = e => {
-    if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
+// --- JS CORRECTO ---
+
+window.verHistorialDesdeElemento = (el) => {
+    const seguimientos = JSON.parse(decodeURIComponent(el.dataset.segs));
+    const folio = el.dataset.folio;
+
+    window.verHistorialModal(seguimientos, folio);
+};
+
+window.verHistorialModal = (seguimientos, folio) => {
+
+    let contenido = `
+        <div style="max-height:300px; overflow:auto;">
+            <table class="table table-sm text-start">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Status</th>
+                        <th>Detalle</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    seguimientos.forEach(s => {
+        contenido += `
+            <tr>
+                <td><small>${s.fechaRegistro || '---'}</small></td>
+                <td><span class="badge bg-info">${s.status || '---'}</span></td>
+                <td>
+    <b>ART:</b> ${s.descripcionArt || '---'}<br>
+
+    ${s.codigoRefaccion ? `<b>CÓDIGO:</b> ${s.codigoRefaccion}<br>` : ''}
+
+    ${s.costoRefaccion ? 
+        `<b>COSTO:</b> $${parseFloat(s.costoRefaccion).toLocaleString('es-MX', {minimumFractionDigits: 2})}<br>` 
+        : ''
+    }
+
+    <b>OBS:</b> ${s.comentarios || '---'}
+
+    ${s.evidenciaImagen ? `
+        <br>
+        <a href="#" onclick="Swal.fire({imageUrl: '${s.evidenciaImagen}', imageWidth: 400})">
+            Ver evidencia
+        </a>
+    ` : ''}
+</td>
+            </tr>
+        `;
+    });
+
+    contenido += `</tbody></table></div>`;
+
+    Swal.fire({
+        title: `Historial ${folio}`,
+        html: contenido,
+        width: '700px',
+        confirmButtonText: 'Cerrar'
+    });
 };
 </script>
 </body>
