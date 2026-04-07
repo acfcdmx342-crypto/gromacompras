@@ -138,6 +138,7 @@
         <button class="btn btn-save" onclick="finalizarYRedirigir()">2. GUARDAR EN HISTORIAL Y SALIR</button>
     </section>
 </div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getDatabase, ref, get, push } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -149,16 +150,16 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// ================== TU CÓDIGO ORIGINAL ==================
 let catalogoReal = [];
 let evaluaciones = {};
-let sigEncargado, sigSistemas;
+window.sigEncargado = null; // Hechas globales para acceso desde botones borrar
+window.sigSistemas = null;
 
 window.onload = async () => {
     document.getElementById('fecha_inicio').value = new Date().toLocaleString();
     await cargarBaseDatos();
-    sigEncargado = new SignaturePad(document.getElementById('pad-encargado'));
-    sigSistemas = new SignaturePad(document.getElementById('pad-sistemas'));
+    window.sigEncargado = new SignaturePad(document.getElementById('pad-encargado'));
+    window.sigSistemas = new SignaturePad(document.getElementById('pad-sistemas'));
 };
 
 async function cargarBaseDatos() {
@@ -166,30 +167,93 @@ async function cargarBaseDatos() {
         const snap = await get(ref(db, 'sucursales'));
         if(snap.exists()) {
             catalogoReal = Object.values(snap.val()).map(i => ({
-                empresa: i.empresa.toUpperCase(),
-                zona: i.zona.toUpperCase(),
-                nombre: i.nombre.toUpperCase()
+                empresa: String(i.empresa).toUpperCase(),
+                zona: String(i.zona).toUpperCase(),
+                nombre: String(i.nombre).toUpperCase()
             }));
 
             const sel = document.getElementById('selEmpresa');
             sel.innerHTML = '<option value="">Seleccione Empresa...</option>';
 
-            [...new Set(catalogoReal.map(c => c.empresa))]
-            .sort()
-            .forEach(e => sel.add(new Option(e, e)));
+            const empresasUnicas = [...new Set(catalogoReal.map(c => c.empresa))].sort();
+            empresasUnicas.forEach(e => sel.add(new Option(e, e)));
         }
     } catch (e) {
+        console.error(e);
         alert("Error de conexión con Firebase");
     }
 }
 
-// ================== GUARDAR EN FIREBASE ==================
-function finalizarYRedirigir() {
+// === FUNCIONES DE CAMBIO (EXPUESTAS A WINDOW) ===
+
+window.cambioEmpresa = function() {
+    const empresaSel = document.getElementById('selEmpresa').value;
+    const selZona = document.getElementById('selZona');
+    const selSuc = document.getElementById('selSucursal');
+
+    // Resetear hijos
+    selZona.innerHTML = '<option value="">Seleccione Zona...</option>';
+    selSuc.innerHTML = '<option value="">Seleccione Sucursal...</option>';
+    selSuc.disabled = true;
+
+    if (!empresaSel) {
+        selZona.disabled = true;
+        return;
+    }
+
+    const zonas = [...new Set(catalogoReal
+        .filter(c => c.empresa === empresaSel)
+        .map(c => c.zona))].sort();
+
+    zonas.forEach(z => selZona.add(new Option(z, z)));
+    selZona.disabled = false;
+};
+
+window.cargarSucursales = function() {
+    const empresaSel = document.getElementById('selEmpresa').value;
+    const zonaSel = document.getElementById('selZona').value;
+    const selSuc = document.getElementById('selSucursal');
+
+    selSuc.innerHTML = '<option value="">Seleccione Sucursal...</option>';
+
+    if (!zonaSel) {
+        selSuc.disabled = true;
+        return;
+    }
+
+    const sucursales = catalogoReal
+        .filter(c => c.empresa === empresaSel && c.zona === zonaSel)
+        .map(c => c.nombre)
+        .sort();
+
+    sucursales.forEach(s => selSuc.add(new Option(s, s)));
+    selSuc.disabled = false;
+};
+
+// === FUNCIONES DE NAVEGACIÓN Y GUARDADO ===
+
+window.validarSiguiente = function(actual, siguiente) {
+    if (actual === 1) {
+        const emp = document.getElementById('selEmpresa').value;
+        const zon = document.getElementById('selZona').value;
+        const suc = document.getElementById('selSucursal').value;
+        if (!emp || !zon || !suc) return alert("Seleccione todos los datos de la sucursal");
+    }
+    
+    document.getElementById(`sec${actual}`)?.classList.remove('active');
+    document.getElementById(`sec${siguiente}`)?.classList.add('active');
+    // Si no existe sec-final pero se llama, podrías manejarlo aquí
+    if (siguiente === 2 && !document.getElementById('sec2')) {
+        document.getElementById('sec-final').classList.add('active');
+    }
+};
+
+window.finalizarYRedirigir = function() {
     const folio = document.getElementById('folio_soporte').value.trim();
     const fechaSol = document.getElementById('fecha_solucion').value;
 
     if(!folio || !fechaSol) return alert("Folio y Fecha son obligatorios.");
-    if(sigEncargado.isEmpty() || sigSistemas.isEmpty()) return alert("Firmas obligatorias.");
+    if(window.sigEncargado.isEmpty() || window.sigSistemas.isEmpty()) return alert("Firmas obligatorias.");
 
     const nuevaVisita = {
         fecha: document.getElementById('fecha_inicio').value,
@@ -212,15 +276,20 @@ function finalizarYRedirigir() {
         console.error(err);
         alert("Error al guardar");
     });
-}
-  // 🔥 HACER FUNCIONES GLOBALES PARA HTML
-window.cambioEmpresa = cambioEmpresa;
-window.cargarSucursales = cargarSucursales;
-window.validarSiguiente = validarSiguiente;
-window.generarPDF = generarPDF;
-window.finalizarYRedirigir = finalizarYRedirigir;
-window.updateStatus = updateStatus;
-window.previewImg = previewImg;  
+};
+
+window.generarPDF = function() {
+    const elemento = document.getElementById('reporte-total');
+    const opciones = {
+        margin: 10,
+        filename: `Reporte_${document.getElementById('selSucursal').value || 'IT'}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().from(elemento).set(opciones).save();
+};
+
 </script>
 
 </body>
