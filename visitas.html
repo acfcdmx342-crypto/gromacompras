@@ -123,108 +123,112 @@
         <div id="listaPendientes" style="max-height: 400px; overflow-y: auto; margin-top: 15px;"></div>
     </div>
 </div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getDatabase, ref, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-<script>
-    function cargarHistorial() {
-        const historial = JSON.parse(localStorage.getItem('visitasIT')) || [];
-        const tbody = document.querySelector('#tablaVisitas tbody');
-        tbody.innerHTML = "";
+const firebaseConfig = {
+    databaseURL: "https://mydbu-fbc33-default-rtdb.firebaseio.com/"
+};
 
-        [...historial].reverse().forEach((visita) => {
-            const tr = document.createElement('tr');
-            
-            // Procesamos las observaciones para que las notas adicionales se vean distintas
-            let obsHtml = visita.observaciones || 'Sin observaciones';
-            
-            tr.innerHTML = `
-                <td>${visita.fecha || 'N/A'}</td>
-                <td>${visita.empresa || '-'}</td>
-                <td>${visita.zona || '-'}</td>
-                <td>${visita.sucursal || '-'}</td>
-                <td><small>${visita.folio || '-'}</small></td>
-                <td style="font-weight:bold;">${visita.cumplimiento || '0%'}</td>
-                <td>${visita.fechaSolucion || '-'}</td>
-                <td class="obs-text">${obsHtml}</td>
-                <td class="actions-cell">
-                    <button class="btn-action btn-view" onclick="verPendientes(${visita.id})">VER</button>
-                    <button class="btn-action btn-note" onclick="agregarNota(${visita.id})">NOTA</button>
-                    <button class="btn-action btn-delete" onclick="eliminarRegistro(${visita.id})">BORRAR</button>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-        if(historial.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='9' style='text-align:center;'>Sin registros en el historial.</td></tr>";
-        }
-    }
+function cargarHistorial() {
+    const visitasRef = ref(db, 'visitasIT');
 
-    function agregarNota(id) {
-        let historial = JSON.parse(localStorage.getItem('visitasIT')) || [];
-        const index = historial.findIndex(v => v.id === id);
-        
-        if (index !== -1) {
-            const nuevaNota = prompt("Escribe la nota adicional que deseas agregar:");
-            
-            if (nuevaNota && nuevaNota.trim() !== "") {
-                const fechaHoy = new Date().toLocaleDateString();
-                // Agregamos la nota con un formato que la distinga
-                const notaFormateada = `\n[Nota ${fechaHoy}: ${nuevaNota.trim()}]`;
-                
-                historial[index].observaciones = (historial[index].observaciones || "") + notaFormateada;
-                
-                localStorage.setItem('visitasIT', JSON.stringify(historial));
-                cargarHistorial(); // Refrescar tabla
-            }
-        }
-    }
+    onValue(visitasRef, (snapshot) => {
+        const data = snapshot.val() || {};
+        const historial = Object.entries(data).map(([id, val]) => ({
+            id,
+            ...val
+        }));
 
-    function verPendientes(id) {
-        const historial = JSON.parse(localStorage.getItem('visitasIT')) || [];
-        const visita = historial.find(v => v.id === id);
+        pintarTabla(historial);
+    });
+}
+
+function pintarTabla(historial) {
+    const tbody = document.querySelector('#tablaVisitas tbody');
+    tbody.innerHTML = "";
+
+    historial.reverse().forEach((visita) => {
+        const tr = document.createElement('tr');
+
+        tr.innerHTML = `
+            <td>${visita.fecha || 'N/A'}</td>
+            <td>${visita.empresa || '-'}</td>
+            <td>${visita.zona || '-'}</td>
+            <td>${visita.sucursal || '-'}</td>
+            <td>${visita.folio || '-'}</td>
+            <td><b>${visita.cumplimiento || '0%'}</b></td>
+            <td>${visita.fechaSolucion || '-'}</td>
+            <td>${visita.observaciones || ''}</td>
+            <td>
+                <button onclick="verPendientes('${visita.id}')">VER</button>
+                <button onclick="agregarNota('${visita.id}')">NOTA</button>
+                <button onclick="eliminarRegistro('${visita.id}')">BORRAR</button>
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+}
+
+// ================== FUNCIONES ==================
+window.verPendientes = function(id) {
+    const visitasRef = ref(db, 'visitasIT/' + id);
+
+    onValue(visitasRef, (snap) => {
+        const visita = snap.val();
         if(!visita) return;
 
         const lista = document.getElementById('listaPendientes');
-        document.getElementById('modalTitulo').innerText = `${visita.sucursal} (Folio: ${visita.folio})`;
         lista.innerHTML = "";
 
-        let hayPendientes = false;
-        if(visita.detalleEvaluacion) {
-            for (let key in visita.detalleEvaluacion) {
-                const item = visita.detalleEvaluacion[key];
-                if (item.cumple === false) {
-                    hayPendientes = true;
-                    const div = document.createElement('div');
-                    div.className = "fail-item";
-                    div.innerHTML = `<b>${item.titulo}</b><span class="badge-resp">Resp: ${item.responsable}</span>`;
-                    lista.appendChild(div);
-                }
+        let hay = false;
+
+        for (let key in visita.detalleEvaluacion) {
+            const item = visita.detalleEvaluacion[key];
+            if (item.cumple === false) {
+                hay = true;
+                const div = document.createElement('div');
+                div.innerHTML = `<b>${item.titulo}</b> - ${item.responsable}`;
+                lista.appendChild(div);
             }
         }
 
-        if (!hayPendientes) lista.innerHTML = "<p style='text-align:center'>✅ Sin pendientes en esta evaluación.</p>";
+        if (!hay) lista.innerHTML = "Sin pendientes";
+
         document.getElementById('modalPendientes').style.display = "block";
-    }
+    }, { onlyOnce: true });
+};
 
-    function eliminarRegistro(id) {
-        if(confirm("¿Estás seguro de eliminar este registro del historial? Esta acción no se puede deshacer.")) {
-            let historial = JSON.parse(localStorage.getItem('visitasIT')) || [];
-            historial = historial.filter(v => v.id !== id);
-            localStorage.setItem('visitasIT', JSON.stringify(historial));
-            cargarHistorial(); 
-        }
+window.eliminarRegistro = function(id) {
+    if(confirm("¿Eliminar registro?")) {
+        remove(ref(db, 'visitasIT/' + id));
     }
+};
 
-    function cerrarModal() {
-        document.getElementById('modalPendientes').style.display = "none";
-    }
+window.agregarNota = function(id) {
+    const nota = prompt("Escribe la nota:");
+    if(!nota) return;
 
-    window.onclick = (event) => {
-        if (event.target == document.getElementById('modalPendientes')) cerrarModal();
-    }
+    const refVisita = ref(db, 'visitasIT/' + id);
 
-    window.onload = cargarHistorial;
+    onValue(refVisita, (snap) => {
+        const data = snap.val();
+        const nuevaObs = (data.observaciones || "") + "\n[NOTA]: " + nota;
+
+        update(refVisita, { observaciones: nuevaObs });
+    }, { onlyOnce: true });
+};
+
+window.cerrarModal = function() {
+    document.getElementById('modalPendientes').style.display = "none";
+};
+
+window.onload = cargarHistorial;
 </script>
-
 </body>
 </html>
