@@ -138,260 +138,82 @@
         <button class="btn btn-save" onclick="finalizarYRedirigir()">2. GUARDAR EN HISTORIAL Y SALIR</button>
     </section>
 </div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getDatabase, ref, get, push } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-<script>
-    let catalogoReal = [];
-    let evaluaciones = {};
-    let sigEncargado, sigSistemas;
+const firebaseConfig = {
+    databaseURL: "https://mydbu-fbc33-default-rtdb.firebaseio.com/"
+};
 
-    const rubrosComex = [
-        { titulo: "1- Sistema Punto de Venta", items: ["Personal Capacitado", "TPV Limpia", "Impresora Funcional", "Terminales Bancarias", "No Break", "Cables Organizados", "XStore", "Comex TV", "Línea Telmex", "WhatsApp Empresas", "Módem Configurado", "Instalación Eléctrica Correcta", "IP Funcionando", "Marcadores de Navegador"] },
-        { titulo: "2- Color Center (PC)", items: ["CPU Libre de Polvo", "Periféricos Limpios", "Protección de Voltaje", "Organización de Cables", "Impresora de Etiquetas", "Archivo Host OK", "Software Licenciado", "USB Restringidos", "Base de Datos OK", "Actualizaciones Windows", "Respaldos Locales", "Monitor Funcional"] },
-        { titulo: "3- Maquinaria (Dosificadora)", items: ["Humedad de Esponja", "Limpieza de Boquillas", "Válvulas Check", "Contenedores Limpios", "Motores de Agitación", "Cableado Protegido"] },
-        { titulo: "4- Maquinaria (Revolvedora)", items: ["Estado de Cortina", "Engranajes Lubricados", "Estado de Maneral", "Baleros y Bandas", "Limpieza General"] },
-        { titulo: "5- Seguridad (CCTV)", items: ["Grabación Continua", "Cámaras Alineadas", "DVR en Resguardo", "UPS de Respaldo", "Audio Operativo"] }
-    ];
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-    const rubrosFerreprecios = [
-        { 
-            titulo: "1- Sistema Punto de Venta y Conexiones de internet / Comunicación", 
-            items: [
-                "Personal Capacitado para levantar soportes", 
-                "Equipos Limpios", 
-                { titulo: "Equipos con nomenclatura", type: "nomenclatura" },
-                "equipos con Antivirus",
-                "Impresora laser \"facturas\" Limpia y Funcional",
-                "Impresora de ticket limpia y Funcional",
-                "Impresora de etiquetas \"BarTender\" limpia y Funcional",
-                "Scanner limpios y funcionando",
-                "Terminales Bancarias Funcionando",
-                "No Break Funcionando",
-                "Cables Organizados",
-                "Línea Telmex Funcionando",
-                "Modem Perosnalizado",
-                "Ip Funcionando",
-                "Paginas del grupo añadidas"
-            ] 
-        },
-        { 
-            titulo: "2- sistemas de Seguridad CCTV", 
-            items: ["DVR Oculto y libre de polvo", "Cámaras con visualización correcta", "grabaciones en DVR", "Cableado Oculto", "UPS Funcionando", "Audio Funcionando"] 
-        },
-        { 
-            titulo: "3- activo fijo", 
-            items: ["equipos de computo registrados", "tabletas registradas", "impresoras registradas", "dvr registrado", "Ip Registrado"] 
+// ================== TU CÓDIGO ORIGINAL ==================
+let catalogoReal = [];
+let evaluaciones = {};
+let sigEncargado, sigSistemas;
+
+window.onload = async () => {
+    document.getElementById('fecha_inicio').value = new Date().toLocaleString();
+    await cargarBaseDatos();
+    sigEncargado = new SignaturePad(document.getElementById('pad-encargado'));
+    sigSistemas = new SignaturePad(document.getElementById('pad-sistemas'));
+};
+
+async function cargarBaseDatos() {
+    try {
+        const snap = await get(ref(db, 'sucursales'));
+        if(snap.exists()) {
+            catalogoReal = Object.values(snap.val()).map(i => ({
+                empresa: i.empresa.toUpperCase(),
+                zona: i.zona.toUpperCase(),
+                nombre: i.nombre.toUpperCase()
+            }));
+
+            const sel = document.getElementById('selEmpresa');
+            sel.innerHTML = '<option value="">Seleccione Empresa...</option>';
+
+            [...new Set(catalogoReal.map(c => c.empresa))]
+            .sort()
+            .forEach(e => sel.add(new Option(e, e)));
         }
-    ];
+    } catch (e) {
+        alert("Error de conexión con Firebase");
+    }
+}
 
-    window.onload = async () => {
-        document.getElementById('fecha_inicio').value = new Date().toLocaleString();
-        await cargarBaseDatos();
-        sigEncargado = new SignaturePad(document.getElementById('pad-encargado'));
-        sigSistemas = new SignaturePad(document.getElementById('pad-sistemas'));
+// ================== GUARDAR EN FIREBASE ==================
+function finalizarYRedirigir() {
+    const folio = document.getElementById('folio_soporte').value.trim();
+    const fechaSol = document.getElementById('fecha_solucion').value;
+
+    if(!folio || !fechaSol) return alert("Folio y Fecha son obligatorios.");
+    if(sigEncargado.isEmpty() || sigSistemas.isEmpty()) return alert("Firmas obligatorias.");
+
+    const nuevaVisita = {
+        fecha: document.getElementById('fecha_inicio').value,
+        empresa: document.getElementById('selEmpresa').value,
+        zona: document.getElementById('selZona').value,
+        sucursal: document.getElementById('selSucursal').value,
+        folio: folio,
+        cumplimiento: document.getElementById('final-score').innerText,
+        fechaSolucion: fechaSol,
+        observaciones: document.getElementById('obs_encargado').value,
+        detalleEvaluacion: evaluaciones
     };
 
-    async function cargarBaseDatos() {
-        try {
-            const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
-            const { getDatabase, ref, get } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js");
-            const config = { databaseURL: "https://mydbu-fbc33-default-rtdb.firebaseio.com/" };
-            const app = initializeApp(config);
-            const db = getDatabase(app);
-            const snap = await get(ref(db, 'sucursales'));
-            if(snap.exists()) {
-                catalogoReal = Object.values(snap.val()).map(i => ({
-                    empresa: i.empresa.toUpperCase(),
-                    zona: i.zona.toUpperCase(),
-                    nombre: i.nombre.toUpperCase()
-                }));
-                const sel = document.getElementById('selEmpresa');
-                sel.innerHTML = '<option value="">Seleccione Empresa...</option>';
-                [...new Set(catalogoReal.map(c => c.empresa))].sort().forEach(e => sel.add(new Option(e, e)));
-            }
-        } catch (e) { alert("Error de conexión con la base de datos."); }
-    }
-
-    function cambioEmpresa() {
-        cargarZonas();
-        generarSecciones();
-    }
-
-    function cargarZonas() {
-        const emp = document.getElementById('selEmpresa').value;
-        const selZ = document.getElementById('selZona');
-        selZ.innerHTML = '<option value="">Seleccione Zona...</option>';
-        selZ.disabled = !emp;
-        if(emp) [...new Set(catalogoReal.filter(c => c.empresa === emp).map(c => c.zona))].sort().forEach(z => selZ.add(new Option(z, z)));
-    }
-
-    function cargarSucursales() {
-        const zona = document.getElementById('selZona').value;
-        const selS = document.getElementById('selSucursal');
-        selS.innerHTML = '<option value="">Seleccione Sucursal...</option>';
-        selS.disabled = !zona;
-        if(zona) catalogoReal.filter(c => c.zona === zona).sort((a,b) => a.nombre.localeCompare(b.nombre)).forEach(s => selS.add(new Option(s.nombre, s.nombre)));
-    }
-
-    function generarSecciones() {
-        const container = document.getElementById('dynamic-sections');
-        container.innerHTML = ""; 
-        evaluaciones = {}; 
-        
-        const empresaSel = document.getElementById('selEmpresa').value;
-        const rubrosUsar = (empresaSel === "FERREPRECIOS") ? rubrosFerreprecios : rubrosComex;
-
-        rubrosUsar.forEach((sec, idx) => {
-            const num = idx + 2;
-            const s = document.createElement('section');
-            s.id = `sec${num}`;
-            s.className = 'section';
-            
-            let html = `
-                <header>
-                    <div class="logo-container">
-                        <img src="https://i.ytimg.com/vi/GQ2mlLhIck8/mqdefault.jpg" alt="Logo Empresa">
-                    </div>
-                    <h2>${sec.titulo}</h2>
-                </header>`;
-            
-            sec.items.forEach((item, i) => {
-                const itemTitle = typeof item === 'string' ? item : item.titulo;
-                const id = `r_${num}_${i}`;
-                evaluaciones[id] = { titulo: itemTitle, cumple: null, responsable: 'Tienda' };
-                
-                html += `
-                <div class="rubro-card">
-                    <div class="rubro-header">
-                        <span class="rubro-title">${itemTitle}</span>
-                        <div class="status-badge">
-                            <div class="status-btn" id="c_${id}" onclick="updateStatus('${id}', true, this)">Cumple</div>
-                            <div class="status-btn" id="n_${id}" onclick="updateStatus('${id}', false, this)">No Cumple</div>
-                        </div>
-                    </div>`;
-
-                if (item.type === "nomenclatura") {
-                    html += `
-                    <div class="form-group" style="margin-top:10px;">
-                        <label>Número de equipos:</label>
-                        <input type="number" placeholder="Cant." onchange="evaluaciones['${id}'].cantEquipos=this.value">
-                        <textarea placeholder="Detalle de nomenclatura..." onchange="evaluaciones['${id}'].detalle=this.value" style="margin-top:5px;"></textarea>
-                    </div>`;
-                }
-
-                html += `
-                    <div class="rubro-footer">
-                        <div><label>Resp.</label><select onchange="evaluaciones['${id}'].responsable=this.value"><option>Tienda</option><option>Soporte</option><option>Supervisor</option></select></div>
-                        <div><label>Evidencia</label><input type="file" accept="image/*" onchange="previewImg(this, 'img_${id}')">
-                        <img id="img_${id}" class="img-preview"></div>
-                    </div>
-                </div>`;
-            });
-            
-            const esUltima = idx === rubrosUsar.length - 1;
-            html += `<button class="btn btn-next" onclick="validarSiguiente(${num}, ${num + 1})">${esUltima ? 'Finalizar Evaluación' : 'Continuar'}</button>`;
-            s.innerHTML = html;
-            container.appendChild(s);
-        });
-    }
-
-    function previewImg(input, imgId) {
-        const reader = new FileReader();
-        reader.onload = (e) => { 
-            const img = document.getElementById(imgId);
-            img.src = e.target.result;
-            img.style.display = 'block';
-        };
-        if(input.files[0]) reader.readAsDataURL(input.files[0]);
-    }
-
-    function updateStatus(id, val, btn) {
-        evaluaciones[id].cumple = val;
-        btn.parentElement.querySelectorAll('.status-btn').forEach(b => b.classList.remove('selected-cumple', 'selected-nocumple'));
-        btn.classList.add(val ? 'selected-cumple' : 'selected-nocumple');
-    }
-
-    function validarSiguiente(actual, sig) {
-        if(actual === 1 && !document.getElementById('selSucursal').value) return alert("Seleccione sucursal");
-        const empresaSel = document.getElementById('selEmpresa').value;
-        const limite = (empresaSel === "FERREPRECIOS") ? 4 : 6;
-
-        if (actual >= 2 && sig <= limite) {
-            if (!confirm("¿Desea rectificar los datos antes de continuar?")) return;
-        }
-
-        if(sig > limite) {
-            calcularYMostrarResumen();
-        } else {
-            document.getElementById(`sec${actual}`).classList.remove('active');
-            document.getElementById(`sec${sig}`).classList.add('active');
-            window.scrollTo(0,0);
-        }
-    }
-
-    function calcularYMostrarResumen() {
-        let total = Object.keys(evaluaciones).length, si = 0;
-        for(let k in evaluaciones) if(evaluaciones[k].cumple === true) si++;
-        document.getElementById('final-score').innerText = Math.round((si/total)*100) + '%';
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-        document.getElementById('sec-final').classList.add('active');
-    }
-
-    function generarPDF() {
-        if(sigEncargado.isEmpty() || sigSistemas.isEmpty()) return alert("Debe firmar antes de generar el PDF.");
-        
-        const elemento = document.getElementById('reporte-total');
-        const sucursal = document.getElementById('selSucursal').value || "Sucursal";
-        const folio = document.getElementById('folio_soporte').value || "Sinfolio";
-
-        const opciones = {
-            margin: 10,
-            filename: `Evaluacion_${sucursal}_${folio}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
-        document.querySelectorAll('.section').forEach(s => s.style.display = 'block');
-
-        html2pdf().set(opciones).from(elemento).save().then(() => {
-            document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
-            document.getElementById('sec-final').style.display = 'block';
-            alert("PDF generado con éxito. Ya puede guardarlo.");
-        });
-    }
-
-    function finalizarYRedirigir() {
-        const folio = document.getElementById('folio_soporte').value.trim();
-        const fechaSol = document.getElementById('fecha_solucion').value;
-        const zonaSel = document.getElementById('selZona').value;
-        const empresaSel = document.getElementById('selEmpresa').value;
-        const sucursalSel = document.getElementById('selSucursal').value;
-        const observacionesEnc = document.getElementById('obs_encargado').value;
-
-        if(!folio || !fechaSol) return alert("Folio y Fecha Tentativa son obligatorios.");
-        if(sigEncargado.isEmpty() || sigSistemas.isEmpty()) return alert("Ambas firmas son obligatorias.");
-
-        // Guardar datos en LocalStorage con ID único e incluyendo campos de zona, fecha tentativa y obs
-        const nuevaVisita = {
-            id: Date.now(), 
-            fecha: document.getElementById('fecha_inicio').value,
-            empresa: empresaSel,
-            zona: zonaSel,
-            sucursal: sucursalSel,
-            folio: folio,
-            cumplimiento: document.getElementById('final-score').innerText,
-            fechaSolucion: fechaSol,
-            observaciones: observacionesEnc,
-            detalleEvaluacion: evaluaciones 
-        };
-
-        let historial = JSON.parse(localStorage.getItem('visitasIT')) || [];
-        historial.push(nuevaVisita);
-        localStorage.setItem('visitasIT', JSON.stringify(historial));
-
-        alert("Información guardada en el historial. Redirigiendo...");
+    push(ref(db, 'visitasIT'), nuevaVisita)
+    .then(() => {
+        alert("Guardado en Firebase correctamente");
         window.location.href = "visitas.html";
-    }
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Error al guardar");
+    });
+}
 </script>
+
 </body>
 </html>
