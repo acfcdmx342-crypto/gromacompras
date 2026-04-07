@@ -392,17 +392,39 @@
         document.getElementById('sec-final').classList.add('active');
         window.scrollTo(0,0);
     }
+ window.generarPDF = function() {
+    if(window.sigEncargado.isEmpty() || window.sigSistemas.isEmpty()) {
+        return alert("Faltan firmas obligatorias para generar el documento.");
+    }
 
-    window.generarPDF = function() {
-        if(window.sigEncargado.isEmpty() || window.sigSistemas.isEmpty()) return alert("Faltan firmas.");
-        const elemento = document.getElementById('reporte-total');
-        document.querySelectorAll('.section').forEach(s => s.style.display = 'block');
-        const opt = { margin: 10, filename: 'Reporte.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
-        html2pdf().set(opt).from(elemento).save().then(() => {
-            document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
-            document.getElementById('sec-final').style.display = 'block';
-        });
+    const elemento = document.getElementById('reporte-total');
+    
+    // Mostramos todas las secciones para que salgan en el PDF
+    document.querySelectorAll('.section').forEach(s => s.style.display = 'block');
+
+    const opt = {
+        margin: [10, 10],
+        filename: `Reporte_IT_${document.getElementById('selSucursal').value || 'SinNombre'}.pdf`,
+        image: { type: 'jpeg', quality: 0.95 }, // Bajamos un poco la calidad para reducir peso
+        html2canvas: { 
+            scale: 2, 
+            useCORS: true, 
+            letterRendering: true 
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
+
+    // Usamos el método de promesa para manejar mejor la memoria
+    html2pdf().set(opt).from(elemento).toPdf().get('pdf').save().then(() => {
+        // Restauramos la vista de la interfaz
+        document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+        document.getElementById('sec-final').style.display = 'block';
+        console.log("PDF generado exitosamente");
+    }).catch(err => {
+        console.error("Error al generar PDF:", err);
+        alert("Hubo un problema al crear el archivo. Intenta de nuevo.");
+    });
+};
 
     window.finalizarYRedirigir = function() {
         const folio = document.getElementById('folio_soporte').value.trim();
