@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Historial de Visitas IT</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         :root {
             --primary: #003366;
@@ -12,6 +13,7 @@
             --danger: #e74c3c;
             --border: #d1d8e0;
             --warning: #f39c12;
+            --dark: #34495e;
         }
 
         body { font-family: 'Segoe UI', sans-serif; background: var(--secondary); padding: 20px; color: #333; }
@@ -48,45 +50,40 @@
         }
         .btn-nav:hover { background: #002244; }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
         th, td { padding: 10px; border: 1px solid var(--border); text-align: left; }
         th { background: #f8f9fa; color: var(--primary); }
         
-        .actions-cell { display: flex; gap: 5px; flex-wrap: wrap; }
-
         .btn-action { 
             border: none; 
-            padding: 6px 8px; 
+            padding: 5px 8px; 
             cursor: pointer; 
             border-radius: 4px;
             font-size: 10px;
             font-weight: bold;
             color: white;
-            transition: opacity 0.2s;
+            margin-right: 2px;
+            margin-bottom: 2px;
             text-transform: uppercase;
         }
 
         .btn-view { background: var(--primary); }
+        .btn-pdf { background: var(--dark); }
         .btn-note { background: var(--warning); }
         .btn-delete { background: var(--danger); }
-        .btn-action:hover { opacity: 0.8; }
+        
+        /* Estilos para el contenedor invisible del PDF */
+        #pdf-template { display: none; padding: 20px; font-family: Arial, sans-serif; }
+        .pdf-header { text-align: center; border-bottom: 2px solid var(--primary); margin-bottom: 20px; }
+        .pdf-section { margin-bottom: 15px; border: 1px solid #eee; padding: 10px; border-radius: 5px; }
+        .pdf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .item-nocumple { color: var(--danger); font-weight: bold; }
+        .firma-box { border: 1px solid #ccc; height: 80px; width: 100%; margin-top: 5px; }
 
         /* Modal */
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); }
         .modal-content { background: white; margin: 5% auto; padding: 25px; width: 50%; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
         .close { float: right; cursor: pointer; font-size: 28px; font-weight: bold; color: #999; }
-
-        .fail-item { 
-            padding: 12px; 
-            border-left: 4px solid var(--danger); 
-            background: #fff5f5; 
-            margin-bottom: 8px; 
-        }
-        .fail-item b { color: #2c3e50; display: block; }
-        .badge-resp { font-size: 10px; background: #ddd; padding: 2px 6px; border-radius: 10px; }
-        
-        .obs-text { max-width: 250px; white-space: normal; word-wrap: break-word; font-style: italic; color: #555; line-height: 1.4; }
-        .nota-adicional { color: var(--primary); font-weight: bold; display: block; margin-top: 4px; border-top: 1px dashed #ccc; padding-top: 2px; }
     </style>
 </head>
 <body>
@@ -106,14 +103,16 @@
                 <th>Sucursal</th>
                 <th>Folio</th>
                 <th>%</th>
-                <th>Fecha Tentativa</th>
+                <th>Fecha Solución</th>
                 <th>Observaciones</th>
-                <th style="width: 180px;">Acciones</th>
+                <th style="width: 220px;">Acciones</th>
             </tr>
         </thead>
         <tbody></tbody>
     </table>
 </div>
+
+<div id="pdf-template"></div>
 
 <div id="modalPendientes" class="modal">
     <div class="modal-content">
@@ -123,9 +122,10 @@
         <div id="listaPendientes" style="max-height: 400px; overflow-y: auto; margin-top: 15px;"></div>
     </div>
 </div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { getDatabase, ref, onValue, remove, update, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
 const firebaseConfig = {
     databaseURL: "https://mydbu-fbc33-default-rtdb.firebaseio.com/"
@@ -143,7 +143,6 @@ function cargarHistorial() {
             id,
             ...val
         }));
-
         pintarTabla(historial);
     });
 }
@@ -154,7 +153,6 @@ function pintarTabla(historial) {
 
     historial.reverse().forEach((visita) => {
         const tr = document.createElement('tr');
-
         tr.innerHTML = `
             <td>${visita.fecha || 'N/A'}</td>
             <td>${visita.empresa || '-'}</td>
@@ -165,63 +163,131 @@ function pintarTabla(historial) {
             <td>${visita.fechaSolucion || '-'}</td>
             <td>${visita.observaciones || ''}</td>
             <td>
-                <button onclick="verPendientes('${visita.id}')">VER</button>
-                <button onclick="agregarNota('${visita.id}')">NOTA</button>
-                <button onclick="eliminarRegistro('${visita.id}')">BORRAR</button>
+                <button class="btn-action btn-view" onclick="verPendientes('${visita.id}')">Ver</button>
+                <button class="btn-action btn-pdf" onclick="recuperarPDF('${visita.id}')">PDF</button>
+                <button class="btn-action btn-note" onclick="agregarNota('${visita.id}')">Nota</button>
+                <button class="btn-action btn-delete" onclick="eliminarRegistro('${visita.id}')">Borrar</button>
             </td>
         `;
-
         tbody.appendChild(tr);
     });
 }
 
-// ================== FUNCIONES ==================
+// ================== FUNCIÓN RECUPERAR PDF ==================
+window.recuperarPDF = async function(id) {
+    const snap = await get(ref(db, 'visitasIT/' + id));
+    if(!snap.exists()) return alert("No se encontraron datos");
+    
+    const v = snap.val();
+    const temp = document.getElementById('pdf-template');
+    
+    // Construir el HTML del reporte
+    let pendientesHTML = "";
+    for(let key in v.detalleEvaluacion) {
+        const item = v.detalleEvaluacion[key];
+        if(item.cumple === false) {
+            pendientesHTML += `<li class="item-nocumple">${item.titulo} (Resp: ${item.responsable})</li>`;
+        }
+    }
+
+    temp.innerHTML = `
+        <div style="padding: 20px; border: 2px solid #003366;">
+            <div class="pdf-header">
+                <img src="https://i.ytimg.com/vi/GQ2mlLhIck8/mqdefault.jpg" style="width:150px">
+                <h2>REPORTE DE EVALUACIÓN IT - RECUPERADO</h2>
+                <p>Folio: ${v.folio} | Fecha: ${v.fecha}</p>
+            </div>
+            
+            <div class="pdf-grid">
+                <div>
+                    <p><b>Empresa:</b> ${v.empresa}</p>
+                    <p><b>Sucursal:</b> ${v.sucursal}</p>
+                </div>
+                <div>
+                    <p><b>Zona:</b> ${v.zona}</p>
+                    <p><b>Cumplimiento:</b> ${v.cumplimiento}</p>
+                </div>
+            </div>
+
+            <div class="pdf-section">
+                <h4>PUNTOS NO CUMPLIDOS / PENDIENTES:</h4>
+                <ul>${pendientesHTML || '<li>Ninguno (100% cumplimiento)</li>'}</ul>
+            </div>
+
+            <div class="pdf-section">
+                <h4>OBSERVACIONES:</h4>
+                <p>${v.observaciones || 'Sin observaciones'}</p>
+                <p><b>Fecha tentativa solución:</b> ${v.fechaSolucion}</p>
+            </div>
+
+            <div class="pdf-grid" style="margin-top:40px; text-align:center;">
+                <div>
+                    <img src="${v.firmaEncargado || ''}" style="width:180px; border-bottom:1px solid #000;"><br>
+                    <b>Firma Encargado</b>
+                </div>
+                <div>
+                    <img src="${v.firmaSistemas || ''}" style="width:180px; border-bottom:1px solid #000;"><br>
+                    <b>Firma Sistemas</b>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Generar el PDF
+    const opt = {
+        margin: 10,
+        filename: `Reporte_${v.sucursal}_${v.folio}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    temp.style.display = 'block'; // Mostrar momentáneamente para la captura
+    html2pdf().set(opt).from(temp).save().then(() => {
+        temp.style.display = 'none';
+        temp.innerHTML = "";
+    });
+};
+
+// ================== OTRAS FUNCIONES ==================
 window.verPendientes = function(id) {
     const visitasRef = ref(db, 'visitasIT/' + id);
-
     onValue(visitasRef, (snap) => {
         const visita = snap.val();
         if(!visita) return;
-
         const lista = document.getElementById('listaPendientes');
         lista.innerHTML = "";
-
         let hay = false;
-
         for (let key in visita.detalleEvaluacion) {
             const item = visita.detalleEvaluacion[key];
             if (item.cumple === false) {
                 hay = true;
                 const div = document.createElement('div');
-                div.innerHTML = `<b>${item.titulo}</b> - ${item.responsable}`;
+                div.className = "fail-item";
+                div.innerHTML = `<b>${item.titulo}</b> <span class="badge-resp">${item.responsable}</span>`;
                 lista.appendChild(div);
             }
         }
-
         if (!hay) lista.innerHTML = "Sin pendientes";
-
         document.getElementById('modalPendientes').style.display = "block";
     }, { onlyOnce: true });
 };
 
 window.eliminarRegistro = function(id) {
-    if(confirm("¿Eliminar registro?")) {
+    if(confirm("¿Estás seguro de eliminar este registro permanentemente?")) {
         remove(ref(db, 'visitasIT/' + id));
     }
 };
 
 window.agregarNota = function(id) {
-    const nota = prompt("Escribe la nota:");
+    const nota = prompt("Escribe la nota adicional para este reporte:");
     if(!nota) return;
-
     const refVisita = ref(db, 'visitasIT/' + id);
-
-    onValue(refVisita, (snap) => {
+    get(refVisita).then((snap) => {
         const data = snap.val();
-        const nuevaObs = (data.observaciones || "") + "\n[NOTA]: " + nota;
-
+        const nuevaObs = (data.observaciones || "") + "\n[NOTA " + new Date().toLocaleDateString() + "]: " + nota;
         update(refVisita, { observaciones: nuevaObs });
-    }, { onlyOnce: true });
+    });
 };
 
 window.cerrarModal = function() {
