@@ -31,7 +31,7 @@
         label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; color: var(--primary); }
         select, input, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; font-size: 15px; transition: border 0.3s; }
 
-        .rubro-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 18px; margin-bottom: 15px; page-break-inside: avoid; }
+        .rubro-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 18px; margin-bottom: 15px; page-break-inside: avoid; border-left: 5px solid var(--primary); }
         .rubro-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .rubro-title { font-weight: bold; font-size: 15px; color: #2c3e50; }
         
@@ -39,6 +39,11 @@
         .status-btn { padding: 8px 16px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; background: #fdfdfd; color: #7f8c8d; }
         .status-btn.selected-cumple { background: var(--accent) !important; color: white !important; border-color: var(--accent); }
         .status-btn.selected-nocumple { background: var(--danger) !important; color: white !important; border-color: var(--danger); }
+
+        /* Estilos para etiquetas de estado en el PDF */
+        .status-pdf { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; text-align: center; text-transform: uppercase; }
+        .status-pdf.cumple { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status-pdf.nocumple { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
 
         .rubro-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f0f0; }
         .img-preview { max-width: 150px; margin-top: 10px; border-radius: 5px; border: 1px solid #ddd; display: none; }
@@ -401,12 +406,29 @@
         const original = document.getElementById('reporte-total');
         const clon = original.cloneNode(true);
         
-        // Hacer visibles todas las secciones en el clon
+        // 1. Transformar diseño de tarjetas para el PDF
         clon.querySelectorAll('.section').forEach(s => {
             s.style.setProperty('display', 'block', 'important');
             s.style.setProperty('opacity', '1', 'important');
             s.style.setProperty('visibility', 'visible', 'important');
-            s.style.marginBottom = '20px';
+            s.style.padding = '20px';
+        });
+
+        // Convertir botones de estado en etiquetas de texto elegantes
+        clon.querySelectorAll('.rubro-card').forEach(card => {
+            const badgeContainer = card.querySelector('.status-badge');
+            const btnCumple = card.querySelector('.selected-cumple');
+            const btnNoCumple = card.querySelector('.selected-nocumple');
+
+            let estadoText = "No Evaluado";
+            let clase = "";
+            
+            if (btnCumple) { estadoText = "CUMPLE"; clase = "cumple"; }
+            else if (btnNoCumple) { estadoText = "NO CUMPLE"; clase = "nocumple"; }
+
+            if(badgeContainer) {
+                badgeContainer.innerHTML = `<span class="status-pdf ${clase}">${estadoText}</span>`;
+            }
         });
 
         // Asegurar que el detalle de incumplimiento se vea si tiene errores
@@ -417,9 +439,9 @@
         }
 
         // Eliminar botones y elementos innecesarios del clon
-        clon.querySelectorAll('.btn, .btn-container, .btn-clear, input[type="file"]').forEach(el => el.remove());
+        clon.querySelectorAll('.btn, .btn-container, .btn-clear, input[type="file"], select').forEach(el => el.remove());
 
-        // Sincronizar firmas convirtiéndolas a imagen (Canvas a PNG)
+        // 2. Sincronizar firmas convirtiéndolas a imagen
         const canvasOriginal = [document.getElementById('pad-encargado'), document.getElementById('pad-sistemas')];
         const contenedoresFirmasClon = clon.querySelectorAll('.sig-container');
 
@@ -430,16 +452,21 @@
                 imgFirma.src = dataUrl;
                 imgFirma.style.width = '100%';
                 imgFirma.style.height = 'auto';
-                contenedoresFirmasClon[index].innerHTML = ''; // Limpiar canvas vacío del clon
-                contenedoresFirmasClon[index].appendChild(imgFirma); // Insertar imagen de la firma
+                contenedoresFirmasClon[index].innerHTML = ''; 
+                contenedoresFirmasClon[index].appendChild(imgFirma); 
             }
         });
 
+        // 3. Configuración del PDF
         const opt = {
-            margin: [10, 10],
+            margin: [15, 15],
             filename: `Reporte_IT_${document.getElementById('selSucursal').value}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, logging: false },
+            html2canvas: { 
+                scale: 3, 
+                useCORS: true, 
+                letterRendering: true 
+            },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
             pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
         };
