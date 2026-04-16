@@ -46,7 +46,6 @@
         .sig-container { border: 1px solid var(--border); background: #fafafa; margin-top: 5px; border-radius: 4px; }
         canvas { width: 100%; height: 120px; touch-action: none; }
 
-        /* Contenedor de botones para navegación */
         .btn-container { display: flex; gap: 10px; margin-top: 20px; }
         .btn { padding: 14px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; transition: opacity 0.3s; }
         .btn-next { background: var(--primary); color: white; }
@@ -55,9 +54,15 @@
         .btn-save { background: #2ecc71; color: white; margin-top: 10px;}
         .btn-clear { background: #f1f2f6; color: #57606f; font-size: 11px; padding: 4px 10px; width: auto; border: 1px solid #ced4da; margin-top: 5px; }
 
-        /* Estilos para el detalle de incumplimiento */
         #detalle-incumplimiento { margin-top: 20px; padding: 15px; border: 1px dashed var(--danger); border-radius: 8px; background: #fff5f5; display: none; }
         .item-error { color: var(--danger); font-weight: bold; font-size: 14px; margin-bottom: 5px; display: list-item; margin-left: 20px; }
+
+        /* Estilos para que html2pdf vea las secciones ocultas */
+        .html2pdf__container .section {
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
 
         @media print {
             .section { display: block !important; margin-bottom: 20px; }
@@ -350,7 +355,6 @@
     };
 
     window.validarSiguiente = function(actual, sig) {
-        // Validación solo si vamos hacia adelante
         if(sig > actual && actual === 1 && !document.getElementById('selSucursal').value) return alert("Seleccione sucursal");
         
         const empresaSel = document.getElementById('selEmpresa').value;
@@ -378,7 +382,6 @@
             }
         }
 
-        // Mostrar lista de errores si existen
         const divDetalle = document.getElementById('detalle-incumplimiento');
         const listaErrores = document.getElementById('lista-errores');
         if(erroresHTML !== "") {
@@ -393,59 +396,45 @@
         document.getElementById('sec-final').classList.add('active');
         window.scrollTo(0,0);
     }
- window.generarPDF = function() {
-    if(window.sigEncargado.isEmpty() || window.sigSistemas.isEmpty()) {
-        return alert("Faltan firmas obligatorias para generar el documento.");
-    }
 
-    const elemento = document.getElementById('reporte-total');
-// 1. Forzamos visibilidad de todas las secciones mediante una clase temporal
-    const secciones = document.querySelectorAll('.section');
-    secciones.forEach(s => {
-        s.style.display = 'block';
-        s.style.opacity = '1';
-    });
-   const opt = {
-        margin: [10, 10],
-        filename: `Reporte_IT_${document.getElementById('selSucursal').value || 'SinNombre'}.pdf`,
-        image: { type: 'jpeg', quality: 0.95 }, // Bajamos un poco la calidad para reducir peso
-        html2canvas: { 
-            scale: 2, 
-            useCORS: true, 
-            letterRendering: true 
-        },
-     /* Asegura que el contenido sea visible para la librería de PDF */
-.html2pdf__container .section {
-    display: block !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-}
+    window.generarPDF = function() {
+        if(window.sigEncargado.isEmpty() || window.sigSistemas.isEmpty()) {
+            return alert("Faltan firmas obligatorias.");
+        }
 
-.rubro-card {
-    page-break-inside: avoid; /* Evita que una pregunta se divida entre dos páginas */
-}  
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } // Evita que se corten las tarjetas a la mitad
+        const elemento = document.getElementById('reporte-total');
+        const secciones = document.querySelectorAll('.section');
+
+        // 1. Mostrar todo para captura
+        secciones.forEach(s => {
+            s.style.display = 'block';
+            s.style.opacity = '1';
+        });
+
+        // 2. Sincronizar inputs
+        document.querySelectorAll('input, textarea, select').forEach(el => {
+            if(el.type !== 'file') el.setAttribute('value', el.value);
+        });
+
+        const opt = {
+            margin: [10, 10],
+            filename: `Reporte_IT_${document.getElementById('selSucursal').value}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+
+        html2pdf().set(opt).from(elemento).save().then(() => {
+            secciones.forEach(s => s.style.display = 'none');
+            document.getElementById('sec-final').style.display = 'block';
+        }).catch(err => {
+            console.error(err);
+            secciones.forEach(s => s.style.display = 'none');
+            document.getElementById('sec-final').style.display = 'block';
+        });
     };
-// Antes de llamar a html2pdf()...
-document.querySelectorAll('input, textarea, select').forEach(el => {
-    if(el.type === 'text' || el.tagName === 'TEXTAREA') {
-        el.setAttribute('value', el.value);
-    }
-});
-    // Usamos el método de promesa para manejar mejor la memoria
-     html2pdf().set(opt).from(elemento).save().then(() => {
-       // 3. Restauramos el estado original: solo mostramos la sección final
-        secciones.forEach(s => s.style.display = 'none');
-        document.getElementById('sec-final').style.display = 'block';
-        console.log("PDF generado");
-    }).catch(err => {
-        console.error("Error:", err);
-        // En caso de error, también debemos restaurar la vista
-        secciones.forEach(s => s.style.display = 'none');
-        document.getElementById('sec-final').style.display = 'block';
-    });
-};
+
     window.finalizarYRedirigir = function() {
         const folio = document.getElementById('folio_soporte').value.trim();
         const fechaSol = document.getElementById('fecha_solucion').value;
@@ -466,25 +455,19 @@ document.querySelectorAll('input, textarea, select').forEach(el => {
 
         push(ref(db, 'visitasIT'), nuevaVisita)
         .then(() => {
-            alert("Evaluacion Alamcenada Correctamente");
+            alert("Evaluación Almacenada Correctamente");
             window.location.href = "visitas.html";
         })
         .catch(err => { alert("Error al guardar"); console.error(err); });
     };
 </script>
-<script>
-  // Seguridad
-  document.addEventListener('contextmenu', (e) => e.preventDefault());
-  document.onkeydown = function(e) {
-    if(e.keyCode == 123) return false;
-    if(e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) return false;
-    if(e.ctrlKey && e.keyCode == 85) return false;
-  };
 
-document.addEventListener('contextmenu', e => e.preventDefault());
-document.onkeydown = e => {
-    if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
-};
+<script>
+    // Seguridad básica
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.onkeydown = e => {
+        if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
+    };
 </script>
 </body>
 </html>
