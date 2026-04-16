@@ -349,13 +349,18 @@
             }
         });
     }
-
+// --- Vista de imagen ---
     window.previewImg = function(input, imgId) {
         const reader = new FileReader();
         reader.onload = (e) => { 
             const img = document.getElementById(imgId);
             img.src = e.target.result;
             img.style.display = 'block';
+            // --- AGREGAR ESTAS LÍNEAS PARA EL TAMAÑO ---
+        img.style.width = '100px';  // Puedes usar px, % o rem
+        img.style.height = '75px'; // Ajusta según necesites
+        img.style.objectFit = 'contain'; // Mantiene la proporción sin deformar
+        // ------------------------------------------
             const id = imgId.replace('img_', '');
             evaluaciones[id].evidencia = e.target.result;
         };
