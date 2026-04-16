@@ -398,30 +398,40 @@
             return alert("Faltan firmas obligatorias.");
         }
 
-        // --- SOLUCIÓN PARA HOJAS VACÍAS ---
         const original = document.getElementById('reporte-total');
         const clon = original.cloneNode(true);
         
-        // Hacer visibles todas las secciones en el clon antes de procesar
+        // Hacer visibles todas las secciones en el clon
         clon.querySelectorAll('.section').forEach(s => {
-            s.style.display = 'block';
-            s.style.opacity = '1';
-            s.style.visibility = 'visible';
+            s.style.setProperty('display', 'block', 'important');
+            s.style.setProperty('opacity', '1', 'important');
+            s.style.setProperty('visibility', 'visible', 'important');
             s.style.marginBottom = '20px';
         });
+
+        // Asegurar que el detalle de incumplimiento se vea si tiene errores
+        const listaErroresOriginal = document.getElementById('lista-errores');
+        const detalleClon = clon.querySelector('#detalle-incumplimiento');
+        if (listaErroresOriginal && listaErroresOriginal.innerHTML.trim() !== "") {
+            detalleClon.style.setProperty('display', 'block', 'important');
+        }
 
         // Eliminar botones y elementos innecesarios del clon
         clon.querySelectorAll('.btn, .btn-container, .btn-clear, input[type="file"]').forEach(el => el.remove());
 
-        // Sincronizar firmas del canvas original al clon (el clon no copia el dibujo del canvas)
+        // Sincronizar firmas convirtiéndolas a imagen (Canvas a PNG)
         const canvasOriginal = [document.getElementById('pad-encargado'), document.getElementById('pad-sistemas')];
-        const canvasClon = clon.querySelectorAll('canvas');
+        const contenedoresFirmasClon = clon.querySelectorAll('.sig-container');
+
         canvasOriginal.forEach((canv, index) => {
-            if (canvasClon[index]) {
-                const destCtx = canvasClon[index].getContext('2d');
-                canvasClon[index].width = canv.width;
-                canvasClon[index].height = canv.height;
-                destCtx.drawImage(canv, 0, 0);
+            if (contenedoresFirmasClon[index]) {
+                const dataUrl = canv.toDataURL("image/png");
+                const imgFirma = document.createElement('img');
+                imgFirma.src = dataUrl;
+                imgFirma.style.width = '100%';
+                imgFirma.style.height = 'auto';
+                contenedoresFirmasClon[index].innerHTML = ''; // Limpiar canvas vacío del clon
+                contenedoresFirmasClon[index].appendChild(imgFirma); // Insertar imagen de la firma
             }
         });
 
