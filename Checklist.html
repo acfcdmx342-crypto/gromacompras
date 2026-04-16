@@ -399,11 +399,13 @@
     }
 
     const elemento = document.getElementById('reporte-total');
-    
-    // Mostramos todas las secciones para que salgan en el PDF
-    document.querySelectorAll('.section').forEach(s => s.style.display = 'block');
-
-    const opt = {
+// 1. Forzamos visibilidad de todas las secciones mediante una clase temporal
+    const secciones = document.querySelectorAll('.section');
+    secciones.forEach(s => {
+        s.style.display = 'block';
+        s.style.opacity = '1';
+    });
+   const opt = {
         margin: [10, 10],
         filename: `Reporte_IT_${document.getElementById('selSucursal').value || 'SinNombre'}.pdf`,
         image: { type: 'jpeg', quality: 0.95 }, // Bajamos un poco la calidad para reducir peso
@@ -412,21 +414,38 @@
             useCORS: true, 
             letterRendering: true 
         },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
+     /* Asegura que el contenido sea visible para la librería de PDF */
+.html2pdf__container .section {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
 
+.rubro-card {
+    page-break-inside: avoid; /* Evita que una pregunta se divida entre dos páginas */
+}  
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } // Evita que se corten las tarjetas a la mitad
+    };
+// Antes de llamar a html2pdf()...
+document.querySelectorAll('input, textarea, select').forEach(el => {
+    if(el.type === 'text' || el.tagName === 'TEXTAREA') {
+        el.setAttribute('value', el.value);
+    }
+});
     // Usamos el método de promesa para manejar mejor la memoria
-    html2pdf().set(opt).from(elemento).toPdf().get('pdf').save().then(() => {
-        // Restauramos la vista de la interfaz
-        document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+     html2pdf().set(opt).from(elemento).save().then(() => {
+       // 3. Restauramos el estado original: solo mostramos la sección final
+        secciones.forEach(s => s.style.display = 'none');
         document.getElementById('sec-final').style.display = 'block';
-        console.log("PDF generado exitosamente");
+        console.log("PDF generado");
     }).catch(err => {
-        console.error("Error al generar PDF:", err);
-        alert("Hubo un problema al crear el archivo. Intenta de nuevo.");
+        console.error("Error:", err);
+        // En caso de error, también debemos restaurar la vista
+        secciones.forEach(s => s.style.display = 'none');
+        document.getElementById('sec-final').style.display = 'block';
     });
 };
-
     window.finalizarYRedirigir = function() {
         const folio = document.getElementById('folio_soporte').value.trim();
         const fechaSol = document.getElementById('fecha_solucion').value;
