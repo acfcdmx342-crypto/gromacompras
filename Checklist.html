@@ -48,6 +48,7 @@
         .status-btn.selected-cumple { background: var(--accent) !important; color: white !important; border-color: var(--accent); }
         .status-btn.selected-nocumple { background: var(--danger) !important; color: white !important; border-color: var(--danger); }
 
+        /* Estilos específicos para el PDF */
         .status-pdf { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; text-align: center; text-transform: uppercase; }
         .status-pdf.cumple { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .status-pdf.nocumple { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
@@ -55,8 +56,8 @@
         .rubro-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f0f0; }
         
         .img-preview { 
-            max-width: 100%; 
-            max-height: 75px; 
+            max-width: 120px; 
+            max-height: 90px; 
             object-fit: contain;
             margin-top: 10px; 
             border-radius: 5px; 
@@ -64,7 +65,7 @@
             display: none; 
         }
 
-        .sig-container { border: 1px solid var(--border); background: #fafafa; margin-top: 5px; border-radius: 4px; }
+        .sig-container { border: 1px solid var(--border); background: #fafafa; margin-top: 5px; border-radius: 4px; min-height: 120px; }
         canvas { width: 100%; height: 120px; touch-action: none; }
 
         .btn-container { display: flex; gap: 10px; margin-top: 20px; }
@@ -79,9 +80,8 @@
         .item-error { color: var(--danger); font-weight: bold; font-size: 14px; margin-bottom: 5px; display: list-item; margin-left: 20px; }
 
         @media print {
-            .section { display: block !important; margin-bottom: 20px; }
-            .btn, .btn-clear, .btn-container, input[type="file"] { display: none !important; }
-            #detalle-incumplimiento { display: block !important; }
+            .section { display: block !important; margin-bottom: 20px; opacity: 1 !important; visibility: visible !important; }
+            .btn, .btn-clear, .btn-container, input[type="file"], select { display: none !important; }
         }
     </style>
 </head>
@@ -157,12 +157,12 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             <div class="form-group">
                 <label>Firma Encargado de Sucursal</label>
-                <div class="sig-container"><canvas id="pad-encargado"></canvas></div>
+                <div class="sig-container" id="cont-firma-encargado"><canvas id="pad-encargado"></canvas></div>
                 <button class="btn-clear" onclick="sigEncargado.clear()">Borrar Firma</button>
             </div>
             <div class="form-group">
                 <label>Firma Técnico de Sistemas</label>
-                <div class="sig-container"><canvas id="pad-sistemas"></canvas></div>
+                <div class="sig-container" id="cont-firma-sistemas"><canvas id="pad-sistemas"></canvas></div>
                 <button class="btn-clear" onclick="sigSistemas.clear()">Borrar Firma</button>
             </div>
         </div>
@@ -199,24 +199,8 @@
 
     const rubrosFerreprecios = [
         { 
-            titulo: "1- Sistema Punto de Venta y Conexiones de internet / Comunicación", 
-            items: [
-                "Personal Capacitado para levantar soportes", 
-                "Equipos Limpios", 
-                { titulo: "Equipos con nomenclatura", type: "nomenclatura" },
-                "equipos con Antivirus",
-                "Impresora laser \"facturas\" Limpia y Funcional",
-                "Impresora de ticket limpia y Funcional",
-                "Impresora de etiquetas \"BarTender\" limpia y Funcional",
-                "Scanner limpios y funcionando",
-                "Terminales Bancarias Funcionando",
-                "NoBreak Funcionando",
-                "Cables Organizados | Ocultos",
-                "Línea Telmex Funcionando",
-                "Modem Perosnalizado",
-                "Ip Funcionando",
-                "Paginas del grupo añadidas"
-            ] 
+            titulo: "1- Sistema Punto de Venta y Conexiones de Comunicación", 
+            items: ["Personal Capacitado para levantar soportes", "Equipos Limpios", { titulo: "Equipos con nomenclatura", type: "nomenclatura" }, "equipos con Antivirus", "Impresora laser \"facturas\" Limpia y Funcional", "Impresora de ticket limpia y Funcional", "Impresora de etiquetas \"BarTender\" limpia y Funcional", "Scanner limpios y funcionando", "Terminales Bancarias Funcionando", "NoBreak Funcionando", "Cables Organizados | Ocultos", "Línea Telmex Funcionando", "Modem Perosnalizado", "Ip Funcionando", "Paginas del grupo añadidas"] 
         },
         { 
             titulo: "2- sistemas de Seguridad CCTV", 
@@ -305,10 +289,10 @@
             sec.items.forEach((item, i) => {
                 const itemTitle = typeof item === 'string' ? item : item.titulo;
                 const id = `r_${num}_${i}`;
-                evaluaciones[id] = { titulo: itemTitle, cumple: null, responsable: 'Tienda' };
+                evaluaciones[id] = { titulo: itemTitle, cumple: null, responsable: 'Tienda', evidencia: null };
                 
                 html += `
-                <div class="rubro-card">
+                <div class="rubro-card" data-id="${id}">
                     <div class="rubro-header">
                         <span class="rubro-title">${itemTitle}</span>
                         <div class="status-badge">
@@ -349,18 +333,13 @@
             }
         });
     }
-// --- Vista de imagen ---
+
     window.previewImg = function(input, imgId) {
         const reader = new FileReader();
         reader.onload = (e) => { 
             const img = document.getElementById(imgId);
             img.src = e.target.result;
             img.style.display = 'block';
-            // --- AGREGAR ESTAS LÍNEAS PARA EL TAMAÑO ---
-        img.style.width = '100px';  // Puedes usar px, % o rem
-        img.style.height = '75px'; // Ajusta según necesites
-        img.style.objectFit = 'contain'; // Mantiene la proporción sin deformar
-        // ------------------------------------------
             const id = imgId.replace('img_', '');
             evaluaciones[id].evidencia = e.target.result;
         };
@@ -377,7 +356,8 @@
         if(sig > actual && actual === 1 && !document.getElementById('selSucursal').value) return alert("Seleccione sucursal");
         
         const empresaSel = document.getElementById('selEmpresa').value;
-        const limite = (empresaSel === "FERREPRECIOS") ? rubrosFerreprecios.length + 1 : rubrosComex.length + 1;
+        const rubrosUsar = (empresaSel === "FERREPRECIOS") ? rubrosFerreprecios : rubrosComex;
+        const limite = rubrosUsar.length + 1;
 
         if(sig > limite) {
             calcularYMostrarResumen();
@@ -424,76 +404,75 @@
         const original = document.getElementById('reporte-total');
         const clon = original.cloneNode(true);
         
+        // 1. Mostrar todas las secciones
         clon.querySelectorAll('.section').forEach(s => {
-            s.style.setProperty('display', 'block', 'important');
-            s.style.setProperty('opacity', '1', 'important');
-            s.style.setProperty('visibility', 'visible', 'important');
+            s.style.display = 'block';
+            s.style.opacity = '1';
+            s.style.visibility = 'visible';
             s.style.padding = '20px';
         });
 
-        clon.querySelectorAll('.rubro-card').forEach((card, index) => {
-            const idEval = Object.keys(evaluaciones)[index];
+        // 2. Reemplazar botones de estado por texto/etiquetas
+        clon.querySelectorAll('.rubro-card').forEach((card) => {
+            const idEval = card.getAttribute('data-id');
+            const data = evaluaciones[idEval];
             const badgeContainer = card.querySelector('.status-badge');
             
             let estadoText = "No Evaluado";
             let clase = "";
-            
-            if (evaluaciones[idEval].cumple === true) { estadoText = "CUMPLE"; clase = "cumple"; }
-            else if (evaluaciones[idEval].cumple === false) { estadoText = "NO CUMPLE"; clase = "nocumple"; }
+            if (data.cumple === true) { estadoText = "CUMPLE"; clase = "cumple"; }
+            else if (data.cumple === false) { estadoText = "NO CUMPLE"; clase = "nocumple"; }
 
             if(badgeContainer) {
                 badgeContainer.innerHTML = `<span class="status-pdf ${clase}">${estadoText}</span>`;
             }
+
+            // Preservar valores de inputs y selectores (Responsable)
+            const selectResp = card.querySelector('select');
+            if(selectResp) {
+                const spanResp = document.createElement('b');
+                spanResp.innerText = data.responsable;
+                selectResp.parentNode.replaceChild(spanResp, selectResp);
+            }
             
-            const inputs = card.querySelectorAll('input, textarea');
-            inputs.forEach(inp => {
-                const span = document.createElement('span');
-                span.style.display = 'block';
+            // Reemplazar inputs de texto/número por texto plano
+            card.querySelectorAll('input[type="number"], textarea').forEach(inp => {
+                const val = inp.value || "---";
+                const span = document.createElement('div');
+                span.style.fontSize = '13px';
                 span.style.marginTop = '5px';
-                span.style.fontSize = '14px';
-                span.innerText = inp.value;
+                span.innerText = val;
                 inp.parentNode.replaceChild(span, inp);
             });
         });
 
-        const listaErroresOriginal = document.getElementById('lista-errores');
-        const detalleClon = clon.querySelector('#detalle-incumplimiento');
-        if (listaErroresOriginal && listaErroresOriginal.innerHTML.trim() !== "") {
-            detalleClon.style.setProperty('display', 'block', 'important');
-        }
-
-        clon.querySelectorAll('.btn, .btn-container, .btn-clear, input[type="file"], select').forEach(el => el.remove());
-
-        const canvasOriginal = [document.getElementById('pad-encargado'), document.getElementById('pad-sistemas')];
-        const contenedoresFirmasClon = clon.querySelectorAll('.sig-container');
-
-        canvasOriginal.forEach((canv, index) => {
-            if (contenedoresFirmasClon[index]) {
-                const dataUrl = canv.toDataURL("image/png");
-                const imgFirma = document.createElement('img');
-                imgFirma.src = dataUrl;
-                imgFirma.style.width = '100%';
-                imgFirma.style.height = 'auto';
-                contenedoresFirmasClon[index].innerHTML = ''; 
-                contenedoresFirmasClon[index].appendChild(imgFirma); 
-            }
+        // 3. Reemplazar inputs del encabezado y cierre
+        clon.querySelectorAll('input, textarea').forEach(inp => {
+            const span = document.createElement('span');
+            span.innerText = inp.value;
+            inp.parentNode.replaceChild(span, inp);
         });
 
+        // 4. Inyectar Firmas
+        const canvasE = document.getElementById('pad-encargado');
+        const canvasS = document.getElementById('pad-sistemas');
+        
+        clon.querySelector('#cont-firma-encargado').innerHTML = `<img src="${canvasE.toDataURL()}" style="width:100%">`;
+        clon.querySelector('#cont-firma-sistemas').innerHTML = `<img src="${canvasS.toDataURL()}" style="width:100%">`;
+
+        // 5. Limpieza final de elementos UI
+        clon.querySelectorAll('.btn, .btn-container, .btn-clear, input[type="file"], select').forEach(el => el.remove());
+
         const opt = {
-            margin: [10, 10, 10, 10],
-            filename: `Reporte_IT_${document.getElementById('selSucursal').value || 'Sucursal'}.pdf`,
+            margin: [10, 10],
+            filename: `Reporte_IT_${document.getElementById('selSucursal').value || 'Final'}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { 
-                scale: 2, 
-                useCORS: true, 
-                letterRendering: true,
-                width: 800 
-            },
+            html2canvas: { scale: 2, useCORS: true },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
             pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
         };
 
-        html2pdf().set(opt).from(clon).save().catch(err => console.error(err));
+        html2pdf().set(opt).from(clon).save();
     };
 
     window.finalizarYRedirigir = function() {
@@ -523,11 +502,5 @@
     };
 </script>
 
-<script>
-    document.addEventListener('contextmenu', e => e.preventDefault());
-    document.onkeydown = e => {
-        if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
-    };
-</script>
 </body>
 </html>
