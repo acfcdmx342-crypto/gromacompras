@@ -419,7 +419,6 @@
         const original = document.getElementById('reporte-total');
         const clon = original.cloneNode(true);
         
-        // Ajuste de visibilidad de secciones para el clon
         clon.querySelectorAll('.section').forEach(s => {
             s.style.setProperty('display', 'block', 'important');
             s.style.setProperty('opacity', '1', 'important');
@@ -427,7 +426,6 @@
             s.style.padding = '20px';
         });
 
-        // Convertir estados de botones a texto formateado en el PDF
         clon.querySelectorAll('.rubro-card').forEach((card, index) => {
             const idEval = Object.keys(evaluaciones)[index];
             const badgeContainer = card.querySelector('.status-badge');
@@ -442,7 +440,6 @@
                 badgeContainer.innerHTML = `<span class="status-pdf ${clase}">${estadoText}</span>`;
             }
             
-            // Reemplazar inputs de texto por su valor real
             const inputs = card.querySelectorAll('input, textarea');
             inputs.forEach(inp => {
                 const span = document.createElement('span');
@@ -460,10 +457,8 @@
             detalleClon.style.setProperty('display', 'block', 'important');
         }
 
-        // Limpieza de botones y selectores
         clon.querySelectorAll('.btn, .btn-container, .btn-clear, input[type="file"], select').forEach(el => el.remove());
 
-        // Procesamiento de firmas
         const canvasOriginal = [document.getElementById('pad-encargado'), document.getElementById('pad-sistemas')];
         const contenedoresFirmasClon = clon.querySelectorAll('.sig-container');
 
