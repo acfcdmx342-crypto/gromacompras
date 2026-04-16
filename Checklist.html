@@ -48,7 +48,6 @@
         .status-btn.selected-cumple { background: var(--accent) !important; color: white !important; border-color: var(--accent); }
         .status-btn.selected-nocumple { background: var(--danger) !important; color: white !important; border-color: var(--danger); }
 
-        /* Estilos específicos para el PDF */
         .status-pdf { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; text-align: center; text-transform: uppercase; }
         .status-pdf.cumple { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .status-pdf.nocumple { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
@@ -151,7 +150,7 @@
             </div>
         </div>
         <div class="form-group">
-            <label>Hallazgos / Observaciones</label>
+            <label>Hallazgos / Observaciones Generales</label>
             <textarea id="obs_encargado" rows="3"></textarea>
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
@@ -289,7 +288,7 @@
             sec.items.forEach((item, i) => {
                 const itemTitle = typeof item === 'string' ? item : item.titulo;
                 const id = `r_${num}_${i}`;
-                evaluaciones[id] = { titulo: itemTitle, cumple: null, responsable: 'Tienda', evidencia: null };
+                evaluaciones[id] = { titulo: itemTitle, cumple: null, responsable: 'Tienda', evidencia: null, notas: "" };
                 
                 html += `
                 <div class="rubro-card" data-id="${id}">
@@ -309,6 +308,12 @@
                         <textarea placeholder="Detalle de nomenclatura..." onchange="evaluaciones['${id}'].detalle=this.value" style="margin-top:5px;"></textarea>
                     </div>`;
                 }
+
+                // CAMBIO REQUERIDO: Campo de texto adicional para notas por rubro
+                html += `
+                    <div class="form-group">
+                        <textarea placeholder="Notas u observaciones del rubro..." onchange="evaluaciones['${id}'].notas=this.value" style="font-size: 13px; height: 45px; margin-top: 10px;"></textarea>
+                    </div>`;
 
                 html += `
                     <div class="rubro-footer">
@@ -404,7 +409,6 @@
         const original = document.getElementById('reporte-total');
         const clon = original.cloneNode(true);
         
-        // 1. Mostrar todas las secciones
         clon.querySelectorAll('.section').forEach(s => {
             s.style.display = 'block';
             s.style.opacity = '1';
@@ -412,7 +416,6 @@
             s.style.padding = '20px';
         });
 
-        // 2. Reemplazar botones de estado por texto/etiquetas
         clon.querySelectorAll('.rubro-card').forEach((card) => {
             const idEval = card.getAttribute('data-id');
             const data = evaluaciones[idEval];
@@ -427,7 +430,6 @@
                 badgeContainer.innerHTML = `<span class="status-pdf ${clase}">${estadoText}</span>`;
             }
 
-            // Preservar valores de inputs y selectores (Responsable)
             const selectResp = card.querySelector('select');
             if(selectResp) {
                 const spanResp = document.createElement('b');
@@ -435,32 +437,29 @@
                 selectResp.parentNode.replaceChild(spanResp, selectResp);
             }
             
-            // Reemplazar inputs de texto/número por texto plano
             card.querySelectorAll('input[type="number"], textarea').forEach(inp => {
                 const val = inp.value || "---";
                 const span = document.createElement('div');
                 span.style.fontSize = '13px';
                 span.style.marginTop = '5px';
+                span.style.color = '#555';
                 span.innerText = val;
                 inp.parentNode.replaceChild(span, inp);
             });
         });
 
-        // 3. Reemplazar inputs del encabezado y cierre
         clon.querySelectorAll('input, textarea').forEach(inp => {
             const span = document.createElement('span');
             span.innerText = inp.value;
             inp.parentNode.replaceChild(span, inp);
         });
 
-        // 4. Inyectar Firmas
         const canvasE = document.getElementById('pad-encargado');
         const canvasS = document.getElementById('pad-sistemas');
         
         clon.querySelector('#cont-firma-encargado').innerHTML = `<img src="${canvasE.toDataURL()}" style="width:100%">`;
         clon.querySelector('#cont-firma-sistemas').innerHTML = `<img src="${canvasS.toDataURL()}" style="width:100%">`;
 
-        // 5. Limpieza final de elementos UI
         clon.querySelectorAll('.btn, .btn-container, .btn-clear, input[type="file"], select').forEach(el => el.remove());
 
         const opt = {
