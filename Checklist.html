@@ -236,12 +236,50 @@
 
     window.onload = async () => {
         document.getElementById('fecha_inicio').value = new Date().toLocaleString();
-        await cargarBaseDatos();
+        
+        // --- LÓGICA OFFLINE: REVISAR PENDIENTES ---
+        if(navigator.onLine) {
+            await cargarBaseDatos();
+            await sincronizarPendientes();
+        } else {
+            cargarCatalogoDesdeCache();
+        }
+
         window.sigEncargado = new SignaturePad(document.getElementById('pad-encargado'));
         window.sigSistemas = new SignaturePad(document.getElementById('pad-sistemas'));
     };
 
-    // FUNCIÓN PARA COMPRIMIR IMÁGENES (SOLUCIÓN MÓVIL)
+    // --- FUNCIONES DE PERSISTENCIA OFFLINE ---
+    async function sincronizarPendientes() {
+        const pendientes = JSON.parse(localStorage.getItem('visitasIT_pendientes') || "[]");
+        if(pendientes.length === 0) return;
+
+        console.log("Detectados registros offline. Sincronizando...");
+        for (let i = 0; i < pendientes.length; i++) {
+            try {
+                await push(ref(db, 'visitasIT'), pendientes[i]);
+                pendientes.splice(i, 1);
+                i--;
+            } catch (e) { console.error("Fallo sincro parcial", e); }
+        }
+        localStorage.setItem('visitasIT_pendientes', JSON.stringify(pendientes));
+        if(pendientes.length === 0) console.log("Sincronización completa.");
+    }
+
+    function cargarCatalogoDesdeCache() {
+        const cache = localStorage.getItem('cache_sucursales');
+        if(cache) {
+            catalogoReal = JSON.parse(cache);
+            poblarEmpresas();
+        }
+    }
+
+    function poblarEmpresas() {
+        const sel = document.getElementById('selEmpresa');
+        sel.innerHTML = '<option value="">Seleccione Empresa...</option>';
+        [...new Set(catalogoReal.map(c => c.empresa))].sort().forEach(e => sel.add(new Option(e, e)));
+    }
+
     async function comprimirImagen(base64) {
         return new Promise((resolve) => {
             const img = new Image();
@@ -274,11 +312,13 @@
                     zona: String(i.zona).toUpperCase(),
                     nombre: String(i.nombre).toUpperCase()
                 }));
-                const sel = document.getElementById('selEmpresa');
-                sel.innerHTML = '<option value="">Seleccione Empresa...</option>';
-                [...new Set(catalogoReal.map(c => c.empresa))].sort().forEach(e => sel.add(new Option(e, e)));
+                localStorage.setItem('cache_sucursales', JSON.stringify(catalogoReal));
+                poblarEmpresas();
             }
-        } catch (e) { alert("Error de conexión con Firebase"); }
+        } catch (e) { 
+            console.error("Error Firebase, intentando usar cache local");
+            cargarCatalogoDesdeCache();
+        }
     }
 
     window.cambioEmpresa = function() {
@@ -383,7 +423,6 @@
         });
     }
 
-    // MODIFICADO PARA MÓVILES: PREVIEW CON COMPRESIÓN
     window.previewImg = async function(input, containerId) {
         const id = containerId.replace('cont_', '');
         const container = document.getElementById(containerId);
@@ -399,7 +438,6 @@
                 reader.readAsDataURL(file);
             });
             
-            // Comprimir antes de guardar
             const fotoComprimida = await comprimirImagen(base64Original);
             evaluaciones[id].evidencia.push(fotoComprimida);
             
@@ -601,18 +639,32 @@
             detalleEvaluacion: evaluaciones
         };
 
-        // REFRESCAR REFERENCIA PARA EVITAR ERROR QUERY EN MÓVIL
         const nodoDestino = ref(db, 'visitasIT');
-        push(nodoDestino, nuevaVisita)
-        .then(() => {
-            alert("Evaluación Almacenada Correctamente");
-            window.location.href = "visitas.html";
-        })
-        .catch(err => { 
-            alert("Error al guardar: Posiblemente el archivo es muy pesado o no hay conexión."); 
-            console.error(err); 
-        });
+
+        // SI HAY INTERNET: GUARDAR DIRECTO
+        if(navigator.onLine) {
+            push(nodoDestino, nuevaVisita)
+            .then(() => {
+                alert("Evaluación Almacenada Correctamente");
+                window.location.href = "visitas.html";
+            })
+            .catch(err => { 
+                alert("Error al enviar a la nube. Guardando en dispositivo."); 
+                guardarOffline(nuevaVisita);
+            });
+        } else {
+            // SI NO HAY INTERNET: GUARDAR LOCALMENTE
+            guardarOffline(nuevaVisita);
+        }
     };
+
+    function guardarOffline(datos) {
+        const pendientes = JSON.parse(localStorage.getItem('visitasIT_pendientes') || "[]");
+        pendientes.push(datos);
+        localStorage.setItem('visitasIT_pendientes', JSON.stringify(pendientes));
+        alert("Sin conexión. La evaluación se guardó en el dispositivo y se enviará automáticamente al recuperar internet.");
+        window.location.href = "visitas.html";
+    }
 </script>
 
 <script>
