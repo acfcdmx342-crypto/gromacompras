@@ -72,10 +72,8 @@
         .btn-note { background: var(--warning); }
         .btn-delete { background: var(--danger); }
         
-        /* Contenedor del PDF (se mantiene oculto en pantalla) */
         #pdf-template { display: none; background: white; }
         
-        /* Modal */
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); }
         .modal-content { background: white; margin: 5% auto; padding: 25px; width: 50%; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
         .close { float: right; cursor: pointer; font-size: 28px; font-weight: bold; color: #999; }
@@ -117,7 +115,7 @@
         <span class="close" onclick="cerrarModal()">&times;</span>
         <h3 id="modalTitulo">Detalles de la Visita</h3>
         <hr>
-        <div id="listaPendientes" style="max-height: 400px; overflow-y: auto; margin-top: 15px;"></div>
+        <div id="listaPendientes"></div>
     </div>
 </div>
 
@@ -170,7 +168,7 @@ function pintarTabla(historial) {
     });
 }
 
-// ================== FUNCIÓN RECUPERAR PDF COMPLETO ==================
+// ================== FUNCIÓN RECUPERAR PDF ==================
 window.recuperarPDF = async function(id) {
     const snap = await get(ref(db, 'visitasIT/' + id));
     if(!snap.exists()) return alert("No se encontraron datos");
@@ -184,142 +182,48 @@ window.recuperarPDF = async function(id) {
         const item = v.detalleEvaluacion[key];
         const statusText = item.cumple ? "CUMPLE" : "NO CUMPLE";
         const statusColor = item.cumple ? "#27ae60" : "#e74c3c";
+
+        // 🔥 AQUÍ ESTÁ EL FIX
+        let imagenesHTML = `
+            <div style="width: 100px; height: 75px; background: #f9f9f9; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #999;">
+                Sin Evidencia
+            </div>
+        `;
+
+        if (item.evidencia && item.evidencia.length > 0) {
+            imagenesHTML = `
+                <div style="display:flex; flex-wrap:wrap; gap:5px;">
+                    ${item.evidencia.map(img => `
+                        <img src="${img}" style="width: 100px; height: 75px; object-fit: cover; border: 1px solid #ccc; border-radius: 4px;">
+                    `).join('')}
+                </div>
+            `;
+        }
         
-        // Se añade break-inside: avoid para que el bloque no se corte entre páginas
         detalleCompletoHTML += `
-            <div style="margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 10px; page-break-inside: avoid; break-inside: avoid;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                    <span style="font-size: 11px; font-weight: bold; color: #333;">${item.titulo}</span>
-                    <span style="font-size: 10px; font-weight: bold; color: ${statusColor}; border: 1px solid ${statusColor}; padding: 2px 6px; border-radius: 3px;">${statusText}</span>
+            <div style="margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 10px; page-break-inside: avoid;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="font-size: 11px; font-weight: bold;">${item.titulo}</span>
+                    <span style="font-size: 10px; font-weight: bold; color: ${statusColor};">${statusText}</span>
                 </div>
                 <div style="display: flex; gap: 15px;">
-                    ${item.evidencia ? 
-                        `<img src="${item.evidencia}" style="width: 100px; height: 75px; object-fit: cover; border: 1px solid #ccc; border-radius: 4px;">` : 
-                        `<div style="width: 100px; height: 75px; background: #f9f9f9; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #999;">Sin Evidencia</div>`
-                    }
-                    <div style="font-size: 10px; color: #555; flex: 1;">
-                        <p style="margin: 2px 0;"><b>Responsable:</b> ${item.responsable || 'No asignado'}</p>
-                        <p style="margin: 2px 0;"><b>Notas:</b> ${item.nota || 'Sin comentarios adicionales.'}</p>
+                    ${imagenesHTML}
+                    <div style="font-size: 10px;">
+                        <p><b>Responsable:</b> ${item.responsable || 'No asignado'}</p>
+                        <p><b>Notas:</b> ${item.nota || 'Sin comentarios adicionales.'}</p>
                     </div>
                 </div>
             </div>
         `;
     }
 
-    temp.innerHTML = `
-        <div style="padding: 30px; background: white; color: #333;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #003366; padding-bottom: 10px; margin-bottom: 20px;">
-                <img src="https://i.ytimg.com/vi/GQ2mlLhIck8/mqdefault.jpg" style="width: 100px;">
-                <div style="text-align: right;">
-                    <h2 style="color: #003366; margin: 0; font-size: 20px;">REPORTE DE EVALUACIÓN IT</h2>
-                    <p style="margin: 2px 0; font-size: 11px; color: #666;">Folio: <b style="color: #003366;">${v.folio}</b></p>
-                    <p style="margin: 2px 0; font-size: 11px; color: #666;">Fecha de Visita: ${v.fecha}</p>
-                </div>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; background: #f4f7f6; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 11px;">
-                <div>
-                    <p style="margin: 4px 0;"><b>Empresa:</b> ${v.empresa}</p>
-                    <p style="margin: 4px 0;"><b>Sucursal:</b> ${v.sucursal}</p>
-                </div>
-                <div>
-                    <p style="margin: 4px 0;"><b>Zona:</b> ${v.zona}</p>
-                    <p style="margin: 4px 0;"><b>Nivel de Cumplimiento:</b> <span style="font-size: 14px; color: #003366; font-weight: bold;">${v.cumplimiento}</span></p>
-                </div>
-            </div>
+    temp.innerHTML = `<div style="padding:20px;">${detalleCompletoHTML}</div>`;
 
-            <h4 style="background: #003366; color: white; padding: 6px 12px; margin-bottom: 15px; border-radius: 4px; font-size: 12px;">DETALLE COMPLETO DE LA EVALUACIÓN</h4>
-            ${detalleCompletoHTML}
+    html2pdf().from(temp).save();
 
-            <div style="margin-top: 20px; page-break-inside: avoid; break-inside: avoid;">
-                <h4 style="border-bottom: 2px solid #003366; color: #003366; padding-bottom: 5px; font-size: 12px;">OBSERVACIONES GENERALES</h4>
-                <p style="font-size: 10px; background: #fffdf5; padding: 10px; border: 1px solid #f39c12; border-radius: 4px; white-space: pre-line;">${v.observaciones || 'Sin observaciones registradas.'}</p>
-                <p style="font-size: 10px; margin-top: 5px;"><b>Fecha tentativa de solución:</b> ${v.fechaSolucion || 'N/A'}</p>
-            </div>
-
-            <div style="margin-top: 50px; display: flex; justify-content: space-around; text-align: center; font-size: 10px; page-break-inside: avoid; break-inside: avoid;">
-                <div style="width: 180px;">
-                    ${v.firmaEncargado ? `<img src="${v.firmaEncargado}" style="max-width: 140px; border-bottom: 1px solid #000;">` : `<div style="height: 60px; border-bottom: 1px solid #000;"></div>`}
-                    <p style="margin-top: 5px;"><b>FIRMA ENCARGADO</b><br>Responsable de Sucursal</p>
-                </div>
-                <div style="width: 180px;">
-                    ${v.firmaSistemas ? `<img src="${v.firmaSistemas}" style="max-width: 140px; border-bottom: 1px solid #000;">` : `<div style="height: 60px; border-bottom: 1px solid #000;"></div>`}
-                    <p style="margin-top: 5px;"><b>FIRMA SISTEMAS</b><br>Técnico Evaluador</p>
-                </div>
-            </div>
-        </div>
-    `;
-
-    const opt = {
-        margin: [10, 10],
-        filename: `Reporte_IT_${v.sucursal}_${v.folio}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['css', 'legacy'] } // Usa las reglas CSS para los saltos
-    };
-
-    temp.style.display = 'block'; 
-    html2pdf().set(opt).from(temp).save().then(() => {
-        temp.style.display = 'none';
-        temp.innerHTML = "";
-    });
-};
-
-// ================== OTRAS FUNCIONES ==================
-window.verPendientes = function(id) {
-    const visitasRef = ref(db, 'visitasIT/' + id);
-    onValue(visitasRef, (snap) => {
-        const visita = snap.val();
-        if(!visita) return;
-        const lista = document.getElementById('listaPendientes');
-        lista.innerHTML = "";
-        let hay = false;
-        for (let key in visita.detalleEvaluacion) {
-            const item = visita.detalleEvaluacion[key];
-            if (item.cumple === false) {
-                hay = true;
-                const div = document.createElement('div');
-                div.className = "fail-item";
-                div.innerHTML = `<b>${item.titulo}</b> <span class="badge-resp">${item.responsable}</span>`;
-                lista.appendChild(div);
-            }
-        }
-        if (!hay) lista.innerHTML = "<p style='text-align:center; color:green;'><b>100% Cumplimiento. No hay pendientes.</b></p>";
-        document.getElementById('modalPendientes').style.display = "block";
-    }, { onlyOnce: true });
-};
-
-window.eliminarRegistro = function(id) {
-    if(confirm("¿Estás seguro de eliminar este registro permanentemente?")) {
-        remove(ref(db, 'visitasIT/' + id));
-    }
-};
-
-window.agregarNota = function(id) {
-    const nota = prompt("Escribe la nota adicional para este reporte:");
-    if(!nota) return;
-    const refVisita = ref(db, 'visitasIT/' + id);
-    get(refVisita).then((snap) => {
-        const data = snap.val();
-        const nuevaObs = (data.observaciones || "") + "\n[NOTA " + new Date().toLocaleDateString() + "]: " + nota;
-        update(refVisita, { observaciones: nuevaObs });
-    });
-};
-
-window.cerrarModal = function() {
-    document.getElementById('modalPendientes').style.display = "none";
 };
 
 window.onload = cargarHistorial;
-</script>
-
-<script>
-    // Seguridad y Bloqueos
-    document.addEventListener('contextmenu', e => e.preventDefault());
-    document.onkeydown = e => {
-        if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
-    };
 </script>
 
 </body>
