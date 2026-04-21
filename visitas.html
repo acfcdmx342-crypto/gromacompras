@@ -115,7 +115,7 @@
         <span class="close" onclick="cerrarModal()">&times;</span>
         <h3 id="modalTitulo">Detalles de la Visita</h3>
         <hr>
-        <div id="listaPendientes"></div>
+        <div id="listaPendientes" style="max-height: 400px; overflow-y: auto; margin-top: 15px;"></div>
     </div>
 </div>
 
@@ -168,7 +168,7 @@ function pintarTabla(historial) {
     });
 }
 
-// ================== FUNCIÓN RECUPERAR PDF ==================
+// ================== FUNCIÓN RECUPERAR PDF COMPLETO ==================
 window.recuperarPDF = async function(id) {
     const snap = await get(ref(db, 'visitasIT/' + id));
     if(!snap.exists()) return alert("No se encontraron datos");
@@ -182,8 +182,8 @@ window.recuperarPDF = async function(id) {
         const item = v.detalleEvaluacion[key];
         const statusText = item.cumple ? "CUMPLE" : "NO CUMPLE";
         const statusColor = item.cumple ? "#27ae60" : "#e74c3c";
-
-        // 🔥 AQUÍ ESTÁ EL FIX
+        
+        // ✅ FIX: SOPORTE PARA ARRAY DE IMÁGENES
         let imagenesHTML = `
             <div style="width: 100px; height: 75px; background: #f9f9f9; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #999;">
                 Sin Evidencia
@@ -192,35 +192,34 @@ window.recuperarPDF = async function(id) {
 
         if (item.evidencia && item.evidencia.length > 0) {
             imagenesHTML = `
-                <div style="display:flex; flex-wrap:wrap; gap:5px;">
+                <div style="display:flex; flex-wrap:wrap; gap:5px; max-width:110px;">
                     ${item.evidencia.map(img => `
-                        <img src="${img}" style="width: 100px; height: 75px; object-fit: cover; border: 1px solid #ccc; border-radius: 4px;">
+                        <img src="${img}" style="width: 48px; height: 36px; object-fit: cover; border: 1px solid #ccc; border-radius: 4px;">
                     `).join('')}
                 </div>
             `;
         }
-        
+
         detalleCompletoHTML += `
-            <div style="margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 10px; page-break-inside: avoid;">
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="font-size: 11px; font-weight: bold;">${item.titulo}</span>
-                    <span style="font-size: 10px; font-weight: bold; color: ${statusColor};">${statusText}</span>
+            <div style="margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 10px; page-break-inside: avoid; break-inside: avoid;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <span style="font-size: 11px; font-weight: bold; color: #333;">${item.titulo}</span>
+                    <span style="font-size: 10px; font-weight: bold; color: ${statusColor}; border: 1px solid ${statusColor}; padding: 2px 6px; border-radius: 3px;">${statusText}</span>
                 </div>
                 <div style="display: flex; gap: 15px;">
                     ${imagenesHTML}
-                    <div style="font-size: 10px;">
-                        <p><b>Responsable:</b> ${item.responsable || 'No asignado'}</p>
-                        <p><b>Notas:</b> ${item.nota || 'Sin comentarios adicionales.'}</p>
+                    <div style="font-size: 10px; color: #555; flex: 1;">
+                        <p style="margin: 2px 0;"><b>Responsable:</b> ${item.responsable || 'No asignado'}</p>
+                        <p style="margin: 2px 0;"><b>Notas:</b> ${item.nota || 'Sin comentarios adicionales.'}</p>
                     </div>
                 </div>
             </div>
         `;
     }
 
-    temp.innerHTML = `<div style="padding:20px;">${detalleCompletoHTML}</div>`;
+    temp.innerHTML = `<div style="padding:30px;">${detalleCompletoHTML}</div>`;
 
     html2pdf().from(temp).save();
-
 };
 
 window.onload = cargarHistorial;
