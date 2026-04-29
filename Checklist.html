@@ -349,13 +349,17 @@
             selS.disabled = true;
         }
     };
-window.toggleComentario = function(id) {
+indow.toggleComentario = function(id) {
     const div = document.getElementById(`coment_${id}`);
+    const btn = event.currentTarget;
+
     div.style.display = div.style.display === 'none' ? 'block' : 'none';
-    };
-    
-    if(evaluaciones[id].comentario){
+
+    // Cambiar color si hay comentario
+    if (evaluaciones[id].comentario) {
         btn.style.color = 'red';
+    } else {
+        btn.style.color = 'black';
     }
 };
     function generarSecciones() {
