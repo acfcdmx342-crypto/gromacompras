@@ -396,7 +396,7 @@ window.toggleComentario = function(id) {
     <div id="coment_${id}" style="display:none; margin-top:10px;">
     <textarea 
         placeholder="Escribe un comentario..." 
-        onchange="evaluaciones['${id}'].comentario=this.value"
+        oninput="evaluaciones['${id}'].comentario=this.value"
         style="width:100%;"
     ></textarea>
 </div>
@@ -549,6 +549,8 @@ window.toggleComentario = function(id) {
     }
 
     window.generarPDF = function() {
+    document.querySelectorAll("textarea").forEach(t => t.dispatchEvent(new Event("input")));
+        
         if(window.sigEncargado.isEmpty() || window.sigSistemas.isEmpty()) {
             return alert("Faltan firmas obligatorias.");
         }
