@@ -352,8 +352,8 @@
 window.toggleComentario = function(id) {
     const div = document.getElementById(`coment_${id}`);
     div.style.display = div.style.display === 'none' ? 'block' : 'none';
+    };
     
-    const btn = div.previousElementSibling.querySelector('button');
     if(evaluaciones[id].comentario){
         btn.style.color = 'red';
     }
@@ -393,6 +393,11 @@ window.toggleComentario = function(id) {
                         <div class="status-badge">
                             <div class="status-btn" id="c_${id}" onclick="updateStatus('${id}', true, this)">Cumple</div>
                             <div class="status-btn" id="n_${id}" onclick="updateStatus('${id}', false, this)">No Cumple</div>
+ <!-- ICONO DE COMENTARIO -->
+         <button type="button" onclick="toggleComentario('${id}')" title="Agregar comentario" style="border:none; background:none; cursor:pointer; font-size:18px;">
+        💬
+    </button>
+  <!-- 👇 FUERA del header -->  
     <div id="coment_${id}" style="display:none; margin-top:10px;">
     <textarea 
         placeholder="Escribe un comentario..." 
@@ -400,12 +405,8 @@ window.toggleComentario = function(id) {
         style="width:100%;"
     ></textarea>
 </div>
-     <!-- ICONO DE COMENTARIO -->
-                            <button type="button" onclick="toggleComentario('${id}')" title="Agregar comentario" style="border:none; background:none; cursor:pointer; font-size:18px;">
-        💬
-    </button>
-                        </div>
-                    </div>`;
+</div>
+</div>`;
 
                 if (item.type === "nomenclatura") {
                     html += `
@@ -547,7 +548,8 @@ window.toggleComentario = function(id) {
         document.getElementById('sec-final').classList.add('active');
         window.scrollTo(0,0);
     }
-
+console.log(evaluaciones);
+    
     window.generarPDF = function() {
     document.querySelectorAll("textarea").forEach(t => t.dispatchEvent(new Event("input")));
         
