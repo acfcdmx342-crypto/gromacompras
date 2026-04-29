@@ -401,8 +401,8 @@
                         <div><label>Resp.</label><select onchange="evaluaciones['${id}'].responsable=this.value"><option>Tienda</option><option>Soporte</option><option>Supervisor</option></select></div>
                         <div>
                             <label>Evidencia (Máx 5)</label>
-   <button onclick="document.getElementById('cam_${id}').click()">📷Tomar Foto</button>
-<button onclick="document.getElementById('gal_${id}').click()">🖼️Elegir de Galería</button>
+   <button onclick="document.getElementById('cam_${id}').click()">📷</button>
+<button onclick="document.getElementById('gal_${id}').click()">🖼️</button>
 
 <input id="cam_${id}" type="file" accept="image/*" capture="environment" hidden onchange="window.previewImg(this, 'cont_${id}')">
 <input id="gal_${id}" type="file" accept="image/*" hidden onchange="window.previewImg(this, 'cont_${id}')">
