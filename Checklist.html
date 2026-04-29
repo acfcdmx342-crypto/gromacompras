@@ -401,7 +401,11 @@
                         <div><label>Resp.</label><select onchange="evaluaciones['${id}'].responsable=this.value"><option>Tienda</option><option>Soporte</option><option>Supervisor</option></select></div>
                         <div>
                             <label>Evidencia (Máx 5)</label>
-                          <input type="file" accept="image/*" capture="environment" multiple onchange="window.previewImg(this, 'cont_${id}')">
+                        <!--  input type="file" accept="image/*" capture="environment" multiple onchange="window.previewImg(this, 'cont_${id}')" -->
+    <!-- Cámara -->
+            <input type="file" accept="image/*" capture="environment" onchange="window.previewImg(this, 'cont_${id}')">
+    <!-- Galería -->
+            <input type="file" accept="image/*" onchange="window.previewImg(this, 'cont_${id}')">
                             <div id="cont_${id}" class="img-preview-container"></div>
                         </div>
                     </div>
