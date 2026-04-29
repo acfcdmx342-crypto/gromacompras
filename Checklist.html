@@ -402,10 +402,16 @@
                         <div>
                             <label>Evidencia (Máx 5)</label>
                         <!--  input type="file" accept="image/*" capture="environment" multiple onchange="window.previewImg(this, 'cont_${id}')" -->
-    <!-- Cámara -->
-            <input type="file" accept="image/*" capture="environment" onchange="window.previewImg(this, 'cont_${id}')">
-    <!-- Galería -->
-            <input type="file" accept="image/*" onchange="window.previewImg(this, 'cont_${id}')">
+    <!-- Cámara 
+            input type="file" accept="image/*" capture="environment" onchange="window.previewImg(this, 'cont_${id}')"-->
+    <!-- Galería 
+            input type="file" accept="image/*" onchange="window.previewImg(this, 'cont_${id}')" -->
+<button onclick="document.getElementById('cam_${id}').click()">Tomar Foto</button>
+<button onclick="document.getElementById('gal_${id}').click()">Elegir de Galería</button>
+
+<input id="cam_${id}" type="file" accept="image/*" capture="environment" hidden onchange="window.previewImg(this, 'cont_${id}')">
+<input id="gal_${id}" type="file" accept="image/*" hidden onchange="window.previewImg(this, 'cont_${id}')">
+            
                             <div id="cont_${id}" class="img-preview-container"></div>
                         </div>
                     </div>
