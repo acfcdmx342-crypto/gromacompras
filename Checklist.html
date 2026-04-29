@@ -422,7 +422,6 @@
             }
         });
     }
-<script>
     window.previewImg = async function(input, containerId) {
         const id = containerId.replace('cont_', '');
         const container = document.getElementById(containerId);
@@ -467,8 +466,7 @@
         // 🔥 limpiar input para permitir volver a seleccionar las mismas imágenes si se desea
         input.value = "";
     };
-</script>
-    
+   
     window.updateStatus = function(id, val, btn) {
         evaluaciones[id].cumple = val;
         btn.parentElement.querySelectorAll('.status-btn').forEach(b => b.classList.remove('selected-cumple', 'selected-nocumple'));
