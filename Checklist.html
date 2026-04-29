@@ -422,32 +422,53 @@
             }
         });
     }
-
+<script>
     window.previewImg = async function(input, containerId) {
         const id = containerId.replace('cont_', '');
         const container = document.getElementById(containerId);
-        container.innerHTML = "";
-        evaluaciones[id].evidencia = [];
 
-        const files = Array.from(input.files).slice(0, 5); 
-        
+        // 🔥 NO limpiar el contenedor ni el array
+        if (!evaluaciones[id].evidencia) {
+            evaluaciones[id].evidencia = [];
+        }
+
+        const disponibles = 5 - evaluaciones[id].evidencia.length;
+
+        if (disponibles <= 0) {
+            alert("Ya alcanzaste el límite de 5 imágenes.");
+            input.value = "";
+            return;
+        }
+
+        const files = Array.from(input.files).slice(0, disponibles);
+
         for (const file of files) {
             const base64Original = await new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.onload = (e) => resolve(e.target.result);
                 reader.readAsDataURL(file);
             });
-            
+
             const fotoComprimida = await comprimirImagen(base64Original);
+
+            // 🔥 ACUMULAR imágenes
             evaluaciones[id].evidencia.push(fotoComprimida);
-            
+
             const img = document.createElement('img');
             img.src = fotoComprimida;
             img.className = 'img-preview';
             container.appendChild(img);
         }
-    };
 
+        if (evaluaciones[id].evidencia.length >= 5) {
+            alert("Has llegado al máximo de 5 imágenes.");
+        }
+
+        // 🔥 limpiar input para permitir volver a seleccionar las mismas imágenes si se desea
+        input.value = "";
+    };
+</script>
+    
     window.updateStatus = function(id, val, btn) {
         evaluaciones[id].cumple = val;
         btn.parentElement.querySelectorAll('.status-btn').forEach(b => b.classList.remove('selected-cumple', 'selected-nocumple'));
