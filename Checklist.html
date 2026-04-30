@@ -361,6 +361,24 @@ window.toggleComentario = function(id, e) {
         btn.style.color = 'black';
     }
 };
+    window.abrirComentario = function(id, e) {
+    const div = document.getElementById(`coment_${id}`);
+    const textarea = document.getElementById(`txt_${id}`);
+
+    div.style.display = 'block';
+
+    // cargar comentario previo si existe
+    textarea.value = evaluaciones[id].comentario || "";
+};
+
+window.guardarComentario = function(id) {
+    const div = document.getElementById(`coment_${id}`);
+    const textarea = document.getElementById(`txt_${id}`);
+
+    evaluaciones[id].comentario = textarea.value;
+
+    div.style.display = 'none';
+};
     function generarSecciones() {
         const container = document.getElementById('dynamic-sections');
         container.innerHTML = ""; 
@@ -397,16 +415,28 @@ window.toggleComentario = function(id, e) {
                             <div class="status-btn" id="c_${id}" onclick="updateStatus('${id}', true, this)">Cumple</div>
                             <div class="status-btn" id="n_${id}" onclick="updateStatus('${id}', false, this)">No Cumple</div>
  <!-- ICONO DE COMENTARIO -->
-         <button type="button" onclick="toggleComentario('${id}', event)">💬
-    </button>
+        <button type="button" onclick="abrirComentario('${id}', event)">💬</button>
   <!-- 👇 FUERA del header -->  
-    <div id="coment_${id}" style="display:none; margin-top:10px;">
-   <textarea 
-    placeholder="Escribe un comentario..." 
-    onkeyup="evaluaciones['${id}'].comentario=this.value"
-    onchange="evaluaciones['${id}'].comentario=this.value"
+   <div id="coment_${id}" style="
+    display:none;
+    position:fixed;
+    top:50%;
+    left:50%;
+    transform:translate(-50%, -50%);
+    background:white;
+    padding:15px;
+    border-radius:10px;
+    box-shadow:0 5px 20px rgba(0,0,0,0.3);
+    z-index:9999;
+    width:300px;
+">
+<textarea 
+    id="txt_${id}"
+    placeholder="Escribe un comentario..."
     style="width:100%;"
 ></textarea>
+
+<button onclick="guardarComentario('${id}')">Guardar</button>
 </div>
 </div>
 </div>`;
@@ -731,6 +761,13 @@ console.log(evaluaciones);
         alert("Sin conexión. La evaluación se guardó en el dispositivo y se enviará automáticamente al recuperar internet.");
         window.location.href = "visitas.html";
     }
+    window.addEventListener('click', function(e) {
+    document.querySelectorAll('[id^="coment_"]').forEach(div => {
+        if (div.style.display === 'block' && !div.contains(e.target)) {
+            div.style.display = 'none';
+        }
+    });
+});
 </script>
 
 <script>
