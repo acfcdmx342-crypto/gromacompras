@@ -349,13 +349,12 @@
             selS.disabled = true;
         }
     };
-window.toggleComentario = function(id) {
+window.toggleComentario = function(id, e) {
     const div = document.getElementById(`coment_${id}`);
-    const btn = event.currentTarget;
+    const btn = e.currentTarget;
 
     div.style.display = div.style.display === 'none' ? 'block' : 'none';
 
-    // Cambiar color si hay comentario
     if (evaluaciones[id].comentario) {
         btn.style.color = 'red';
     } else {
@@ -398,16 +397,16 @@ window.toggleComentario = function(id) {
                             <div class="status-btn" id="c_${id}" onclick="updateStatus('${id}', true, this)">Cumple</div>
                             <div class="status-btn" id="n_${id}" onclick="updateStatus('${id}', false, this)">No Cumple</div>
  <!-- ICONO DE COMENTARIO -->
-         <button type="button" onclick="toggleComentario('${id}')" title="Agregar comentario" style="border:none; background:none; cursor:pointer; font-size:18px;">
-        💬
+         <button type="button" onclick="toggleComentario('${id}', event)">
     </button>
   <!-- 👇 FUERA del header -->  
     <div id="coment_${id}" style="display:none; margin-top:10px;">
-    <textarea 
-        placeholder="Escribe un comentario..." 
-        oninput="evaluaciones['${id}'].comentario=this.value"
-        style="width:100%;"
-    ></textarea>
+   <textarea 
+    placeholder="Escribe un comentario..." 
+    onkeyup="evaluaciones['${id}'].comentario=this.value"
+    onchange="evaluaciones['${id}'].comentario=this.value"
+    style="width:100%;"
+></textarea>
 </div>
 </div>
 </div>`;
@@ -555,6 +554,13 @@ window.toggleComentario = function(id) {
 console.log(evaluaciones);
     
     window.generarPDF = function() {
+        
+    Object.keys(evaluaciones).forEach(id => {
+        const textarea = document.querySelector(`#coment_${id} textarea`);
+        if (textarea) {
+            evaluaciones[id].comentario = textarea.value;
+        }
+    });
     document.querySelectorAll("textarea").forEach(t => t.dispatchEvent(new Event("input")));
         
         if(window.sigEncargado.isEmpty() || window.sigSistemas.isEmpty()) {
