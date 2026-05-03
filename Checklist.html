@@ -528,24 +528,51 @@ window.guardarComentario = function() {
         btn.parentElement.querySelectorAll('.status-btn').forEach(b => b.classList.remove('selected-cumple', 'selected-nocumple'));
         btn.classList.add(val ? 'selected-cumple' : 'selected-nocumple');
     };
+window.validarSiguiente = function(actual, sig) {
 
-    window.validarSiguiente = function(actual, sig) {
-        if(sig > actual && actual === 1 && !document.getElementById('selSucursal').value) return alert("Seleccione sucursal");
-        
-        const empresaSel = document.getElementById('selEmpresa').value;
-        const limite = (empresaSel === "FERREPRECIOS") ? rubrosFerreprecios.length + 1 : rubrosComex.length + 1;
+    // VALIDACIÓN INICIAL
+    if(sig > actual && actual === 1 && !document.getElementById('selSucursal').value) {
+        return alert("Seleccione sucursal");
+    }
 
-        if(sig > limite) {
-            calcularYMostrarResumen();
-        } else {
-            const idActual = actual === 'final' ? 'sec-final' : `sec${actual}`;
-            document.getElementById(idActual).classList.remove('active');
-            document.getElementById(`sec${sig}`).classList.add('active');
-            window.scrollTo(0,0);
+    // 🔥 VALIDAR SECCIÓN ACTUAL (OBLIGATORIO)
+    if (actual !== 1 && actual !== 'final') {
+
+        let faltantes = [];
+
+        Object.keys(evaluaciones).forEach(id => {
+            // SOLO validar los de la sección actual
+            if (id.startsWith(`r_${actual}_`)) {
+                if (evaluaciones[id].cumple === null) {
+                    faltantes.push(evaluaciones[id].titulo);
+                }
+            }
+        });
+
+        if (faltantes.length > 0) {
+            alert(
+                "Debes evaluar todos los puntos antes de continuar.\n\nFaltan:\n- " +
+                faltantes.join("\n- ")
+            );
+            return; // ❌ BLOQUEA avance
         }
-    };
+    }
 
-    function calcularYMostrarResumen() {
+    const empresaSel = document.getElementById('selEmpresa').value;
+    const limite = (empresaSel === "FERREPRECIOS") 
+        ? rubrosFerreprecios.length + 1 
+        : rubrosComex.length + 1;
+
+    if(sig > limite) {
+        calcularYMostrarResumen();
+    } else {
+        const idActual = actual === 'final' ? 'sec-final' : `sec${actual}`;
+        document.getElementById(idActual).classList.remove('active');
+        document.getElementById(`sec${sig}`).classList.add('active');
+        window.scrollTo(0,0);
+    }
+};
+ function calcularYMostrarResumen() {
         let total = Object.keys(evaluaciones).length, si = 0;
         let erroresHTML = "";
         
