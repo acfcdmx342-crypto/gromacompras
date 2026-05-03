@@ -419,21 +419,14 @@ window.toggleComentario = function(id, e) {
                         <span class="rubro-title">${itemTitle}</span>
                         <div class="status-badge">
                             <div class="status-btn" id="c_${id}" onclick="updateStatus('${id}', true, this)">Cumple</div>
-                            <div class="status-btn" id="n_${id}" onclick="updateStatus('${id}', false, this)">No Cumple</div>
+                            <div class="status-btn" id="n_${id}" onclick="updateStatus('${id}', false, this)">No Cumple</div>  
                             </div>
- <!-- ICONO DE COMENTARIO -->
-         <button type="button" onclick="toggleComentario('${id}', event)">💬</button>
-         <div id="coment_${id}" style="display:none; margin-top:10px;">
+                          </div>
+ <!-- ICONO DE COMENTARIO FUERA DEL HEADER-->
+         <button>💬</button>
+         <div id="coment">
   <!-- 👇 FUERA del header -->  
-    <div id="coment_${id}" style="display:none; margin-top:10px;">
-   <textarea 
-    placeholder="Escribe un comentario..." 
-    onkeyup="evaluaciones['${id}'].comentario=this.value"
-    onchange="evaluaciones['${id}'].comentario=this.value"
-    style="width:100%;"
-></textarea>
-</div>
-</div>
+   <textarea></textarea>
 </div>`;
 
                 if (item.type === "nomenclatura") {
