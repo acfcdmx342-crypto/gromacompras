@@ -599,7 +599,8 @@ window.validarSiguiente = function(actual, sig) {
         window.scrollTo(0,0);
     }
 console.log(evaluaciones);
-    
+ document.body.style.margin = "0";
+document.body.style.padding = "0";   
     window.generarPDF = function() {
         
     Object.keys(evaluaciones).forEach(id => {
@@ -722,16 +723,40 @@ console.log(evaluaciones);
         `;
         container.appendChild(footerDiv);
 
-        const opt = {
-            margin: [10, 10, 10, 10],
-            filename: `Reporte_IT_${sucursal}_${new Date().toLocaleDateString()}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-        };
+   const opt = {
+    margin: [5, 5, 5, 5], // menos espacio
+    filename: `Reporte_IT_${sucursal}_${new Date().toLocaleDateString()}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
 
-        html2pdf().set(opt).from(container).save().catch(err => console.error(err));
+    html2canvas: { 
+        scale: 2, 
+        useCORS: true,
+        windowWidth: 794 // 🔥 CLAVE PARA MÓVIL
+    },
+
+    jsPDF: { 
+        unit: 'mm', 
+        format: 'a4', 
+        orientation: 'portrait' 
+    },
+
+    pagebreak: { 
+        mode: ['css', 'legacy'],
+        avoid: ['.rubro-card', '.pdf-header-box'] // evita cortes feos
+    }
+};
+container.style.width = "794px"; // ancho A4 en px aprox
+container.style.margin = "0 auto";
+container.style.paddingTop = "0px";
+       html2pdf()
+    .set(opt)
+    .from(container)
+    .toPdf()
+    .get('pdf')
+    .then(function (pdf) {
+        pdf.internal.scaleFactor = 1.2; // ajusta zoom
+    })
+    .save();
     };
 
     window.finalizarYRedirigir = function() {
