@@ -369,17 +369,27 @@
             selS.disabled = true;
         }
     };
-window.toggleComentario = function(id, e) {
-    const div = document.getElementById(`coment_${id}`);
-    const btn = e.currentTarget;
+    let currentComentarioId = null;
 
-    div.style.display = div.style.display === 'none' ? 'block' : 'none';
+window.abrirModalComentario = function(id) {
+    currentComentarioId = id;
+    const modal = document.getElementById("modalComentario");
+    const textarea = document.getElementById("modalTextComentario");
 
-    if (evaluaciones[id].comentario) {
-        btn.style.color = 'red';
-    } else {
-        btn.style.color = 'black';
-    }
+    textarea.value = evaluaciones[id].comentario || "";
+    modal.style.display = "flex";
+};
+
+window.cerrarModal = function() {
+    document.getElementById("modalComentario").style.display = "none";
+};
+
+window.guardarComentario = function() {
+    const texto = document.getElementById("modalTextComentario").value;
+
+    evaluaciones[currentComentarioId].comentario = texto;
+
+    cerrarModal();
 };
     function generarSecciones() {
         const container = document.getElementById('dynamic-sections');
@@ -417,18 +427,8 @@ window.toggleComentario = function(id, e) {
                             <div class="status-btn" id="c_${id}" onclick="updateStatus('${id}', true, this)">Cumple</div>
                             <div class="status-btn" id="n_${id}" onclick="updateStatus('${id}', false, this)">No Cumple</div>
  <!-- ICONO DE COMENTARIO -->
-         <button type="button" onclick="toggleComentario('${id}', event)">💬
-    </button>
-  <!-- 👇 FUERA del header -->  
-    <div id="coment_${id}" style="display:none; margin-top:10px;">
-   <textarea 
-    placeholder="Escribe un comentario..." 
-    onkeyup="evaluaciones['${id}'].comentario=this.value"
-    onchange="evaluaciones['${id}'].comentario=this.value"
-    style="width:100%;"
-></textarea>
-</div>
-</div>
+       <button type="button" onclick="abrirModalComentario('${id}')">💬</button>
+ </div>
 </div>`;
 
                 if (item.type === "nomenclatura") {
@@ -759,5 +759,33 @@ console.log(evaluaciones);
         if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
     };
 </script>
+<!-- MODAL COMENTARIO -->
+<div id="modalComentario" style="
+    display:none;
+    position:fixed;
+    top:0; left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.5);
+    z-index:9999;
+    justify-content:center;
+    align-items:center;
+">
+    <div style="
+        background:white;
+        width:90%;
+        max-width:400px;
+        padding:20px;
+        border-radius:10px;
+    ">
+        <h3>Agregar comentario</h3>
+        <textarea id="modalTextComentario" style="width:100%; height:120px;"></textarea>
+
+        <div style="margin-top:15px; text-align:right;">
+            <button onclick="cerrarModal()">Cancelar</button>
+            <button onclick="guardarComentario()">Guardar</button>
+        </div>
+    </div>
+</div> 
 </body>
 </html>
