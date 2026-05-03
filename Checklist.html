@@ -83,7 +83,31 @@
 
         #detalle-incumplimiento { margin-top: 20px; padding: 15px; border: 1px dashed var(--danger); border-radius: 8px; background: #fff5f5; display: none; page-break-inside: avoid; }
         .item-error { color: var(--danger); font-weight: bold; font-size: 14px; margin-bottom: 5px; display: list-item; margin-left: 20px; }
-
+/* Mejora para móviles */
+@media (max-width: 768px) {
+   .rubro-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+   .status-badge {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+    .status-btn {
+        flex: 1;
+        text-align: center;
+    }
+    /* 🔥 CLAVE: textarea de comentarios */
+    textarea {
+        width: 100% !important;
+        font-size: 16px; /* evita zoom en iPhone */
+        box-sizing: border-box;
+    }
+    /* contenedor del comentario */
+    [id^="coment_"] {
+        width: 100%;
+    }
+}
         @media print {
             .section { display: block !important; margin-bottom: 20px; }
             .btn, .btn-clear, .btn-container, input[type="file"] { display: none !important; }
@@ -396,9 +420,10 @@ window.toggleComentario = function(id, e) {
                         <div class="status-badge">
                             <div class="status-btn" id="c_${id}" onclick="updateStatus('${id}', true, this)">Cumple</div>
                             <div class="status-btn" id="n_${id}" onclick="updateStatus('${id}', false, this)">No Cumple</div>
+                            </div>
  <!-- ICONO DE COMENTARIO -->
-         <button type="button" onclick="toggleComentario('${id}', event)">💬
-    </button>
+         <button type="button" onclick="toggleComentario('${id}', event)">💬</button>
+         <div id="coment_${id}" style="display:none; margin-top:10px;">
   <!-- 👇 FUERA del header -->  
     <div id="coment_${id}" style="display:none; margin-top:10px;">
    <textarea 
