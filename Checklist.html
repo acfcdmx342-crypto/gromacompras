@@ -599,8 +599,10 @@ window.validarSiguiente = function(actual, sig) {
         window.scrollTo(0,0);
     }
 console.log(evaluaciones);
- document.body.style.margin = "0";
+    
+document.body.style.margin = "0";
 document.body.style.padding = "0";   
+    
     window.generarPDF = function() {
         
     Object.keys(evaluaciones).forEach(id => {
@@ -616,8 +618,9 @@ document.body.style.padding = "0";
         }
 
         const container = document.createElement('div');
-        container.style.padding = '20px';
-        container.style.background = 'white';
+container.style.padding = '10px';
+container.style.margin = '0';
+container.style.width = '100%';
 
         const empresa = document.getElementById('selEmpresa').value;
         const zona = document.getElementById('selZona').value;
@@ -722,16 +725,15 @@ document.body.style.padding = "0";
             </div>
         `;
         container.appendChild(footerDiv);
-
-   const opt = {
-    margin: [5, 5, 5, 5], // menos espacio
+const opt = {
+    margin: [0, 0, 0, 0], // 🔥 sin márgenes
     filename: `Reporte_IT_${sucursal}_${new Date().toLocaleDateString()}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
+    image: { type: 'jpeg', quality: 0.95 },
 
     html2canvas: { 
-        scale: 2, 
+        scale: window.innerWidth < 768 ? 1.2 : 2, // 🔥 dinámico móvil/PC
         useCORS: true,
-        windowWidth: 794 // 🔥 CLAVE PARA MÓVIL
+        scrollY: -window.scrollY // 🔥 corrige offset en móvil
     },
 
     jsPDF: { 
@@ -742,10 +744,9 @@ document.body.style.padding = "0";
 
     pagebreak: { 
         mode: ['css', 'legacy'],
-        avoid: ['.rubro-card', '.pdf-header-box'] // evita cortes feos
+        avoid: ['.rubro-card', '.pdf-header-box']
     }
 };
-container.style.width = "794px"; // ancho A4 en px aprox
 container.style.margin = "0 auto";
 container.style.paddingTop = "0px";
        html2pdf()
@@ -754,7 +755,7 @@ container.style.paddingTop = "0px";
     .toPdf()
     .get('pdf')
     .then(function (pdf) {
-        pdf.internal.scaleFactor = 1.2; // ajusta zoom
+       
     })
     .save();
     };
