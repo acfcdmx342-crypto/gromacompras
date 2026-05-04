@@ -602,6 +602,7 @@ console.log(evaluaciones);
     
 document.body.style.margin = "0";
 document.body.style.padding = "0";   
+document.body.style.background = "white";    
     
     window.generarPDF = function() {
         
@@ -619,8 +620,8 @@ document.body.style.padding = "0";
 
         const container = document.createElement('div');
 container.style.padding = '10px';
-container.style.margin = '0';
-container.style.width = '100%';
+container.style.margin = '0 auto';
+container.style.width = '794px';
 
         const empresa = document.getElementById('selEmpresa').value;
         const zona = document.getElementById('selZona').value;
@@ -631,7 +632,7 @@ container.style.width = '100%';
         container.innerHTML = `
             <div style="text-align:center; margin-bottom:20px; border-bottom: 2px solid var(--primary); padding-bottom:10px;">
                 <img src="https://i.ytimg.com/vi/GQ2mlLhIck8/mqdefault.jpg" style="width:150px;">
-                <h1 style="color:var(--primary); margin:10px 0;">REPORTE DE EVALUACIÓN IT</h1>
+                <h1 style="color:#003366; margin:10px 0;">REPORTE DE EVALUACIÓN IT</h1>
             </div>
             
             <div class="pdf-header-box">
@@ -668,11 +669,16 @@ container.style.width = '100%';
             const itemDiv = document.createElement('div');
             itemDiv.style.borderBottom = "1px solid #eee";
             itemDiv.style.padding = "15px 0";
-            itemDiv.style.pageBreakInside = "avoid";
+pagebreak: { 
+    mode: ['css'],
+    avoid: ['.rubro-card', '.pdf-header-box', 'div']
+}
             
             let imagenesHTML = `<span style="font-size:10px; color:#999;">Sin Evidencia Fotográfica</span>`;
             if (ev.evidencia && ev.evidencia.length > 0) {
-                imagenesHTML = `<div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 5px;">`;
+                imagenesHTML = `<div>
+  <img style="width:32%; display:inline-block;">
+</div>;
                 ev.evidencia.forEach(imgSrc => {
                     imagenesHTML += `<img src="${imgSrc}" style="width:100%; height:80px; object-fit:cover; border:1px solid #eee; border-radius:3px;">`;
                 });
@@ -680,7 +686,10 @@ container.style.width = '100%';
             }
 
             itemDiv.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center;">
+<div style="display:table; width:100%;">
+  <div style="display:table-cell; width:70%;">...</div>
+  <div style="display:table-cell; text-align:right;">...</div>
+</div>
                     <strong style="font-size:14px; color:#2c3e50;">${ev.titulo}</strong>
                     <span class="status-pdf ${estadoClase}">${estadoText}</span>
                 </div>
@@ -726,14 +735,13 @@ container.style.width = '100%';
         `;
         container.appendChild(footerDiv);
 const opt = {
-    margin: [0, 0, 0, 0], // 🔥 sin márgenes
+    margin: [10, 10, 10, 10],
     filename: `Reporte_IT_${sucursal}_${new Date().toLocaleDateString()}.pdf`,
     image: { type: 'jpeg', quality: 0.95 },
 
     html2canvas: { 
-        scale: window.innerWidth < 768 ? 1.2 : 2, // 🔥 dinámico móvil/PC
-        useCORS: true,
-        scrollY: -window.scrollY // 🔥 corrige offset en móvil
+        scale: 2,
+        useCORS: true
     },
 
     jsPDF: { 
@@ -743,8 +751,8 @@ const opt = {
     },
 
     pagebreak: { 
-        mode: ['css', 'legacy'],
-        avoid: ['.rubro-card', '.pdf-header-box']
+        mode: ['css'],
+        avoid: ['.rubro-card', '.pdf-header-box', 'div']
     }
 };
 container.style.margin = "0 auto";
