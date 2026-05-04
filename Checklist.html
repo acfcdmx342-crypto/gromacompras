@@ -8,7 +8,851 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <style>
+        :root {<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evaluación de Sucursales - Reporte IT</title>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
         :root {
+            --primary: #003366;
+            --secondary: #f4f7f6;
+            --accent: #27ae60;
+            --danger: #e74c3c;
+            --border: #d1d8e0;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--secondary); margin: 0; color: #333; }
+        .container { max-width: 850px; margin: 0 auto; background: white; min-height: 100vh; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
+        
+        .section { display: none; padding: 30px; animation: fadeIn 0.4s; }
+        .section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        header { text-align: center; border-bottom: 3px solid var(--primary); padding-bottom: 15px; margin-bottom: 25px; }
+        .logo-container { width: 200px; margin: 0 auto 15px; display: block; }
+        .logo-container img { width: 100%; height: auto; display: block; }
+
+        .form-group { margin-bottom: 18px; }
+        label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; color: var(--primary); }
+        select, input, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; font-size: 15px; transition: border 0.3s; }
+
+        .rubro-card { 
+            background: #fff; 
+            border: 1px solid var(--border); 
+            border-radius: 8px; 
+            padding: 18px; 
+            margin-bottom: 15px; 
+            border-left: 5px solid var(--primary);
+            page-break-inside: avoid;
+        }
+        .rubro-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .rubro-title { font-weight: bold; font-size: 15px; color: #2c3e50; }
+        
+        .status-badge { display: flex; gap: 8px; }
+        .status-btn { padding: 8px 16px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; background: #fdfdfd; color: #7f8c8d; }
+        .status-btn.selected-cumple { background: var(--accent) !important; color: white !important; border-color: var(--accent); }
+        .status-btn.selected-nocumple { background: var(--danger) !important; color: white !important; border-color: var(--danger); }
+
+        .pdf-header-box { background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; border: 1px solid #eee; }
+        .pdf-blue-bar { background: var(--primary); color: white; padding: 10px 20px; font-weight: bold; border-radius: 5px; margin: 20px 0; text-transform: uppercase; }
+        .status-pdf { padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; text-align: center; border: 1px solid; }
+        .status-pdf.cumple { background: #e6f4ea; color: #1e7e34; border-color: #c3e6cb; }
+        .status-pdf.nocumple { background: #fce8e6; color: #d93025; border-color: #fad2cf; }
+
+        .rubro-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f0f0; }
+        
+        .img-preview-container { 
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .img-preview { 
+            width: 70px; 
+            height: 50px; 
+            object-fit: cover;
+            border-radius: 4px; 
+            border: 1px solid #ddd; 
+        }
+
+        .sig-container { border: 1px solid var(--border); background: #fafafa; margin-top: 5px; border-radius: 4px; }
+        canvas { width: 100%; height: 120px; touch-action: none; }
+
+        .btn-container { display: flex; gap: 10px; margin-top: 20px; }
+        .btn { padding: 14px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; transition: opacity 0.3s; }
+        .btn-next { background: var(--primary); color: white; }
+        .btn-back { background: #95a5a6; color: white; }
+        .btn-pdf { background: #34495e; color: white; margin-top: 10px;}
+        .btn-save { background: #2ecc71; color: white; margin-top: 10px;}
+        .btn-clear { background: #f1f2f6; color: #57606f; font-size: 11px; padding: 4px 10px; width: auto; border: 1px solid #ced4da; margin-top: 5px; }
+
+        #detalle-incumplimiento { margin-top: 20px; padding: 15px; border: 1px dashed var(--danger); border-radius: 8px; background: #fff5f5; display: none; page-break-inside: avoid; }
+        .item-error { color: var(--danger); font-weight: bold; font-size: 14px; margin-bottom: 5px; display: list-item; margin-left: 20px; }
+/* Mejora textarea en móvil */
+@media (max-width: 768px) {
+    textarea {
+        width: 100% !important;
+        min-height: 120px; /* más alto */
+        font-size: 16px; /* evita zoom en iPhone */
+        resize: vertical; /* permite agrandar */
+    }
+
+    /* Hace que el comentario ocupe todo el ancho */
+    .rubro-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    /* Botón y comentario más cómodos */
+    .rubro-header button {
+        align-self: flex-end;
+    }
+}
+        @media print {
+            .section { display: block !important; margin-bottom: 20px; }
+            .btn, .btn-clear, .btn-container, input[type="file"] { display: none !important; }
+            #detalle-incumplimiento { display: block !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="reporte-total">
+    <section id="sec1" class="section active">
+        <header>
+            <div class="logo-container">
+                <img src="https://i.ytimg.com/vi/GQ2mlLhIck8/mqdefault.jpg" alt="Logo Empresa">
+            </div>
+            <h2>Check List Sucursales</h2>
+        </header>
+        <div class="form-group">
+            <label>Fecha y Hora del Reporte</label>
+            <input type="text" id="fecha_inicio" readonly>
+        </div>
+        <div class="form-group">
+            <label>Empresa</label>
+            <select id="selEmpresa" onchange="cambioEmpresa()">
+                <option value="">Cargando empresas...</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Zona</label>
+            <select id="selZona" onchange="cargarSucursales()" disabled>
+                <option value="">Seleccione Zona...</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Sucursal</label>
+            <select id="selSucursal" disabled>
+                <option value="">Seleccione Sucursal...</option>
+            </select>
+        </div>
+        <button class="btn btn-next" onclick="validarSiguiente(1, 2)">Iniciar Evaluación</button>
+    </section>
+
+    <div id="dynamic-sections"></div>
+
+    <section id="sec-final" class="section">
+        <header id="header-final-pdf">
+            <div class="logo-container">
+                <img src="https://i.ytimg.com/vi/GQ2mlLhIck8/mqdefault.jpg" alt="Logo Empresa">
+            </div>
+            <h2 id="pdf-title-main">Cierre y Firmas</h2>
+        </header>
+        
+        <div class="score-display" style="text-align: center; margin-bottom: 20px;">
+            <label>Cumplimiento General</label>
+            <div class="score-circle" id="final-score" style="font-size: 48px; font-weight: 800; color: var(--accent);">0%</div>
+        </div>
+
+        <div id="detalle-incumplimiento">
+            <h3 style="color: var(--danger); margin-top: 0;">Puntos que NO CUMPLEN:</h3>
+            <div id="lista-errores"></div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+            <div class="form-group">
+                <label>Folio de Soporte</label>
+                <input type="text" id="folio_soporte" placeholder="Ej. TK-2026-001">
+            </div>
+            <div class="form-group">
+                <label>Fecha Tentativa Solución</label>
+                <input type="date" id="fecha_solucion">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Hallazgos / Observaciones</label>
+            <textarea id="obs_encargado" rows="3"></textarea>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="form-group">
+                <label>Firma Encargado de Sucursal</label>
+                <div class="sig-container"><canvas id="pad-encargado"></canvas></div>
+                <button class="btn-clear" onclick="sigEncargado.clear()">Borrar Firma</button>
+            </div>
+            <div class="form-group">
+                <label>Firma Técnico de Sistemas</label>
+                <div class="sig-container"><canvas id="pad-sistemas"></canvas></div>
+                <button class="btn-clear" onclick="sigSistemas.clear()">Borrar Firma</button>
+            </div>
+        </div>
+        
+        <div class="btn-container">
+            <button class="btn btn-back" id="btn-back-final">Regresar</button>
+            <button class="btn btn-pdf" onclick="generarPDF()">1. GENERAR REPORTE (PDF)</button>
+        </div>
+        <button class="btn btn-save" onclick="finalizarYRedirigir()">2. GUARDAR EN HISTORIAL Y SALIR</button>
+    </section>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, get, push } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = { databaseURL: "https://mydbu-fbc33-default-rtdb.firebaseio.com/" };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let catalogoReal = [];
+    let evaluaciones = {};
+    window.sigEncargado = null;
+    window.sigSistemas = null;
+
+    const rubrosComex = [
+        { titulo: "1- Sistema Punto de Venta", items: ["Personal Capacitado para Levantar Soporte", "TPV Limpia", "Impresora Limpia y Funcional", "Terminales Bancarias Funcionando", "NoBreak Funcionando", "Cables Organizados | Ocultos", "XStore Correctos", "Comex TV Configurada y Limpia", "Línea Telmex Funcionando", "MC con WhatsApp Empresas", "Módem Configurado", "Instalación Eléctrica Correcta","IP Limpio y Funcionando","Paginas del grupo añadidas"] },
+        { titulo: "2- Color Center (PC)", items: ["CPU Libre de Polvo","Nomenclatura Correcta", "Periféricos Limpios", "NoBreak Funcionando", "Cables Organizados", "Impresora de Etiquetas Funcionando", "Archivo Host Actualizado", "Sin Archivos ni Software No Autorizados", "Puertos USB Restringidos", "Base de Datos Actualizada", "Actualizaciones de Windows", "Respaldos Formula de Clientes", "Monitor en Buenas Condiciones"] },
+        { titulo: "3- Maquinaria (Dosificadora)", items: ["Esponja Humectada", "Centro de Boquillas Limpio", "Válvulas Check en Buen Estado", "Contenedores Limpios", "Motores de Agitación Lubricados", "Tarjetas electronicas en Buen Estado","UPS Funcionando","Cableado Organizado","Equipo Limpio"] },
+        { titulo: "4- Maquinaria (Revolvedora)", items: ["Cortina en Buen Estado", "Tornillo Sin Fin Lubricado", "Maneral en Buen Estado", "Baleros y Bandas en Buen Estado", "UPS Funcionando","Equipo Limpio"] },
+        { titulo: "5- Seguridad (CCTV)", items: ["Grabaciónes en DVR", "Cámaras Funcionando", "DVR Oculto", "UPS Funcionando", "Audio Funcionando","Cableado Oculto"] },
+        { titulo: "6- Activo Fijo", items: ["CPU Color Center Registrado", "Dosificadora Registrada", "Revolvedora Registrada", "Mini Revolvedora", "Impresora Dymo | HPRT Registrada","Impresora Laser Registrada","IP Registrado","DVR Registrado"] }
+    ];
+
+    const rubrosFerreprecios = [
+        { 
+            titulo: "1- Sistema Punto de Venta y Conexiones de internet / Comunicación", 
+            items: [
+                "Personal Capacitado para levantar soportes", 
+                "Equipos Limpios", 
+                { titulo: "Equipos con nomenclatura", type: "nomenclatura" },
+                "equipos con Antivirus",
+                "Impresora laser \"facturas\" Limpia y Funcional",
+                "Impresora de ticket limpia y Funcional",
+                "Impresora de etiquetas \"BarTender\" limpia y Funcional",
+                "Scanner limpios y funcionando",
+                "Terminales Bancarias Funcionando",
+                "NoBreak Funcionando",
+                "Cables Organizados | Ocultos",
+                "Línea Telmex Funcionando",
+                "Modem Perosnalizado",
+                "Ip Funcionando",
+                "Paginas del grupo añadidas"
+            ] 
+        },
+        { 
+            titulo: "2- sistemas de Seguridad CCTV", 
+            items: ["DVR Oculto y libre de polvo", "Cámaras con visualización correcta", "grabaciones en DVR", "Cableado Oculto", "UPS Funcionando", "Audio Funcionando"] 
+        },
+        { 
+            titulo: "3- activo fijo", 
+            items: ["Equipos de Computo Registrados", "Tabletas Registradas", "Impresoras Registradas", "DVR Registrado", "Ip Registrado"] 
+        }
+    ];
+
+    window.onload = async () => {
+        document.getElementById('fecha_inicio').value = new Date().toLocaleString();
+        
+        // --- LÓGICA OFFLINE: REVISAR PENDIENTES ---
+        if(navigator.onLine) {
+            await cargarBaseDatos();
+            await sincronizarPendientes();
+        } else {
+            cargarCatalogoDesdeCache();
+        }
+
+        window.sigEncargado = new SignaturePad(document.getElementById('pad-encargado'));
+        window.sigSistemas = new SignaturePad(document.getElementById('pad-sistemas'));
+    };
+
+    // --- FUNCIONES DE PERSISTENCIA OFFLINE ---
+    async function sincronizarPendientes() {
+        const pendientes = JSON.parse(localStorage.getItem('visitasIT_pendientes') || "[]");
+        if(pendientes.length === 0) return;
+
+        console.log("Detectados registros offline. Sincronizando...");
+        for (let i = 0; i < pendientes.length; i++) {
+            try {
+                await push(ref(db, 'visitasIT'), pendientes[i]);
+                pendientes.splice(i, 1);
+                i--;
+            } catch (e) { console.error("Fallo sincro parcial", e); }
+        }
+        localStorage.setItem('visitasIT_pendientes', JSON.stringify(pendientes));
+        if(pendientes.length === 0) console.log("Sincronización completa.");
+    }
+
+    function cargarCatalogoDesdeCache() {
+        const cache = localStorage.getItem('cache_sucursales');
+        if(cache) {
+            catalogoReal = JSON.parse(cache);
+            poblarEmpresas();
+        }
+    }
+
+    function poblarEmpresas() {
+        const sel = document.getElementById('selEmpresa');
+        sel.innerHTML = '<option value="">Seleccione Empresa...</option>';
+        [...new Set(catalogoReal.map(c => c.empresa))].sort().forEach(e => sel.add(new Option(e, e)));
+    }
+
+    async function comprimirImagen(base64) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.src = base64;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800; 
+                let width = img.width;
+                let height = img.height;
+
+                if (width > MAX_WIDTH) {
+                    height *= MAX_WIDTH / width;
+                    width = MAX_WIDTH;
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', 0.7)); // 0.7 = 70% calidad
+            };
+        });
+    }
+
+    async function cargarBaseDatos() {
+        try {
+            const snap = await get(ref(db, 'sucursales'));
+            if(snap.exists()) {
+                catalogoReal = Object.values(snap.val()).map(i => ({
+                    empresa: String(i.empresa).toUpperCase(),
+                    zona: String(i.zona).toUpperCase(),
+                    nombre: String(i.nombre).toUpperCase()
+                }));
+                localStorage.setItem('cache_sucursales', JSON.stringify(catalogoReal));
+                poblarEmpresas();
+            }
+        } catch (e) { 
+            console.error("Error Firebase, intentando usar cache local");
+            cargarCatalogoDesdeCache();
+        }
+    }
+
+    window.cambioEmpresa = function() {
+        const emp = document.getElementById('selEmpresa').value;
+        const selZ = document.getElementById('selZona');
+        const selS = document.getElementById('selSucursal');
+        selZ.innerHTML = '<option value="">Seleccione Zona...</option>';
+        selS.innerHTML = '<option value="">Seleccione Sucursal...</option>';
+        selS.disabled = true;
+        if(emp) {
+            selZ.disabled = false;
+            [...new Set(catalogoReal.filter(c => c.empresa === emp).map(c => c.zona))].sort().forEach(z => selZ.add(new Option(z, z)));
+            generarSecciones();
+        } else {
+            selZ.disabled = true;
+        }
+    };
+
+    window.cargarSucursales = function() {
+        const emp = document.getElementById('selEmpresa').value;
+        const zona = document.getElementById('selZona').value;
+        const selS = document.getElementById('selSucursal');
+        selS.innerHTML = '<option value="">Seleccione Sucursal...</option>';
+        if(zona) {
+            selS.disabled = false;
+            catalogoReal.filter(c => c.empresa === emp && c.zona === zona).sort((a,b) => a.nombre.localeCompare(b.nombre)).forEach(s => selS.add(new Option(s.nombre, s.nombre)));
+        } else {
+            selS.disabled = true;
+        }
+    };
+    let currentComentarioId = null;
+
+window.abrirModalComentario = function(id) {
+    currentComentarioId = id;
+    const modal = document.getElementById("modalComentario");
+    const textarea = document.getElementById("modalTextComentario");
+
+    textarea.value = evaluaciones[id].comentario || "";
+    modal.style.display = "flex";
+};
+
+window.cerrarModal = function() {
+    document.getElementById("modalComentario").style.display = "none";
+};
+
+window.guardarComentario = function() {
+    const texto = document.getElementById("modalTextComentario").value;
+
+    evaluaciones[currentComentarioId].comentario = texto;
+
+    cerrarModal();
+};
+    function generarSecciones() {
+        const container = document.getElementById('dynamic-sections');
+        container.innerHTML = ""; 
+        evaluaciones = {}; 
+        
+        const empresaSel = document.getElementById('selEmpresa').value;
+        const rubrosUsar = (empresaSel === "FERREPRECIOS") ? rubrosFerreprecios : rubrosComex;
+
+        rubrosUsar.forEach((sec, idx) => {
+            const num = idx + 2;
+            const s = document.createElement('section');
+            s.id = `sec${num}`;
+            s.className = 'section';
+            
+            let html = `
+                <header>
+                    <div class="logo-container">
+                        <img src="https://i.ytimg.com/vi/GQ2mlLhIck8/mqdefault.jpg" alt="Logo Empresa">
+                    </div>
+                    <h2>${sec.titulo}</h2>
+                </header>`;
+            
+            sec.items.forEach((item, i) => {
+                const itemTitle = typeof item === 'string' ? item : item.titulo;
+                const id = `r_${num}_${i}`;
+                evaluaciones[id] = { titulo: itemTitle, cumple: null, responsable: 'Tienda', evidencia: [],comentario:"" // 👈 NUEVO 
+                    };
+                
+                html += `
+                <div class="rubro-card">
+                    <div class="rubro-header">
+                        <span class="rubro-title">${itemTitle}</span>
+                        <div class="status-badge">
+                            <div class="status-btn" id="c_${id}" onclick="updateStatus('${id}', true, this)">Cumple</div>
+                            <div class="status-btn" id="n_${id}" onclick="updateStatus('${id}', false, this)">No Cumple</div>
+ <!-- ICONO DE COMENTARIO -->
+       <button type="button" onclick="abrirModalComentario('${id}')">💬</button>
+ </div>
+</div>`;
+
+                if (item.type === "nomenclatura") {
+                    html += `
+                    <div class="form-group" style="margin-top:10px;">
+                        <label>Número de equipos:</label>
+                        <input type="number" placeholder="Cant." onchange="evaluaciones['${id}'].cantEquipos=this.value">
+                        <textarea placeholder="Detalle de nomenclatura..." onchange="evaluaciones['${id}'].detalle=this.value" style="margin-top:5px;"></textarea>
+                    </div>`;
+                }
+
+                html += `
+                    <div class="rubro-footer">
+                        <div><label>Resp.</label><select onchange="evaluaciones['${id}'].responsable=this.value">
+                        <option>Tienda</option>
+                        <option>Soporte Técnico </option>
+                        <option>Supervisor</option>
+                        <option>Tienda / Soporte Técnico </option>
+                        <option>Supervisor / Tienda</option>
+                    </select>
+                        </div>
+                        <div>
+                            <label>Evidencia (Máx 5)</label>
+   <button onclick="document.getElementById('cam_${id}').click()">📷</button>
+<button onclick="document.getElementById('gal_${id}').click()">🖼️</button>
+
+<input id="cam_${id}" type="file" accept="image/*" capture="environment" hidden onchange="window.previewImg(this, 'cont_${id}')">
+<input id="gal_${id}" type="file" accept="image/*" hidden onchange="window.previewImg(this, 'cont_${id}')">
+            
+                            <div id="cont_${id}" class="img-preview-container"></div>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            
+            const esUltima = idx === rubrosUsar.length - 1;
+            html += `
+                <div class="btn-container">
+                    <button class="btn btn-back" onclick="validarSiguiente(${num}, ${num - 1})">Regresar</button>
+                    <button class="btn btn-next" onclick="validarSiguiente(${num}, ${num + 1})">${esUltima ? 'Finalizar Evaluación' : 'Continuar'}</button>
+                </div>`;
+            s.innerHTML = html;
+            container.appendChild(s);
+
+            if(esUltima) {
+                document.getElementById('btn-back-final').onclick = () => validarSiguiente('final', num);
+            }
+        });
+    }
+    window.previewImg = async function(input, containerId) {
+        const id = containerId.replace('cont_', '');
+        const container = document.getElementById(containerId);
+
+        // 🔥 NO limpiar el contenedor ni el array
+        if (!evaluaciones[id].evidencia) {
+            evaluaciones[id].evidencia = [];
+        }
+
+        const disponibles = 5 - evaluaciones[id].evidencia.length;
+
+        if (disponibles <= 0) {
+            alert("Ya alcanzaste el límite de 5 imágenes.");
+            input.value = "";
+            return;
+        }
+
+        const files = Array.from(input.files).slice(0, disponibles);
+
+        for (const file of files) {
+            const base64Original = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.readAsDataURL(file);
+            });
+
+            const fotoComprimida = await comprimirImagen(base64Original);
+
+            // 🔥 ACUMULAR imágenes
+            evaluaciones[id].evidencia.push(fotoComprimida);
+
+            const img = document.createElement('img');
+            img.src = fotoComprimida;
+            img.className = 'img-preview';
+            container.appendChild(img);
+        }
+
+        if (evaluaciones[id].evidencia.length >= 5) {
+            alert("Has llegado al máximo de 5 imágenes.");
+        }
+
+        // 🔥 limpiar input para permitir volver a seleccionar las mismas imágenes si se desea
+        input.value = "";
+    };
+   
+    window.updateStatus = function(id, val, btn) {
+        evaluaciones[id].cumple = val;
+        btn.parentElement.querySelectorAll('.status-btn').forEach(b => b.classList.remove('selected-cumple', 'selected-nocumple'));
+        btn.classList.add(val ? 'selected-cumple' : 'selected-nocumple');
+    };
+window.validarSiguiente = function(actual, sig) {
+
+    // VALIDACIÓN INICIAL
+    if(sig > actual && actual === 1 && !document.getElementById('selSucursal').value) {
+        return alert("Seleccione sucursal");
+    }
+
+    // 🔥 VALIDAR SECCIÓN ACTUAL (OBLIGATORIO)
+    if (actual !== 1 && actual !== 'final') {
+
+        let faltantes = [];
+
+        Object.keys(evaluaciones).forEach(id => {
+            // SOLO validar los de la sección actual
+            if (id.startsWith(`r_${actual}_`)) {
+                if (evaluaciones[id].cumple === null) {
+                    faltantes.push(evaluaciones[id].titulo);
+                }
+            }
+        });
+
+        if (faltantes.length > 0) {
+            alert(
+                "Debes evaluar todos los puntos antes de continuar.\n\nFaltan:\n- " +
+                faltantes.join("\n- ")
+            );
+            return; // ❌ BLOQUEA avance
+        }
+    }
+
+    const empresaSel = document.getElementById('selEmpresa').value;
+    const limite = (empresaSel === "FERREPRECIOS") 
+        ? rubrosFerreprecios.length + 1 
+        : rubrosComex.length + 1;
+
+    if(sig > limite) {
+        calcularYMostrarResumen();
+    } else {
+        const idActual = actual === 'final' ? 'sec-final' : `sec${actual}`;
+        document.getElementById(idActual).classList.remove('active');
+        document.getElementById(`sec${sig}`).classList.add('active');
+        window.scrollTo(0,0);
+    }
+};
+ function calcularYMostrarResumen() {
+        let total = Object.keys(evaluaciones).length, si = 0;
+        let erroresHTML = "";
+        
+        for(let k in evaluaciones) {
+            if(evaluaciones[k].cumple === true) {
+                si++;
+            } else if (evaluaciones[k].cumple === false) {
+                erroresHTML += `<div class="item-error">${evaluaciones[k].titulo}</div>`;
+            }
+        }
+
+        const divDetalle = document.getElementById('detalle-incumplimiento');
+        const listaErrores = document.getElementById('lista-errores');
+        if(erroresHTML !== "") {
+            listaErrores.innerHTML = erroresHTML;
+            divDetalle.style.display = "block";
+        } else {
+            divDetalle.style.display = "none";
+        }
+
+        document.getElementById('final-score').innerText = Math.round((si/total)*100) + '%';
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById('sec-final').classList.add('active');
+        window.scrollTo(0,0);
+    }
+console.log(evaluaciones);
+    
+document.body.style.margin = "0";
+document.body.style.padding = "0";   
+document.body.style.background = "white";    
+    
+    window.generarPDF = function() {
+    document.querySelectorAll("textarea").forEach(t => t.dispatchEvent(new Event("input")));
+        
+        if(window.sigEncargado.isEmpty() || window.sigSistemas.isEmpty()) {
+            return alert("Faltan firmas obligatorias.");
+        }
+
+        const container = document.createElement('div');
+container.style.padding = '10px';
+container.style.margin = '0 auto';
+container.style.width = '794px';
+
+        const empresa = document.getElementById('selEmpresa').value;
+        const zona = document.getElementById('selZona').value;
+        const sucursal = document.getElementById('selSucursal').value;
+        const score = document.getElementById('final-score').innerText;
+        const fecha = document.getElementById('fecha_inicio').value;
+
+        container.innerHTML = `
+            <div style="text-align:center; margin-bottom:20px; border-bottom: 2px solid var(--primary); padding-bottom:10px;">
+                <img src="https://i.ytimg.com/vi/GQ2mlLhIck8/mqdefault.jpg" style="width:150px;">
+                <h1 style="color:#003366; margin:10px 0;">REPORTE DE EVALUACIÓN IT</h1>
+            </div>
+            
+            <div class="pdf-header-box">
+                <div style="font-size: 14px; line-height: 1.6;">
+                    <strong>Empresa:</strong> ${empresa}<br>
+                    <strong>Sucursal:</strong> ${sucursal}<br>
+                    <strong>Zona:</strong> ${zona}<br>
+                    <strong>Fecha de Visita:</strong> ${fecha}
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size: 12px; color:#666;">Nivel de Cumplimiento</div>
+                    <div style="font-size: 32px; font-weight:800; color:var(--accent);">${score}</div>
+                </div>
+            </div>
+        `;
+
+        const erroresHTML = document.getElementById('lista-errores').innerHTML;
+        if(erroresHTML) {
+            container.innerHTML += `
+                <div style="background:#fff5f5; border:1px solid #e74c3c; border-radius:8px; padding:15px; margin-bottom:20px;">
+                    <h3 style="color:#e74c3c; margin:0 0 10px 0; font-size:16px;">PUNTOS QUE NO CUMPLEN:</h3>
+                    <div style="font-size:13px;">${erroresHTML}</div>
+                </div>
+            `;
+        }
+
+        container.innerHTML += `<div class="pdf-blue-bar">DETALLE COMPLETO DE LA EVALUACIÓN</div>`;
+
+        Object.keys(evaluaciones).forEach(id => {
+            const ev = evaluaciones[id];
+            const estadoText = ev.cumple === true ? "CUMPLE" : (ev.cumple === false ? "NO CUMPLE" : "NO EVALUADO");
+            const estadoClase = ev.cumple === true ? "cumple" : "nocumple";
+            
+            const itemDiv = document.createElement('div');
+            itemDiv.style.borderBottom = "1px solid #eee";
+            itemDiv.style.padding = "15px 0";
+pagebreak: { 
+    mode: ['css'],
+   avoid: ['.rubro-card', '.pdf-header-box']
+}
+            
+            let imagenesHTML = `<span style="font-size:10px; color:#999;">Sin Evidencia Fotográfica</span>`;
+            if (ev.evidencia && ev.evidencia.length > 0) {
+                imagenesHTML = `<div>
+  <img style="width:32%; display:inline-block;">
+</div>;
+                ev.evidencia.forEach(imgSrc => {
+                    imagenesHTML += `<img src="${imgSrc}" style="width:100%; height:80px; object-fit:cover; border:1px solid #eee; border-radius:3px;">`;
+                });
+                imagenesHTML += `</div>`;
+            }
+
+            itemDiv.innerHTML = `
+<div style="display:table; width:100%;">
+  <div style="display:table-cell; width:70%;">...</div>
+  <div style="display:table-cell; text-align:right;">...</div>
+</div>
+                    <strong style="font-size:14px; color:#2c3e50;">${ev.titulo}</strong>
+                    <span class="status-pdf ${estadoClase}">${estadoText}</span>
+                </div>
+                <div style="display:flex; gap:20px; margin-top:10px; align-items: flex-start;">
+                    <div style="width:250px; min-height:100px; background:#f9f9f9; padding:5px; border:1px dashed #ccc; text-align:center;">
+                        ${imagenesHTML}
+                    </div>
+                    <div style="font-size:12px; flex:1;">
+                        <strong>Responsable:</strong> ${ev.responsable}<br>
+                        ${ev.cantEquipos ? `<br><strong>Equipos:</strong> ${ev.cantEquipos}` : ''}
+                        <br>
+                    <strong>Comentario:</strong> ${ev.comentario || 'Sin comentario'}
+                    </div>
+                </div>
+            `;
+            container.appendChild(itemDiv);
+        });
+
+        const obs = document.getElementById('obs_encargado').value || "Sin observaciones registradas.";
+        const fechaSol = document.getElementById('fecha_solucion').value;
+        const folio = document.getElementById('folio_soporte').value;
+
+        const footerDiv = document.createElement('div');
+        footerDiv.style.marginTop = "30px";
+        footerDiv.style.pageBreakInside = "avoid";
+        footerDiv.innerHTML = `
+            <div class="pdf-blue-bar">OBSERVACIONES GENERALES</div>
+            <p style="font-size:13px; margin-bottom:10px;">${obs}</p>
+            <p style="font-size:13px;"><strong>Folio:</strong> ${folio} | <strong>Fecha tentativa de solución:</strong> ${fechaSol}</p>
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:40px; margin-top:40px; text-align:center;">
+                <div>
+                    <img src="${window.sigEncargado.toDataURL()}" style="width:200px; border-bottom:1px solid #000;">
+                    <div style="font-size:12px; font-weight:bold; margin-top:5px;">FIRMA ENCARGADO</div>
+                    <div style="font-size:10px; color:#666;">Responsable de Sucursal</div>
+                </div>
+                <div>
+                    <img src="${window.sigSistemas.toDataURL()}" style="width:200px; border-bottom:1px solid #000;">
+                    <div style="font-size:12px; font-weight:bold; margin-top:5px;">FIRMA SISTEMAS</div>
+                    <div style="font-size:10px; color:#666;">Técnico Evaluador</div>
+                </div>
+            </div>
+        `;
+        container.appendChild(footerDiv);
+const opt = {
+    margin: [10, 10, 10, 10],
+    filename: `Reporte_IT_${sucursal}_${new Date().toLocaleDateString()}.pdf`,
+    image: { type: 'jpeg', quality: 0.95 },
+
+    html2canvas: { 
+        scale: 2,
+        useCORS: true
+    },
+
+    jsPDF: { 
+        unit: 'mm', 
+        format: 'a4', 
+        orientation: 'portrait' 
+    },
+
+    pagebreak: { 
+        mode: ['css'],
+        avoid: ['.rubro-card', '.pdf-header-box', 'div']
+    }
+};
+container.style.margin = "0 auto";
+container.style.paddingTop = "0px";
+       html2pdf()
+    .set(opt)
+    .from(container)
+    .toPdf()
+    .get('pdf')
+    .then(function (pdf) {
+       
+    })
+    .save();
+    };
+
+    window.finalizarYRedirigir = function() {
+        const folio = document.getElementById('folio_soporte').value.trim();
+        const fechaSol = document.getElementById('fecha_solucion').value;
+        if(!folio || !fechaSol) return alert("Folio y Fecha son obligatorios.");
+        if(window.sigEncargado.isEmpty() || window.sigSistemas.isEmpty()) return alert("Firmas obligatorias.");
+
+        const nuevaVisita = {
+            fecha: document.getElementById('fecha_inicio').value,
+            empresa: document.getElementById('selEmpresa').value,
+            zona: document.getElementById('selZona').value,
+            sucursal: document.getElementById('selSucursal').value,
+            folio: folio,
+            cumplimiento: document.getElementById('final-score').innerText,
+            fechaSolucion: fechaSol,
+            observaciones: document.getElementById('obs_encargado').value,
+            detalleEvaluacion: evaluaciones
+        };
+
+        const nodoDestino = ref(db, 'visitasIT');
+
+        // SI HAY INTERNET: GUARDAR DIRECTO
+        if(navigator.onLine) {
+            push(nodoDestino, nuevaVisita)
+            .then(() => {
+                alert("Evaluación Almacenada Correctamente");
+                window.location.href = "visitas.html";
+            })
+            .catch(err => { 
+                alert("Error al enviar a la nube. Guardando en dispositivo."); 
+                guardarOffline(nuevaVisita);
+            });
+        } else {
+            // SI NO HAY INTERNET: GUARDAR LOCALMENTE
+            guardarOffline(nuevaVisita);
+        }
+    };
+
+    function guardarOffline(datos) {
+        const pendientes = JSON.parse(localStorage.getItem('visitasIT_pendientes') || "[]");
+        pendientes.push(datos);
+        localStorage.setItem('visitasIT_pendientes', JSON.stringify(pendientes));
+        alert("Sin conexión. La evaluación se guardó en el dispositivo y se enviará automáticamente al recuperar internet.");
+        window.location.href = "visitas.html";
+    }
+</script>
+
+<script>
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.onkeydown = e => {
+        if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
+    };
+</script>
+<!-- MODAL COMENTARIO -->
+<div id="modalComentario" style="
+    display:none;
+    position:fixed;
+    top:0; left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.5);
+    z-index:9999;
+    justify-content:center;
+    align-items:center;
+">
+    <div style="
+        background:white;
+        width:90%;
+        max-width:400px;
+        padding:20px;
+        border-radius:10px;
+    ">
+        <h3>Agregar comentario</h3>
+        <textarea id="modalTextComentario" style="width:100%; height:120px;"></textarea>
+
+        <div style="margin-top:15px; text-align:right;">
+            <button onclick="cerrarModal()">Cancelar</button>
+            <button onclick="guardarComentario()">Guardar</button>
+        </div>
+    </div>
+</div> 
+</body>
+</html>
             --primary: #003366;
             --secondary: #f4f7f6;
             --accent: #27ae60;
@@ -673,38 +1517,31 @@ pagebreak: {
     mode: ['css'],
     avoid: ['.rubro-card', '.pdf-header-box', 'div']
 }
-            
-            let imagenesHTML = `<span style="font-size:10px; color:#999;">Sin Evidencia Fotográfica</span>`;
-            if (ev.evidencia && ev.evidencia.length > 0) {
-                imagenesHTML = `<div>
-  <img style="width:32%; display:inline-block;">
-</div>;
-                ev.evidencia.forEach(imgSrc => {
-                    imagenesHTML += `<img src="${imgSrc}" style="width:100%; height:80px; object-fit:cover; border:1px solid #eee; border-radius:3px;">`;
-                });
-                imagenesHTML += `</div>`;
-            }
-
-            itemDiv.innerHTML = `
-<div style="display:table; width:100%;">
-  <div style="display:table-cell; width:70%;">...</div>
-  <div style="display:table-cell; text-align:right;">...</div>
-</div>
-                    <strong style="font-size:14px; color:#2c3e50;">${ev.titulo}</strong>
-                    <span class="status-pdf ${estadoClase}">${estadoText}</span>
-                </div>
-                <div style="display:flex; gap:20px; margin-top:10px; align-items: flex-start;">
-                    <div style="width:250px; min-height:100px; background:#f9f9f9; padding:5px; border:1px dashed #ccc; text-align:center;">
-                        ${imagenesHTML}
-                    </div>
-                    <div style="font-size:12px; flex:1;">
-                        <strong>Responsable:</strong> ${ev.responsable}<br>
-                        ${ev.cantEquipos ? `<br><strong>Equipos:</strong> ${ev.cantEquipos}` : ''}
-                        <br>
-                    <strong>Comentario:</strong> ${ev.comentario || 'Sin comentario'}
-                    </div>
-                </div>
-            `;
+let imagenesHTML = `<span style="font-size:10px; color:#999;">Sin Evidencia Fotográfica</span>`;
+if (ev.evidencia && ev.evidencia.length > 0) {
+    imagenesHTML = `<div style="display:flex; gap:5px; flex-wrap:wrap;">`;
+    ev.evidencia.forEach(imgSrc => {
+        imagenesHTML += `<img src="${imgSrc}" style="width:32%; height:80px; object-fit:cover; border:1px solid #eee; border-radius:3px;">`;
+    });
+    imagenesHTML += `</div>`;
+}
+ itemDiv.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <strong style="font-size:14px; color:#2c3e50;">${ev.titulo}</strong>
+        <span class="status-pdf ${estadoClase}">${estadoText}</span>
+    </div>
+    <div style="display:flex; gap:20px; margin-top:10px; align-items:flex-start;">
+        <div style="width:250px; min-height:100px; background:#f9f9f9; padding:5px; border:1px dashed #ccc; text-align:center;">
+            ${imagenesHTML}
+        </div>
+        <div style="font-size:12px; flex:1;">
+            <strong>Responsable:</strong> ${ev.responsable}<br>
+            ${ev.cantEquipos ? `<br><strong>Equipos:</strong> ${ev.cantEquipos}` : ''}
+            <br>
+            <strong>Comentario:</strong> ${ev.comentario || 'Sin comentario'}
+        </div>
+    </div>
+`;
             container.appendChild(itemDiv);
         });
 
@@ -749,11 +1586,7 @@ const opt = {
         format: 'a4', 
         orientation: 'portrait' 
     },
-
-    pagebreak: { 
-        mode: ['css'],
-        avoid: ['.rubro-card', '.pdf-header-box', 'div']
-    }
+ 
 };
 container.style.margin = "0 auto";
 container.style.paddingTop = "0px";
