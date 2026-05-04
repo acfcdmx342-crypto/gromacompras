@@ -193,8 +193,12 @@ window.recuperarPDF = async function(id) {
                     <span style="font-size: 10px; font-weight: bold; color: ${statusColor}; border: 1px solid ${statusColor}; padding: 2px 6px; border-radius: 3px;">${statusText}</span>
                 </div>
                 <div style="display: flex; gap: 15px;">
-                    ${item.evidencia ? 
-                        `<img src="${item.evidencia}" style="width: 100px; height: 75px; object-fit: cover; border: 1px solid #ccc; border-radius: 4px;">` : 
+                   ${item.evidencia ? 
+    `<div style="width:110px; height:80px; display:flex; align-items:center; justify-content:center; border:1px solid #ccc; border-radius:4px; overflow:hidden; background:#fff; page-break-inside: avoid; break-inside: avoid;">
+        <img src="${item.evidencia}" 
+             style="max-width:100%; max-height:100%; object-fit:contain; display:block;"
+             crossorigin="anonymous">
+     </div>` : 
                         `<div style="width: 100px; height: 75px; background: #f9f9f9; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #999;">Sin Evidencia</div>`
                     }
                     <div style="font-size: 10px; color: #555; flex: 1;">
@@ -254,7 +258,7 @@ window.recuperarPDF = async function(id) {
         margin: [10, 10],
         filename: `Reporte_IT_${v.sucursal}_${v.folio}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
+        html2canvas: { scale: 3, useCORS: true, logging: false },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         pagebreak: { mode: ['css', 'legacy'] } // Usa las reglas CSS para los saltos
     };
