@@ -2,12 +2,9 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-//--! RESPOINSIVA ADAPTABLE AL MOVIL --//
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Historial de Visitas IT</title>
-/* LIBRERIA PARA PDF */
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-/* ESTILOS CSS   */
     <style>
         :root {
             --primary: #003366;
@@ -18,9 +15,7 @@
             --warning: #f39c12;
             --dark: #34495e;
         }
-/* ESTILO GENERAL DEL SITIO */
         body { font-family: 'Segoe UI', sans-serif; background: var(--secondary); padding: 20px; color: #333; }
-/* CONTENEDOR (TARJETAS) */
         .card { 
             max-width: 1300px; 
             margin: 0 auto; 
@@ -29,7 +24,6 @@
             border-radius: 8px; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
         }
-// ALINEASION DE TITULO Y BOTONES EN UNA SOLA FILA
         .header-flex {
             display: flex;
             justify-content: space-between;
@@ -40,7 +34,6 @@
         }
 
         h2 { margin: 0; color: var(--primary); }
-// BOTON NUEVA EVALUACION
         .btn-nav {
             background: var(--primary);
             color: white;
@@ -52,11 +45,9 @@
             transition: background 0.3s;
         }
         .btn-nav:hover { background: #002244; }
-// ESTILO DE LA TABLA
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
         th, td { padding: 10px; border: 1px solid var(--border); text-align: left; }
         th { background: #f8f9fa; color: var(--primary); }
-//* ESTILO BASE PARA BOTONES DE VER,PDF,NOTA, BORRAR*/     
         .btn-action { 
             border: none; 
             padding: 5px 8px; 
@@ -74,27 +65,20 @@
         .btn-pdf { background: var(--dark); }
         .btn-note { background: var(--warning); }
         .btn-delete { background: var(--danger); }
-        
- /* Contenedor del PDF (se mantiene oculto en pantalla) */
         #pdf-template { display: none; background: white; }
-        
-/* Modal VENTANA EMERGENTE*/
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); }
         .modal-content { background: white; margin: 5% auto; padding: 25px; width: 50%; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
         .close { float: right; cursor: pointer; font-size: 28px; font-weight: bold; color: #999; }
-        
         .fail-item { border-left: 4px solid var(--danger); padding: 8px; margin-bottom: 5px; background: #fff5f5; font-size: 13px; }
         .badge-resp { background: #eee; padding: 2px 5px; border-radius: 3px; font-size: 11px; }
     </style>
 </head>
 <body>
-// CONTENEDOR PRINCIPAL 
 <div class="card">
     <div class="header-flex">
         <h2>Historial de Visitas IT</h2>
         <a href="Checklist.html" class="btn-nav">+ Nueva Evaluación</a>
     </div>
-// TABLA  DONDE SE CARGA FIREBASE
     <table id="tablaVisitas">
         <thead>
             <tr>
@@ -112,9 +96,7 @@
         <tbody></tbody>
     </table>
 </div>
-// CONTENEDOR PDF
 <div id="pdf-template"></div>
-// VENTANA EMERGENTEMODAL MUESTRA LOS PENDIENTES
 <div id="modalPendientes" class="modal">
     <div class="modal-content">
         <span class="close" onclick="cerrarModal()">&times;</span>
@@ -123,18 +105,14 @@
         <div id="listaPendientes" style="max-height: 400px; overflow-y: auto; margin-top: 15px;"></div>
     </div>
 </div>
-// CADENA FIREBASE BASE DE DATOS + URL
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getDatabase, ref, onValue, remove, update, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
 const firebaseConfig = {
     databaseURL: "https://mydbu-fbc33-default-rtdb.firebaseio.com/"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-// CAGA DE DATOS HISTORIAL
 function cargarHistorial() {
     const visitasRef = ref(db, 'visitasIT');
     onValue(visitasRef, (snapshot) => {
@@ -146,11 +124,9 @@ function cargarHistorial() {
         pintarTabla(historial);
     });
 }
-// SE CREA TABLA
 function pintarTabla(historial) {
     const tbody = document.querySelector('#tablaVisitas tbody');
     tbody.innerHTML = "";
-
     historial.reverse().forEach((visita) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -175,19 +151,15 @@ function pintarTabla(historial) {
 
 // ================== FUNCIÓN RECUPERAR PDF COMPLETO ==================
 window.recuperarPDF = async function(id) {
-   // OBTIENE LOS DATOS DE FIREBASE
     const snap = await get(ref(db, 'visitasIT/' + id));
     if(!snap.exists()) return alert("No se encontraron datos");
-    
     const v = snap.val();
     const temp = document.getElementById('pdf-template');
-  // RECORRE CADA PREGUNTA EVALUADA  
-    let detalleCompletoHTML = "";
+     let detalleCompletoHTML = "";
     for(let key in v.detalleEvaluacion) {
         const item = v.detalleEvaluacion[key];
         const statusText = item.cumple ? "CUMPLE" : "NO CUMPLE";
         const statusColor = item.cumple ? "#27ae60" : "#e74c3c";
-// 1. CORRECCIÓN DE IMÁGENES: Iterar sobre el Array 'evidencia' RECORRE CDA IMAGEN EINSERTA EN EL PDF
         let fotosHTML = "";
         if (item.evidencia && Array.isArray(item.evidencia) && item.evidencia.length > 0) {
             fotosHTML = `<div style="display: flex; flex-wrap: wrap; gap: 4px;">`;
@@ -201,7 +173,6 @@ window.recuperarPDF = async function(id) {
         } else {
             fotosHTML = `<div style="width: 100px; height: 55px; background: #f9f9f9; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #999;">Sin Evidencia</div>`;
         }
-// 2. CORRECCIÓN DE COMENTARIOS: Usar item.comentario en lugar de item.nota
         detalleCompletoHTML += `
             <div style="margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 8px; page-break-inside: avoid; break-inside: avoid;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
@@ -212,8 +183,7 @@ window.recuperarPDF = async function(id) {
                     <div style="flex: 0 0 auto;">${fotosHTML}</div>
                     <div style="font-size: 10px; color: #555; flex: 1;">
                         <p style="margin: 0;"><b>Responsable:</b> ${item.responsable || 'No asignado'}</p>
-// MUESTRA EL COMENTARIO CAPTURADO                        
-                        <p style="margin: 2px 0 0 0;"><b>Notas:</b> ${item.comentario || 'Sin comentarios adicionales.'}</p>
+                       <p style="margin: 2px 0 0 0;"><b>Notas:</b> ${item.comentario || 'Sin comentarios adicionales.'}</p>
                     </div>
                 </div>
             </div>
@@ -263,23 +233,17 @@ window.recuperarPDF = async function(id) {
             </div>
         </div>
     `;
-// CONFIGURACION DEL PDF
     const opt = {
         margin: [10, 10],
-// NOMBRE DEL ARCHIVO        
         filename: `Reporte_IT_${v.sucursal}_${v.folio}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-// CALIDAD DE LA IMAGEN
         html2canvas: { scale: 3, useCORS: true, logging: false },
-// TAMAÑO DE LA HOJA
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         pagebreak: { mode: ['css', 'legacy'] } // Usa las reglas CSS para los saltos
     };
 
     temp.style.display = 'block'; 
-// CONVIERTE HTML A PDF Y LO DESCARGA
     html2pdf().set(opt).from(temp).save().then(() => {
-// OCULTA EL CONTENEDOR 
         temp.style.display = 'none';
         temp.innerHTML = "";
     });
@@ -308,13 +272,11 @@ window.verPendientes = function(id) {
         document.getElementById('modalPendientes').style.display = "block";
     }, { onlyOnce: true });
 };
-
 window.eliminarRegistro = function(id) {
     if(confirm("¿Estás seguro de eliminar este registro permanentemente?")) {
         remove(ref(db, 'visitasIT/' + id));
     }
 };
-
 window.agregarNota = function(id) {
     const nota = prompt("Escribe la nota adicional para este reporte:");
     if(!nota) return;
@@ -325,11 +287,9 @@ window.agregarNota = function(id) {
         update(refVisita, { observaciones: nuevaObs });
     });
 };
-
 window.cerrarModal = function() {
     document.getElementById('modalPendientes').style.display = "none";
 };
-
 window.onload = cargarHistorial;
 </script>
 
@@ -340,6 +300,5 @@ window.onload = cargarHistorial;
         if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
     };
 </script>
-
 </body>
 </html>
