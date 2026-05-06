@@ -442,9 +442,9 @@ window.guardarComentario = function() {
 
                 html += `
                     <div class="rubro-footer">
-                        <div><label>Resp.</label><select onchange="evaluaciones['${id}'].responsable=this.value">
+                        <div><label>Resp.</label><select id="resp_${id}" onchange="evaluaciones['${id}'].responsable=this.value">
                         <option>Tienda</option>
-                        <option>Soporte Técnico </option>
+                        <option>Soporte Técnico</option>
                         <option>Supervisor</option>
                         <option>Tienda / Soporte Técnico </option>
                         <option>Supervisor / Tienda</option>
@@ -539,16 +539,13 @@ window.validarSiguiente = function(actual, sig) {
     if (actual !== 1 && actual !== 'final') {
 
         let faltantes = [];
-
-        Object.keys(evaluaciones).forEach(id => {
-            // SOLO validar los de la sección actual
-            if (id.startsWith(`r_${actual}_`)) {
-                if (evaluaciones[id].cumple === null) {
-                    faltantes.push(evaluaciones[id].titulo);
-                }
-            }
-        });
-
+// SOLO validar los de la sección actual
+    Object.keys(evaluaciones).forEach(id => {
+    const select = document.querySelector(`#resp_${id}`);
+    if (select) {
+        evaluaciones[id].responsable = select.value;
+    }
+});
         if (faltantes.length > 0) {
             alert(
                 "Debes evaluar todos los puntos antes de continuar.\n\nFaltan:\n- " +
