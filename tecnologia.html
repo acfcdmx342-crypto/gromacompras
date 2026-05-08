@@ -178,6 +178,7 @@
     const adminPuestos = ["GERENTE DE SISTEMAS", "JEFE DE INFRAESTRUCTURA Y SOPORTE TECNICO", "COORDINADOR DE SOPORTE TECNICO", "SOPORTE TECNICO SR", "SOPORTE TECNICO"];
     window.esAdmin = adminPuestos.includes(window.puestoSesion);
     window.esSoporteJR = window.puestoSesion === "SOPORTE TECNICO JR";
+    window.esCoordinador = window.puestoSesion === "COORDINADOR DE SOPORTE TECNICO";  // 👉 valida permiso boton
     document.getElementById("usuarioActivo").textContent = window.nombreSesion;
     document.getElementById("puestoActivo").textContent = window.puestoSesion;
     document.getElementById("soporte").value = window.nombreSesion;
@@ -239,7 +240,11 @@ onValue(solicitudesRef, sSnap => {
     <div class="d-flex justify-content-center gap-2">
         <span class="action-btn" onclick="verHistorial('${s.folio}')" title="Historial">📜</span>
         <span class="action-btn text-primary" onclick="editarRegistro('${doc.key}')" title="Editar">✏️</span>
-        
+
+        ${window.esCoordinador ? `
+<span class="action-btn text-danger" onclick="actualizarFolio('${doc.key}')" title="Actualizar Folio"><i class="fa-solid fa-hashtag"></i>
+</span>
+` : ''}
         ${statusActual === "NO AUTORIZADO" ? `
             <span class="action-btn text-danger" onclick="rechazarSolicitud('${doc.key}', '${s.folio}')" title="Enviar al Historial (Rechazado)">
                 <i class="fa-solid fa-trash-can"></i>
@@ -832,6 +837,151 @@ const todosSeguimientos = globalSeguimientos
         }
     }
 };
+// 👉 actualizacion de folio  en todo
+window.actualizarFolio = async (idKey) => {
+    try {
+        const docRef = ref(database, `tecnologia/${idKey}`);
+        const snap = await get(docRef);
+        if (!snap.exists()) {
+            return Swal.fire("Error", "No existe el registro", "error");
+        }
+        const data = snap.val();
+        const folioActual = data.folio;
+        const { value: nuevoFolio } = await Swal.fire({
+            title: 'Actualizar Folio',
+            html: `
+                <div class="text-start">
+                    <label class="fw-bold mb-2">Folio Actual</label>
+                    <input class="form-control mb-3" value="${folioActual}" readonly>
+                    <label class="fw-bold mb-2">Nuevo Folio</label>
+                    <input id="nuevo-folio"
+                           class="form-control text-uppercase"
+                           value="${folioActual}">
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: '🔄 Actualizar',
+            cancelButtonText: 'Cancelar',
+            preConfirm: async () => {
+                const nuevo =
+                    document.getElementById('nuevo-folio')
+                    .value
+                    .trim()
+                    .toUpperCase();
+                if (!nuevo) {
+                    Swal.showValidationMessage('Ingresa el nuevo folio');
+                    return false;
+                }
+                if (nuevo === folioActual) {
+                    Swal.showValidationMessage('El folio es igual al actual');
+                    return false;
+                }
+                // 🔥 VALIDAR DUPLICADOS
+                const tecSnap = await get(solicitudesRef);
+                let existe = false;
+                tecSnap.forEach(c => {
+                    const d = c.val();
+                    if (
+                        d.folio === nuevo &&
+                        c.key !== idKey
+                    ) {
+                        existe = true;
+                    }
+                });
+                if (existe) {
+                    Swal.showValidationMessage(
+                        'Ese folio ya existe'
+                    );
+                    return false;
+                }
+                return nuevo;
+            }
+        });
+        if (!nuevoFolio) return;
+        document.getElementById("loader").style.display = "flex";
+        // ===================================================
+        // 1. ACTUALIZAR TECNOLOGIA
+        // ===================================================
+        await update(docRef, {
+            folio: nuevoFolio
+        });
+        // ===================================================
+        // 2. ACTUALIZAR SEGUIMIENTOS
+        // ===================================================
+       const segSnap = await get(seguimientoRef);
+        if (segSnap.exists()) {
+            const updatesSeg = {};
+            segSnap.forEach(child => {
+                const seg = child.val();
+                if (seg.folio === folioActual) {
+                    updatesSeg[
+                        `${child.key}/folio`
+                    ] = nuevoFolio;
+                }
+            });
+            if (Object.keys(updatesSeg).length > 0) {
+                await update(seguimientoRef, updatesSeg);
+            }
+        }
+        // ===================================================
+        // 3. ACTUALIZAR HISTORIAL PERMANENTE
+        // ===================================================
+        const histSnap = await get(historialPermanenteRef);
+        if (histSnap.exists()) {
+            const updatesHist = {};
+            histSnap.forEach(child => {
+                const hist = child.val();
+                // ACTUALIZA FOLIO PRINCIPAL
+                if (hist.folio === folioActual) {
+                    updatesHist[
+                        `${child.key}/folio`
+                    ] = nuevoFolio;
+                }
+                // ACTUALIZA SEGUIMIENTOS INTERNOS
+                if (hist.seguimientos) {
+                   Object.keys(hist.seguimientos)
+                    .forEach(k => {
+                       const segInterno =
+                            hist.seguimientos[k];
+                        if (
+                            segInterno.folio === folioActual
+                        ) {
+                            updatesHist[
+                                `${child.key}/seguimientos/${k}/folio`
+                            ] = nuevoFolio;
+                        }
+                    });
+                }
+            });
+            if (Object.keys(updatesHist).length > 0) {
+
+                await update(
+                    historialPermanenteRef,
+                    updatesHist
+                );
+            }
+        }
+        document.getElementById("loader").style.display = "none";
+        Swal.fire({
+            icon: 'success',
+            title: 'Folio Actualizado',
+            html: `
+                <b>Anterior:</b> ${folioActual}
+                <br>
+                <b>Nuevo:</b> ${nuevoFolio}
+            `
+        });
+    } catch (error) {
+        console.error(error);
+        document.getElementById("loader").style.display = "none";
+        Swal.fire(
+            "Error",
+            "No se pudo actualizar el folio",
+            "error"
+        );
+    }
+};
+// 👉 empieza el cierre de sesion    
     window.cerrarSesion = () => { localStorage.clear(); location.href = "index.html"; };
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
