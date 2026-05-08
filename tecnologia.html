@@ -369,7 +369,7 @@ window.exportarExcel = async () => {
                     const empresa = document.getElementById('edit-empresa').value.trim();
                     const zona = document.getElementById('edit-zona').value.trim();
                     const sucursal = document.getElementById('edit-sucursal').value.trim();
-                    f (!empresa || !zona || !sucursal) {
+                    if (!empresa || !zona || !sucursal) {
                         Swal.showValidationMessage('todos los campos son obligatorios');
                         return false;
                     }
