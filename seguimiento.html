@@ -221,6 +221,7 @@
     const puestoUser = (sesion.puesto || "").toUpperCase();
     const usuarioActual = (sesion.nombre || "");
     const esJR = puestoUser === "SOPORTE TECNICO JR";
+    const esCoordinador = puestoUser === "COORDINADOR DE SOPORTE TECNICO";
     // Configuración de interfaz según ROL
     const selectStatus = document.getElementById("status");
     if (esJR) {
@@ -405,7 +406,117 @@
             }
         }
     };
+window.cambiarFolio = async (folioActual) => {
 
+    const { value: nuevoFolio } = await Swal.fire({
+        title: 'Cambiar Folio',
+        input: 'text',
+        inputLabel: 'Nuevo folio',
+        inputValue: folioActual,
+        showCancelButton: true,
+        confirmButtonText: 'Actualizar',
+        inputValidator: (value) => {
+            if (!value) {
+                return 'Debes escribir un folio';
+            }
+        }
+    });
+
+    if (!nuevoFolio || nuevoFolio === folioActual) return;
+
+    try {
+
+        window.mostrarCargando();
+
+        // =========================
+        // ACTUALIZAR TECNOLOGIA
+        // =========================
+        const qTec = query(
+            ref(database, "tecnologia"),
+            orderByChild("folio"),
+            equalTo(folioActual)
+        );
+
+        const snapTec = await get(qTec);
+
+        if (snapTec.exists()) {
+
+            const updatesTec = {};
+
+            Object.keys(snapTec.val()).forEach(key => {
+                updatesTec[`tecnologia/${key}/folio`] = nuevoFolio.toUpperCase();
+            });
+
+            await update(ref(database), updatesTec);
+        }
+
+        // =========================
+        // ACTUALIZAR SEGUIMIENTO
+        // =========================
+        const qSeg = query(
+            ref(database, "seguimiento"),
+            orderByChild("folio"),
+            equalTo(folioActual)
+        );
+
+        const snapSeg = await get(qSeg);
+
+        if (snapSeg.exists()) {
+
+            const updatesSeg = {};
+
+            Object.keys(snapSeg.val()).forEach(key => {
+                updatesSeg[`seguimiento/${key}/folio`] = nuevoFolio.toUpperCase();
+            });
+
+            await update(ref(database), updatesSeg);
+        }
+
+        // =========================
+        // ACTUALIZAR HISTORIAL
+        // =========================
+        const qHist = query(
+            ref(database, "historial_permanente"),
+            orderByChild("folio"),
+            equalTo(folioActual)
+        );
+
+        const snapHist = await get(qHist);
+
+        if (snapHist.exists()) {
+
+            const updatesHist = {};
+
+            Object.keys(snapHist.val()).forEach(key => {
+                updatesHist[`historial_permanente/${key}/folio`] = nuevoFolio.toUpperCase();
+            });
+
+            await update(ref(database), updatesHist);
+        }
+
+        window.ocultarCargando();
+
+        Swal.fire(
+            "Actualizado",
+            "El folio fue actualizado correctamente en todo el sistema.",
+            "success"
+        ).then(() => {
+            location.reload();
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        window.ocultarCargando();
+
+        Swal.fire(
+            "Error",
+            "No se pudo actualizar el folio.",
+            "error"
+        );
+    }
+};
     document.getElementById("btnGuardar").onclick = async () => {
         if (!selectFolio.value) return Swal.fire("Error", "Seleccione un folio", "error");
         window.mostrarCargando();
@@ -470,9 +581,26 @@
                     <td><span class="px-3 py-1 fw-bold small ${obtenerClaseEstatus(ultimo.status)}">${ultimo.status}</span></td>
                     <td><span class="badge bg-light text-dark border">${historial.length} mov.</span></td>
                     <td>
-                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#${collId}">Historial</button>
-                        ${!esJR ? `<i class="fa-solid fa-trash-can text-danger ms-2 fs-5" style="cursor:pointer" onclick="window.eliminarPermanente('${folio}')"></i>` : ''}
-                    </td>
+    <button class="btn btn-sm btn-outline-primary"
+        data-bs-toggle="collapse"
+        data-bs-target="#${collId}">
+        Historial
+    </button>
+
+    ${esCoordinador ? `
+        <button class="btn btn-sm btn-warning ms-2"
+            onclick="window.cambiarFolio('${folio}')">
+            <i class="fa-solid fa-pen"></i>
+        </button>
+    ` : ''}
+
+    ${!esJR ? `
+        <i class="fa-solid fa-trash-can text-danger ms-2 fs-5"
+            style="cursor:pointer"
+            onclick="window.eliminarPermanente('${folio}')">
+        </i>
+    ` : ''}
+</td>
                 </tr>
                 <tr>
                     <td colspan="6" class="p-0">
@@ -506,7 +634,6 @@ document.onkeydown = e => {
 </script>
 </body>
 </html>
-
 
 
 
