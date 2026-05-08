@@ -656,7 +656,7 @@ seguimientos: todosSeguimientos
             Swal.fire("Éxito", "Actualizado", "success");
         }
     };
-    window.guardarSolicitud = async () => {
+   window.guardarSolicitud = async () => {
         const emp = document.getElementById("empresa").value;
         const zon = document.getElementById("zona").value;
         const suc = document.getElementById("sucursal").value;
@@ -671,9 +671,17 @@ const colorCenter = centerCheck;
 let tipo = "COMPRAS";
 if (colorCenter) tipo = "COLOR CENTER";
 else if (local) tipo = "LOCAL";
- 
-        if(!emp || !zon || !suc || !arc) return Swal.fire("Error", "Faltan campos por completar", "error");
-        document.getElementById("loader").style.display = "flex";
+  if(!emp || !zon || !suc || !arc) return Swal.fire("Error", "Faltan campos por completar", "error");
+// 🚫 Bloquear zonas genéricas
+const zonasBloqueadas = ["CENTRO", "SUR", "NORTE"];
+if(zonasBloqueadas.includes(zon.toUpperCase().trim())){
+    return Swal.fire(
+        "Zona inválida",
+        "Ingresa tu zona correctamente",
+        "ERROR DE CAPTURA"
+    );
+}
+    document.getElementById("loader").style.display = "flex";
         const snap = await get(solicitudesRef);
         let contador = 1;
         if (snap.exists()) {
