@@ -367,12 +367,13 @@ window.exportarExcel = async () => {
                 cancelButtonText: 'Cancelar',
                 preConfirm: () => {
                     const empresa = document.getElementById('edit-empresa').value.trim();
+                    const zona = document.getElementById('edit-zona').value.trim();
                     const sucursal = document.getElementById('edit-sucursal').value.trim();
-                    if (!empresa || !sucursal) {
-                        Swal.showValidationMessage('Ambos campos son obligatorios');
+                    f (!empresa || !zona || !sucursal) {
+                        Swal.showValidationMessage('todos los campos son obligatorios');
                         return false;
                     }
-                    return { empresa: empresa.toUpperCase(), sucursal: sucursal.toUpperCase() };
+                    return { empresa: empresa.toUpperCase(),zona: zona.toUpperCase(),sucursal: sucursal.toUpperCase() };
                 }
             });
             if (formValues) {
