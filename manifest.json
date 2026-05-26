@@ -1,0 +1,9 @@
+{
+  "name": "Evaluación de Sucursales",
+  "short_name": "Evaluacion IT",
+  "start_url": "./Checklist.html",
+  "display": "standalone",
+  "background_color": "#f4f7f6",
+  "theme_color": "#003366",
+  "icons": []
+}
