@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Historial de Visitas IT</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         :root {
             --primary: #003366;
@@ -107,26 +106,85 @@
 </div>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, onValue, remove, update, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { getDatabase, ref, onValue, remove, update, get, query, limitToLast } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 const firebaseConfig = {
     databaseURL: "https://mydbu-fbc33-default-rtdb.firebaseio.com/"
 };
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const LIMITE_REGISTROS = 50;
+
+function crearResumenDesdeVisita(visita) {
+    return {
+        fecha: visita.fecha || '',
+        empresa: visita.empresa || '',
+        zona: visita.zona || '',
+        sucursal: visita.sucursal || '',
+        folio: visita.folio || '',
+        cumplimiento: visita.cumplimiento || '0%',
+        fechaSolucion: visita.fechaSolucion || '',
+        observaciones: visita.observaciones || ''
+    };
+}
+
 function cargarHistorial() {
-    const visitasRef = ref(db, 'visitasIT');
+    const tbody = document.querySelector('#tablaVisitas tbody');
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;">Cargando historial...</td></tr>`;
+
+    const visitasRef = query(ref(db, 'visitasITResumen'), limitToLast(LIMITE_REGISTROS));
+
     onValue(visitasRef, (snapshot) => {
         const data = snapshot.val() || {};
+
+        if (!snapshot.exists()) {
+            migrarResumenesUnaVez();
+            return;
+        }
+
         const historial = Object.entries(data).map(([id, val]) => ({
             id,
             ...val
         }));
+
         pintarTabla(historial);
     });
 }
+
+async function migrarResumenesUnaVez() {
+    const tbody = document.querySelector('#tablaVisitas tbody');
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;">Preparando historial rapido por primera vez...</td></tr>`;
+
+    const snap = await get(ref(db, 'visitasIT'));
+    const data = snap.val() || {};
+    const updates = {};
+
+    Object.entries(data).forEach(([id, visita]) => {
+        updates[id] = crearResumenDesdeVisita(visita);
+    });
+
+    if (Object.keys(updates).length === 0) {
+        pintarTabla([]);
+        return;
+    }
+
+    await update(ref(db, 'visitasITResumen'), updates);
+}
+
 function pintarTabla(historial) {
     const tbody = document.querySelector('#tablaVisitas tbody');
     tbody.innerHTML = "";
+
+    if (historial.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" style="text-align:center; color:#666;">
+                    No hay registros en visitasITResumen. Guarda los nuevos reportes creando tambien el resumen ligero.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
     historial.reverse().forEach((visita) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -149,8 +207,22 @@ function pintarTabla(historial) {
     });
 }
 
+async function cargarHtml2Pdf() {
+    if (window.html2pdf) return;
+
+    await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+        script.onload = resolve;
+        script.onerror = reject;
+        document.body.appendChild(script);
+    });
+}
+
 // ================== FUNCIÓN RECUPERAR PDF COMPLETO ==================
 window.recuperarPDF = async function(id) {
+    await cargarHtml2Pdf();
+
     const snap = await get(ref(db, 'visitasIT/' + id));
     if(!snap.exists()) return alert("No se encontraron datos");
     const v = snap.val();
@@ -246,37 +318,49 @@ window.recuperarPDF = async function(id) {
     html2pdf().set(opt).from(temp).save().then(() => {
         temp.style.display = 'none';
         temp.innerHTML = "";
+    }).catch(() => {
+        temp.style.display = 'none';
+        temp.innerHTML = "";
+        alert("No se pudo generar el PDF. Intenta de nuevo.");
     });
 };
 
 // ================== OTRAS FUNCIONES ==================
-window.verPendientes = function(id) {
-    const visitasRef = ref(db, 'visitasIT/' + id);
-    onValue(visitasRef, (snap) => {
-        const visita = snap.val();
-        if(!visita) return;
-        const lista = document.getElementById('listaPendientes');
-        lista.innerHTML = "";
-        let hay = false;
-        for (let key in visita.detalleEvaluacion) {
-            const item = visita.detalleEvaluacion[key];
-            if (item.cumple === false) {
-                hay = true;
-                const div = document.createElement('div');
-                div.className = "fail-item";
-                div.innerHTML = `<b>${item.titulo}</b> <span class="badge-resp">${item.responsable}</span>`;
-                lista.appendChild(div);
-            }
+window.verPendientes = async function(id) {
+    const snap = await get(ref(db, 'visitasIT/' + id));
+    const visita = snap.val();
+
+    if(!visita) return;
+
+    const lista = document.getElementById('listaPendientes');
+    lista.innerHTML = "";
+
+    let hay = false;
+
+    for (let key in visita.detalleEvaluacion || {}) {
+        const item = visita.detalleEvaluacion[key];
+
+        if (item.cumple === false) {
+            hay = true;
+            const div = document.createElement('div');
+            div.className = "fail-item";
+            div.innerHTML = `<b>${item.titulo}</b> <span class="badge-resp">${item.responsable || 'Sin responsable'}</span>`;
+            lista.appendChild(div);
         }
-        if (!hay) lista.innerHTML = "<p style='text-align:center; color:green;'><b>100% Cumplimiento. No hay pendientes.</b></p>";
-        document.getElementById('modalPendientes').style.display = "block";
-    }, { onlyOnce: true });
+    }
+
+    if (!hay) lista.innerHTML = "<p style='text-align:center; color:green;'><b>100% Cumplimiento. No hay pendientes.</b></p>";
+
+    document.getElementById('modalPendientes').style.display = "block";
 };
+
 window.eliminarRegistro = function(id) {
     if(confirm("¿Estás seguro de eliminar este registro permanentemente?")) {
         remove(ref(db, 'visitasIT/' + id));
+        remove(ref(db, 'visitasITResumen/' + id));
     }
 };
+
 window.agregarNota = function(id) {
     const nota = prompt("Escribe la nota adicional para este reporte:");
     if(!nota) return;
@@ -285,8 +369,14 @@ window.agregarNota = function(id) {
         const data = snap.val();
         const nuevaObs = (data.observaciones || "") + "\n[NOTA " + new Date().toLocaleDateString() + "]: " + nota;
         update(refVisita, { observaciones: nuevaObs });
+        update(ref(db, 'visitasITResumen/' + id), { observaciones: nuevaObs });
     });
 };
+
+window.guardarResumenVisita = function(id, visitaCompleta) {
+    return update(ref(db, 'visitasITResumen/' + id), crearResumenDesdeVisita(visitaCompleta));
+};
+
 window.cerrarModal = function() {
     document.getElementById('modalPendientes').style.display = "none";
 };
